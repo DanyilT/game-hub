@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Header from './components/layout/Header';
 import GameList from './components/games/GameList';
 import GamePage from './pages/GamePage';
@@ -10,7 +10,7 @@ import './App.css';
 
 function App() {
   return (
-    <Router basename="/game-hub">
+    <Router>
     <div className="App">
       <Header />
         <main className="main-content">
@@ -28,4 +28,4 @@ function App() {
   );
 }
 
-export default App; 
+export default App;
