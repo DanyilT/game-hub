@@ -19,7 +19,7 @@ const Footer = () => {
           <h3>Legal</h3>
           <ul>
             <li><Link to="/terms">Terms & Conditions</Link></li>
-            <li><a href="https://github.com/DanyilT/WebDev/" target="_blank" rel="noopener noreferrer">Repo of This</a></li>
+            <li><a href="https://github.com/DanyilT/game-hub/" target="_blank" rel="noopener noreferrer">Repo of This</a></li>
           </ul>
         </section>
 
