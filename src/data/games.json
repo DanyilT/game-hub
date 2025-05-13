@@ -1,0 +1,98 @@
+{
+  "games": [
+    {
+      "id": "snake",
+      "title": "Snake Game",
+      "description": "Classic Snake game where you control a snake to eat food and grow longer. Avoid hitting the walls or yourself!",
+      "about": "A classic Snake game with simple controls using arrow keys, wasd, or touch swipes. Perfect for quick, nostalgic gaming sessions and casual fun.",
+      "style": "Minimalistic design with a clean interface. Simple contrast colored b&w and sharp edged graphics. Old fashion retro style.",
+      "genre": ["action", "arcade"],
+      "tags": ["classic", "arcade", "snake", "retro"],
+      "features": [
+        "Responsive controls",
+        "Score tracking",
+        "High score system",
+        "Mobile-friendly",
+        "Easter Egg"
+      ],
+      "difficulty": "easy",
+      "rating": 0,
+      "controls": "Use arrow/wasd keys or swipe on mobile to control the snake.",
+      "imageUrl": "https://raw.githubusercontent.com/DanyilT/WebDev/refs/heads/main/Game/Snake/img/desktop-screenshot.png",
+      "playLink": "https://danyilt.github.io/WebDev/Game/Snake/",
+      "repoLink": "https://github.com/DanyilT/WebDev/blob/main/Game/Snake"
+    },
+    {
+      "id": "tetris",
+      "title": "TETRIS Game",
+      "description": "The classic block-stacking puzzle game. Rotate and move falling blocks to create complete lines.",
+      "about": "A modern take on the iconic Tetris game with smooth controls, next piece preview, and an engaging scoring system. Challenge yourself to achieve higher scores!",
+      "style": "Vibrant retro-inspired design with animated, colorful borders that cycle through classic Tetris piece colors. Modern UI elements with a nostalgic feel.",
+      "genre": ["puzzle"],
+      "tags": ["classic", "puzzle", "tetris", "blocks"],
+      "features": [
+          "Classic Tetris gameplay",
+          "Next piece preview",
+          "Score system",
+          "Level progression",
+          "Hold piece",
+          "Mobile-friendly",
+          "Easter Egg"
+      ],
+      "difficulty": "medium",
+      "rating": 0,
+      "controls": "Use arrow/wasd keys, control buttons, or swipe on mobile to control(move, rotate, drop) the pieces.",
+      "imagePath": "https://raw.githubusercontent.com/DanyilT/WebDev/refs/heads/main/Game/Tetris/img/desktop-screenshot.png",
+      "playLink": "https://danyilt.github.io/WebDev/Game/Tetris/",
+      "repoLink": "https://github.com/DanyilT/WebDev/blob/main/Game/Tetris"
+    },
+    {
+      "id": "minesweeper",
+      "title": "Minesweeper Game",
+      "description": "Test your logic and luck in this classic minesweeper game. Clear the board without hitting any mines.",
+      "about": "A faithful recreation of the classic Minesweeper game with multiple difficulty levels, timer, and mine counter. Perfect for strategy and logic puzzle enthusiasts.",
+      "style": "Authentic Windows 95/98 aesthetic with the classic teal background and gray UI elements featuring 3D beveled effects. Includes the iconic blue title bar, digital-style counter displays, and traditional cell styling with classic number colors - a perfect recreation of the nostalgic Windows experience. Windows 9x style.",
+      "genre": ["logical puzzle", "strategy"],
+      "tags": ["classic", "puzzle", "strategy", "minesweeper", "old windows"],
+      "features": [
+        "Multiple difficulty levels",
+        "Timer and mine counter",
+        "First-click safety",
+        "Flag system",
+        "Classic Windows 9x style",
+        "Mobile-friendly",
+        "Easter Egg"
+      ],
+      "difficulty": "medium",
+      "rating": 0,
+      "controls": "Left-click to reveal cells, right-click to flag mines.",
+      "imagePath": "https://raw.githubusercontent.com/DanyilT/WebDev/refs/heads/main/Game/Minesweeper/img/desktop-screenshot.png",
+      "playLink": "https://danyilt.github.io/WebDev/Game/Minesweeper/",
+      "repoLink": "https://github.com/DanyilT/WebDev/blob/main/Game/Minesweeper"
+    },
+    {
+      "id": "sudoku",
+      "title": "Sudoku Game",
+      "description": "Challenge your mind with this classic japanese number puzzle game. Fill the grid following Sudoku rules.",
+      "about": "Number-placement logic puzzle. Fill a 9×9 grid with digits so each column, row, and section contains all digits from 1 to 9.",
+      "style": "Modern Neomorphic design featuring soft shadows and subtle gradients on a light background. Uses purple accent colors, elegant rounded corners, and sophisticated shadow effects to create a clean, tactile interface. Includes visual feedback for valid/invalid entries and smooth transitions for a premium puzzle experience. Neomorphic/Neumorphism style.",
+      "genre": ["logic-based puzzle"],
+      "tags": ["classic", "puzzle", "logic", "sudoku", "numbers"],
+      "features": [
+        "Multiple difficulty levels",
+        "Auto-save progress",
+        "Validation",
+        "Number highlighting",
+        "Achievement tracking",
+        "Mobile-friendly",
+        "Easter Egg"
+      ],
+      "difficulty": "hard",
+      "rating": 0,
+      "controls": "Click cells and use number pad or keyboard to fill in values.",
+      "imageUrl": "https://raw.githubusercontent.com/DanyilT/WebDev/refs/heads/main/Game/Sudoku/img/desktop-screenshot.png",
+      "playLink": "https://danyilt.github.io/WebDev/Game/Sudoku/",
+      "repoLink": "https://github.com/DanyilT/WebDev/blob/main/Game/Sudoku"
+    }
+  ]
+}

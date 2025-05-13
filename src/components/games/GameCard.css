@@ -1,0 +1,243 @@
+.game-card {
+  position: relative;
+  width: 350px;
+  height: 450px;
+  background-color: var(--card-bg);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: 0 5px 15px color-mix(in srgb, var(--black) 20%, transparent);
+  transition: all var(--transition-normal) ease;
+  z-index: 1;
+}
+
+.game-card:hover {
+  transform: scale(1.02);
+  box-shadow: 0 8px 25px color-mix(in srgb, var(--black) 30%, transparent);
+}
+
+.game-image-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.game-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  position: relative;
+  z-index: 1;
+}
+
+.game-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--black) 50%, transparent),
+    color-mix(in srgb, var(--black) 10%, transparent),
+    color-mix(in srgb, var(--black) 100%, transparent)
+  );
+  padding: 25px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  opacity: 0;
+  transition: opacity var(--transition-normal) ease;
+  z-index: 2;
+}
+
+.game-card:hover .game-overlay {
+  opacity: 1;
+}
+
+.game-overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.game-header {
+  transform: translateY(-20px);
+  transition: transform var(--transition-normal) ease;
+}
+
+.game-card:hover .game-header {
+  transform: translateY(0);
+}
+
+.game-actions {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  transform: translateY(20px);
+  transition: transform var(--transition-normal) ease;
+}
+
+.game-card:hover .game-actions {
+  transform: translateY(0);
+}
+
+.action-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: color-mix(in srgb, var(--white) 20%, transparent);
+  font-size: 1.2em;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  backdrop-filter: blur(4px);
+  transition: all var(--transition-fast) ease;
+  text-decoration: none;
+  z-index: 3;
+}
+
+.action-button:hover {
+  background: color-mix(in srgb, var(--white) 30%, transparent);
+  transform: scale(1.1);
+}
+
+.action-button.play {
+  background: rgba(46, 204, 113, 0.3);
+}
+
+.action-button.play:hover {
+  background: rgba(46, 204, 113, 0.5);
+}
+
+.action-button.direct {
+  background: rgba(52, 152, 219, 0.3);
+}
+
+.action-button.direct:hover {
+  background: rgba(52, 152, 219, 0.5);
+}
+
+.action-button.code {
+  background: rgba(155, 89, 182, 0.3);
+}
+
+.action-button.code:hover {
+  background: rgba(155, 89, 182, 0.5);
+}
+
+.game-info {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  backdrop-filter: blur(10px);
+  background: rgba(0, 0, 0, 0.6);
+  padding: 25px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--transition-slow) ease, visibility var(--transition-slow), backdrop-filter var(--transition-slow) ease;
+  overflow-y: auto;
+  z-index: 4;
+  will-change: opacity, visibility, backdrop-filter;
+  transform: translateZ(0);
+}
+
+.game-info.show {
+  opacity: 1;
+  visibility: visible;
+  backdrop-filter: blur(10px);
+}
+
+.game-info::-webkit-scrollbar {
+  width: 2px;
+}
+
+.info-content h3 {
+  font-size: 1.5em;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.detail-item.about {
+  margin-top: 20px;
+  padding: 20px;
+  background: color-mix(in srgb, var(--black-light) 40%, transparent);
+  border-radius: 15px;
+}
+
+.game-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.game-tag {
+  background: color-mix(in srgb, var(--white) 10%, transparent);
+  color: var(--text-primary);
+  box-shadow: 0 2px 5px color-mix(in srgb, var(--black) 20%, transparent);
+  padding: 4px 12px;
+  border-radius: var(--radius-lg);
+  font-size: 0.8em;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-fast) ease;
+  transform: translateZ(0);
+}
+
+.game-tag:hover {
+  transform: translateY(-2px);
+  background: color-mix(in srgb, var(--white) 20%, transparent);
+}
+
+.game-tag.active {
+  background: linear-gradient(
+          to right,
+          rgba(255, 255, 255, 0.3),
+          rgba(255, 255, 255, 0.4)
+  );
+  box-shadow: 0 3px 7px rgba(255, 255, 255, 0.3);
+}
+
+.game-meta-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 25px;
+}
+
+.game-meta-tags .game-tag {
+  padding: 6px 15px;
+  font-size: 0.9em;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.game-tag.difficulty[data-difficulty="easy"] {
+  background: var(--difficulty-easy);
+}
+
+.game-tag.difficulty[data-difficulty="medium"] {
+  background: var(--difficulty-medium);
+}
+
+.game-tag.difficulty[data-difficulty="hard"] {
+  background: var(--difficulty-hard);
+}
+
+.game-tag.genre {
+  background: var(--genre-tag);
+}

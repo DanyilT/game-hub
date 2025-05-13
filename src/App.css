@@ -1,38 +1,79 @@
-.App {
-  text-align: center;
-}
-
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
+@keyframes rgb-border {
+  0% {
+    border-color: var(--header-gradient-1);
+    box-shadow: 0 0 15px var(--header-gradient-1);
+  }
+  20% {
+    border-color: var(--header-gradient-2);
+    box-shadow: 0 0 15px var(--header-gradient-2);
+  }
+  40% {
+    border-color: var(--header-gradient-3);
+    box-shadow: 0 0 15px var(--header-gradient-3);
+  }
+  60% {
+    border-color: var(--header-gradient-4);
+    box-shadow: 0 0 15px var(--header-gradient-4);
+  }
+  80% {
+    border-color: var(--header-gradient-5);
+    box-shadow: 0 0 15px var(--header-gradient-5);
+  }
+  100% {
+    border-color: var(--header-gradient-1);
+    box-shadow: 0 0 15px var(--header-gradient-1);
   }
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+@keyframes rgb-text {
+  0% {
+    color: var(--header-gradient-1);
+    text-shadow: 0 0 10px var(--header-gradient-1);
+  }
+  20% {
+    color: var(--header-gradient-2);
+    text-shadow: 0 0 10px var(--header-gradient-2);
+  }
+  40% {
+    color: var(--header-gradient-3);
+    text-shadow: 0 0 10px var(--header-gradient-3);
+  }
+  60% {
+    color: var(--header-gradient-4);
+    text-shadow: 0 0 10px var(--header-gradient-4);
+  }
+  80% {
+    color: var(--header-gradient-5);
+    text-shadow: 0 0 10px var(--header-gradient-5);
+  }
+  100% {
+    color: var(--header-gradient-1);
+    text-shadow: 0 0 10px var(--header-gradient-1);
+  }
 }
 
-.App-link {
-  color: #61dafb;
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+@media (max-width: 1200px) {
+
+}
+
+/* Utility Classes */
+.text-gradient {
+  background: linear-gradient(90deg,
+  var(--primary-purple),
+  var(--primary-purple-light),
+  var(--primary-pink),
+  var(--primary-green),
+  var(--primary-green-light),
+  var(--primary-purple)
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 300% auto;
+  animation: gradient-shift 6s ease infinite;
 }
