@@ -29,6 +29,12 @@ Your app is ready to be deployed!
 
 See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
 
+### `npm run deploy`
+
+Deploys the app to GitHub Pages.
+
+This will build the app and publish it to the gh-pages branch, making it accessible at https://danyilt.github.io/game-hub.
+
 ### `npm run eject`
 
 **Note: this is a one-way operation. Once you `eject`, you can't go back!**
