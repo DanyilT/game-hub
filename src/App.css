@@ -1,3 +1,26 @@
+.App {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Utility Classes */
+.text-gradient {
+  background: linear-gradient(90deg,
+  var(--primary-purple),
+  var(--primary-purple-light),
+  var(--primary-pink),
+  var(--primary-green),
+  var(--primary-green-light),
+  var(--primary-purple)
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 300% auto;
+  animation: gradient-shift 6s ease infinite;
+}
+
 @keyframes rgb-border {
   0% {
     border-color: var(--header-gradient-1);
@@ -60,20 +83,4 @@
 
 @media (max-width: 1200px) {
 
-}
-
-/* Utility Classes */
-.text-gradient {
-  background: linear-gradient(90deg,
-  var(--primary-purple),
-  var(--primary-purple-light),
-  var(--primary-pink),
-  var(--primary-green),
-  var(--primary-green-light),
-  var(--primary-purple)
-  );
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-size: 300% auto;
-  animation: gradient-shift 6s ease infinite;
 }

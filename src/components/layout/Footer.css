@@ -57,7 +57,7 @@
   left: 0;
   width: 100%;
   height: 1px;
-  background: linear-gradient(90deg, 
+  background: linear-gradient(90deg,
     var(--header-gradient-1),
     var(--header-gradient-2),
     var(--header-gradient-3),
