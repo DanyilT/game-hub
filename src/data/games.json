@@ -18,9 +18,9 @@
       "difficulty": "easy",
       "rating": 0,
       "controls": "Use arrow/wasd keys or swipe on mobile to control the snake.",
-      "imageUrl": "https://raw.githubusercontent.com/DanyilT/WebDev/refs/heads/main/Game/Snake/img/desktop-screenshot.png",
-      "playLink": "https://danyilt.github.io/WebDev/Game/Snake/",
-      "repoLink": "https://github.com/DanyilT/WebDev/blob/main/Game/Snake"
+      "imageUrl": "https://raw.githubusercontent.com/DanyilT/WebDev/refs/heads/page/games/snake/img/desktop-screenshot.png",
+      "playLink": "https://danyilt-games.pages.dev/snake",
+      "repoLink": "https://github.com/DanyilT/WebDev/tree/page/games/snake"
     },
     {
       "id": "tetris",
@@ -42,9 +42,9 @@
       "difficulty": "medium",
       "rating": 0,
       "controls": "Use arrow/wasd keys, control buttons, or swipe on mobile to control(move, rotate, drop) the pieces.",
-      "imagePath": "https://raw.githubusercontent.com/DanyilT/WebDev/refs/heads/main/Game/Tetris/img/desktop-screenshot.png",
-      "playLink": "https://danyilt.github.io/WebDev/Game/Tetris/",
-      "repoLink": "https://github.com/DanyilT/WebDev/blob/main/Game/Tetris"
+      "imagePath": "https://raw.githubusercontent.com/DanyilT/WebDev/refs/heads/page/games/tetris/img/desktop-screenshot.png",
+      "playLink": "https://danyilt-games.pages.dev/tetris",
+      "repoLink": "https://github.com/DanyilT/WebDev/tree/page/games/tetris"
     },
     {
       "id": "minesweeper",
@@ -66,9 +66,9 @@
       "difficulty": "medium",
       "rating": 0,
       "controls": "Left-click to reveal cells, right-click to flag mines.",
-      "imagePath": "https://raw.githubusercontent.com/DanyilT/WebDev/refs/heads/main/Game/Minesweeper/img/desktop-screenshot.png",
-      "playLink": "https://danyilt.github.io/WebDev/Game/Minesweeper/",
-      "repoLink": "https://github.com/DanyilT/WebDev/blob/main/Game/Minesweeper"
+      "imagePath": "https://raw.githubusercontent.com/DanyilT/WebDev/refs/heads/page/games/minesweeper/img/desktop-screenshot.png",
+      "playLink": "https://danyilt-games.pages.dev/minesweeper",
+      "repoLink": "https://github.com/DanyilT/WebDev/tree/page/games/minesweeper"
     },
     {
       "id": "sudoku",
@@ -90,9 +90,9 @@
       "difficulty": "hard",
       "rating": 0,
       "controls": "Click cells and use number pad or keyboard to fill in values.",
-      "imageUrl": "https://raw.githubusercontent.com/DanyilT/WebDev/refs/heads/main/Game/Sudoku/img/desktop-screenshot.png",
-      "playLink": "https://danyilt.github.io/WebDev/Game/Sudoku/",
-      "repoLink": "https://github.com/DanyilT/WebDev/blob/main/Game/Sudoku"
+      "imageUrl": "https://raw.githubusercontent.com/DanyilT/WebDev/refs/heads/page/games/sudoku/img/desktop-screenshot.png",
+      "playLink": "https://danyilt-games.pages.dev/sudoku",
+      "repoLink": "https://github.com/DanyilT/WebDev/tree/page/games/sudoku"
     }
   ]
 }
