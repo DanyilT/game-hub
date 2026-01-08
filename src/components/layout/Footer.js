@@ -33,7 +33,7 @@ const Footer = () => {
       </div>
 
       <div className="footer-bottom">
-        <p><strong>&copy; {new Date().getFullYear()} <b>Dany</b>.</strong> All rights reserved.</p>
+        <p><strong>&copy; 2025-{new Date().getFullYear()} <b>Dany</b>.</strong> All rights reserved.</p>
       </div>
     </footer>
   );

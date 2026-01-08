@@ -40,6 +40,16 @@ To get started with the project, follow these steps:
    npm start
     ```
     This will start the application in development mode. Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+4. **Build for production**:
+   ```bash
+   npm run build
+   ```
+   This will create an optimized production build in the `build` folder.
+5. **Deploy to GitHub Pages**:
+   ```bash
+   npm run deploy
+   ```
+   This will deploy the built application to the `gh-pages` branch of the repository.
 
 ## 🛠️ Technologies Used
 
