@@ -1,0 +1,32 @@
+@use '../../../styles/abstracts/variables' as *;
+@use '../../../styles/abstracts/mixins';
+
+.infoTip {
+  position: relative;
+  display: inline-flex;
+}
+
+.button {
+  width: 24px;
+  height: 24px;
+  border-radius: $radius-full;
+  background: $color-primary;
+  font-style: italic;
+  font-weight: $font-weight-bold;
+  transition: background $transition-base ease;
+
+  &:hover {
+    background: color-mix(in srgb, $color-primary 75%, $color-primary-light);
+  }
+}
+
+// Opens to the right of the button
+.note {
+  @include mixins.popup;
+  left: 0;
+  right: auto;
+  max-width: 16rem;
+  font-family: $font-secondary;
+  font-size: $font-size-sm;
+  line-height: 1.4;
+}

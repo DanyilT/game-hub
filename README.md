@@ -6,73 +6,155 @@ Welcome to the **GameHub** project! This repository contains the source code for
 
 Hub for all games, that was created by me.
 
-## 🌐 GitHub Pages Deployment
-
-The application is deployed on GitHub Pages. You can access it at the following URL:
-[danyilt.github.io/game-hub](https://danyilt.github.io/game-hub)
+This is **v2** (branch [`main-v2`](https://github.com/DanyilT/game-hub/tree/main-v2)): a rewrite on Vite, to be hosted on Cloudflare Workers, with user accounts, ratings and activity on the way. The roadmap is in [docs/V2_PLAN.md](docs/V2_PLAN.md).
 
 > [!NOTE]
-> ### 📦 Deployment
-> 
-> Built into a static website and hosted on GitHub Pages. Build is on the [`gh-pages`](https://github.com/DanyilT/game-hub/tree/gh-pages) branch.
+> ### 🕹️ v1
+>
+> The original site stays on GitHub Pages at [danyilt.github.io/game-hub](https://danyilt.github.io/game-hub). Its source is the [`main-v1`](https://github.com/DanyilT/game-hub/tree/main-v1) branch (tag `v0.1.0`).
 
-> [!IMPORTANT]
-> ### 🔗 GitHub Repository
-> 
-> The source code for this project is hosted on GitHub. You can find it at:
-> [DanyilT/game-hub](https://DanyilT/game-hub)
+## ☁️ Hosting
+
+v2 is a **static site**: `npm run build` turns it into plain HTML/CSS/JS files in `dist/`, and Cloudflare serves those files from its CDN. There is no web server to run. The build writes a copy of `index.html` for every page (`games.html`, `games/snake.html`, `terms.html`…), so opening or refreshing any page works, and React Router shows it. Any other path gets `404.html` with a real 404 status (`not_found_handling: "404-page"` in `wrangler.jsonc`), and the site shows its 404 page, with a cat from [http.cat](https://http.cat).
+
+The build also writes `dist/_headers` (see `vite.config.js`), so Cloudflare sends security headers, including a Content-Security-Policy that allows only the sites the pages use.
+
+And it writes the usual files at the site's root, from the catalogue (their text is in `scripts/site-files.mjs`): `robots.txt`, `sitemap.xml`, `llms.txt` (for AI assistants), `humans.txt` and `.well-known/security.txt`. For full URLs they use the site's address, `SITE_URL` in `vite.config.js` (https://game-hub.danyt.workers.dev). Change it there if the site moves, e.g. to a domain of its own.
 
 ## 🚀 Getting Started
 
-To get started with the project, follow these steps:
+Requires **Node 22.22+** (see `.nvmrc`).
 
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/DanyilT/game-hub.git
-   cd game-hub
-    ```
-2. **Install dependencies**:
+1. **Install dependencies**:
    ```bash
    npm install
    ```
-3. **Start the development server**:
+2. **Start the development server**:
    ```bash
-   npm start
-    ```
-    This will start the application in development mode. Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
-4. **Build for production**:
+   npm run dev
+   ```
+   Open [http://localhost:3000](http://localhost:3000) to view it in your browser. If port 3000 is already taken, the command stops with an error (it won't silently switch ports).
+3. **Build for production**:
    ```bash
    npm run build
    ```
-   This will create an optimized production build in the `build` folder.
-5. **Deploy to GitHub Pages**:
+   This will create an optimized production build in the `dist` folder.
+4. **Try the production build on Cloudflare's local runtime** (this is where the security headers apply):
+   ```bash
+   npm run cf:preview
+   ```
+5. **Deploy to Cloudflare** (the first time, log in with `npx wrangler login`):
    ```bash
    npm run deploy
    ```
-   This will deploy the built application to the `gh-pages` branch of the repository.
+   It prints the site's address, which should match `SITE_URL` in `vite.config.js` (see Hosting).
+
+## 🎮 Adding a game
+
+Everything shown in the hub comes from one file, [`src/data/games.json`](src/data/games.json). To add a game, add one entry and push. The build checks the file (`npm run check:catalog` runs the same check on its own) and publishes it as `/catalog.json`.
+
+```jsonc
+{
+  "id": "my-game",                  // URL: /games/my-game (a-z, 0-9, -)
+  "kind": "game",                   // "game", or "portal" for a collection like Flashback Arcade
+  "title": "My Game",
+  "description": "One or two sentences.",
+  "style": "What it looks like.",                        // optional
+  "genre": ["puzzle"],
+  "tags": ["classic"],
+  "features": ["Mobile-friendly"],                       // optional
+  "difficulty": "easy",                                  // optional: easy, medium or hard
+  "controls": { "keys": [{ "keys": ["w", "up"], "action": "Go up" }], "mobile": true },  // optional (below)
+  "thumb": "https://…/screenshot.png",                   // optional: without one the card shows a title tile
+  "website": "https://…",                                // optional: a homepage that isn't a way to play
+  "dimensions": { "w": 460, "h": 740, "center": true },  // optional, embedded games: the frame's size (below)
+  "platforms": [                                         // where it can be played; one entry per type
+    { "type": "web", "url": "https://danyilt-games.pages.dev/my-game/", "embed": true, "icon": "CiShare1" }  // plays inside the hub
+    // { "type": "web", "url": "https://…", "embed": false }  // plays on its own site, opened in a new tab
+    // { "type": "android", "storeId": "com.example.game",
+    //   "url": "https://play.google.com/store/apps/details?id=com.example.game", "icon": "CiMobile3" }
+  ],
+  "sourceCode": { "url": "https://github.com/…" }        // optional: one link, or a list of them (below)
+}
+```
+
+- **Embedded games** get the in-hub player. They must be hosted on `danyilt-games.pages.dev`, the only site the hub will put in an iframe (`EMBED_ORIGINS` in `scripts/check-catalog.mjs`).
+- **Everything else** gets a details page with its picture and links out. Android apps get the official "Get it on Google Play" badge.
+- **Platform chips and the Platform filter** come from `platforms`, so a `website` doesn't make an Android game count as "web".
+- **Icons** (`icon` on platforms and links) are [react-icons](https://react-icons.github.io/react-icons) names, like `CiGlobe` or `FaGithub`. The build bundles only the icons the catalogue names, and the check rejects a name react-icons doesn't have. Without an `icon`, a web platform shows `CiShare1`, Android shows `CiMobile3` and source code shows a floppy disk (`CiFloppyDisk`).
+- **`sourceCode`** is one link or a list of links, each `{ "url": "…", "label": "…", "icon": "…" }`. `label` and `icon` are optional for a single link; a list needs a `label` on each link, so they can be told apart ("View Code" otherwise).
+- **`dimensions`** (embedded games only): `h` is the game frame's height and `w` the game's own width, in pixels. The frame starts stretched across its column (the Expand Width button, on by default). Turned off, the frame takes the game's own width (never wider than the column), in the middle. Without `dimensions` the frame is 16:9 across the column. With `"center": true`, the hub asks the game to scroll its play area to the middle of the frame, when it loads and after the frame changes size. The hub can't scroll another site's page, so the game does it. It needs these lines, e.g. in a script every game loads:
+  ```js
+  // GameHub sends { type: 'gamehub:center' } to put the play area in the middle of its frame
+  window.addEventListener('message', (event) => {
+    if (event.source !== window.parent || event.data?.type !== 'gamehub:center') return;
+    const game = document.querySelector('canvas, #game-board, .sudoku-grid'); // the play area
+    if (!game) return;
+    const box = game.getBoundingClientRect();
+    window.scrollBy({ top: box.top - (innerHeight - box.height) / 2, left: box.left - (innerWidth - box.width) / 2 });
+  });
+  ```
+- **`description`** is the one text about a game: the game page and the card's info panel both show it.
+- **`controls`** fill the game page's Controls card: the keys drawn where they sit on a keyboard, mouse buttons on a mouse, and gestures on a 16:9 phone. Hovering or tapping one shows what it does. The card starts small in the info column (the keyboard, with an arrow to show the phone instead); maximize puts every device side by side under the game.
+  ```jsonc
+  "controls": {
+    "keys": [                                              // keyboard and mouse
+      { "keys": ["w", "up"], "action": "Go up" },          // "w" or "up"; `action` is optional
+      { "keys": ["shift+space"], "action": "Flag a cell" }, // a chord
+      { "keys": ["right-click"], "action": "Place a flag" }
+    ],
+    "mobile": true,                                        // plays on phones (false: "Not made for phones")
+    "touch": [{ "gesture": "swipe", "action": "Turn" }]    // phone controls (needs "mobile": true)
+  }
+  ```
+  Key names are letters, digits, punctuation and `esc`, `tab`, `capslock`, `shift`, `ctrl`, `alt`, `meta`, `space`, `enter`, `backspace`, `delete`, `insert`, `home`, `end`, `pageup`, `pagedown`, `up`, `down`, `left`, `right`, plus `click`, `right-click` and `wheel` for the mouse. The gestures are `tap`, `double-tap`, `long-press`, `swipe`, `drag`, `pinch` and `move` (the phone itself, for AR). Both lists are in `src/data/controls.js`.
+- **The check rejects** unknown keys (and names what an old key like `imageUrl` or `repoLink` became), non-https links, unknown icons, a Play URL that doesn't match its `storeId`, and embedding a `portal`.
+
+### The developer section
+
+The top of `games.json` describes you. It fills the footer:
+
+```jsonc
+"developer": {
+  "name": "Dany",                                    // footer: "More by Dany", "© 2025-2026 Dany"
+  "url": "https://github.com/DanyilT",               // where the © name links
+  "projects": [{ "label": "ChillZone", "url": "https://…" }],                  // "More by Dany"
+  "repos": [{ "label": "Repo of This", "url": "https://…" }],                  // under Legal
+  "socials": [{ "label": "GitHub", "url": "https://…", "icon": "FaGithub" }]   // Social
+}
+```
+
+Each list is optional, and every link needs a `label`. A new game on another site or store doesn't appear in "More by Dany" by itself: add it to `projects`.
 
 ## 🛠️ Technologies Used
 
-- **React**: A JavaScript framework/library for building frontend applications.
-- **JavaScript**: The programming language used for the application logic.
-- **CSS**: For styling the application.
-- **HTML**: The markup language used for structuring the web pages. (`index.html`)
-- **npm**: Node package manager for managing project dependencies.
+- **React 19** + **React Router 8**: UI and routing.
+- **Vite 8**: dev server and build.
+- **SCSS modules**: component styles (`*.module.scss`, `@use` only). Colours, sizes, fonts and timings are Sass variables in `src/styles/abstracts/_variables.scss`, and shared mixins are in `_mixins.scss` next to it.
+- **Fonts** (Google Fonts): Doto for the site, and Chakra Petch (easier to read small) for game tags. To change one, edit `$font-primary` / `$font-secondary` in `_variables.scss` and the Google Fonts link in `index.html`.
+- **react-icons**: interface icons, and the icons the catalogue names.
+- **Cloudflare Workers (static assets)**: hosting.
 
 ## 📂 Project Structure
 
 ```
-gamehub/
-├── public/
-│   ├── 404.html
-│   ├── index.html
-│   └── ...
+game-hub/
+├── docs/V2_PLAN.md          # roadmap for v2
+├── public/                  # copied as-is into dist/ (favicon, manifest)
+├── scripts/check-catalog.mjs  # checks src/data/games.json (also run by vite.config.js)
+├── scripts/site-files.mjs   # robots.txt, sitemap.xml, llms.txt, humans.txt, security.txt (written by the build)
 ├── src/
-│   ├── components/
-│   ├── index.css
-│   ├── App.js
-│   └── ...
-├── README.md
+│   ├── components/common/   # GooglePlayBadge, ErrorBoundary
+│   ├── components/layout/   # Header, Footer, Sidebar, MainLayout, game/GameCard, game/GameList
+│   ├── contexts/            # AuthContext (guest-only until Supabase is added)
+│   ├── data/                # games.json (the catalogue) + games.js (helpers)
+│   ├── pages/               # Games, GamePage, Legal (Terms, Privacy), ErrorPage (404, 500)
+│   ├── styles/              # Sass variables, mixins and buttons, shared animations, reset, base
+│   ├── App.jsx              # routes
+│   └── index.jsx            # entry point
+├── index.html
+├── vite.config.js           # also writes /catalog.json, the catalogue's icons module, the security headers (dist/_headers) and the root files; SITE_URL is here
+├── wrangler.jsonc           # Cloudflare config
 └── package.json
 ```
 

@@ -1,0 +1,87 @@
+@use '../../styles/abstracts/variables' as *;
+@use '../../styles/abstracts/mixins';
+@use '../../styles/abstracts/buttons'; // %button-filled, %button-outline
+
+.errorPage {
+  @include mixins.panel;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-md;
+  max-width: 640px;
+  margin: $spacing-xl auto;
+  padding: $spacing-xl;
+  text-align: center;
+
+  h1 {
+    font-size: $font-size-4xl;
+    animation: global(rgb-text) $neon-cycle;
+  }
+}
+
+.text {
+  color: $color-text-secondary;
+}
+
+.code {
+  background-color: $color-black-light;
+  color: $color-secondary;
+  font-weight: $font-weight-bold;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.cat {
+  width: 100%;
+  max-width: 500px;
+
+  .catCrop {
+    aspect-ratio: 3/2;
+    overflow: hidden;
+    border: 1px dashed $color-white-pink;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: top center;
+      transform: scale(1.3);
+    }
+  }
+
+  figcaption {
+    margin-top: $spacing-xs;
+    color: $color-text-secondary;
+    font-size: $font-size-xs;
+
+    a {
+      text-decoration: underline;
+    }
+  }
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: $spacing-md;
+}
+
+.primary {
+  @extend %button-filled;
+}
+
+.secondary {
+  @extend %button-outline;
+}
+
+@media (width <= $breakpoint-mobile) {
+  .errorPage {
+    margin: $spacing-md;
+    padding: $spacing-lg $spacing-md;
+
+    h1 {
+      font-size: $font-size-2xl;
+    }
+  }
+}

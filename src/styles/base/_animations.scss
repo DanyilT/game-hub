@@ -1,0 +1,113 @@
+// ==========================================
+// Shared animations (global @keyframes)
+// ==========================================
+// Defined once here and loaded by main.scss. CSS Modules scope animation names
+// per file, so modules refer to these as `animation: global(rgb-text) $neon-cycle`.
+
+@use '../abstracts/variables' as *;
+
+// Neon border cycling through the brand colours (the same order as $gradient-neon)
+@keyframes rgb-border {
+  0% {
+    border-color: $color-primary;
+    box-shadow: 0 0 15px $color-primary;
+  }
+  20% {
+    border-color: $color-secondary;
+    box-shadow: 0 0 15px $color-secondary;
+  }
+  40% {
+    border-color: $color-accent;
+    box-shadow: 0 0 15px $color-accent;
+  }
+  60% {
+    border-color: $color-primary-light;
+    box-shadow: 0 0 15px $color-primary-light;
+  }
+  80% {
+    border-color: $color-accent-light;
+    box-shadow: 0 0 15px $color-accent-light;
+  }
+  100% {
+    border-color: $color-primary;
+    box-shadow: 0 0 15px $color-primary;
+  }
+}
+
+// Neon text cycling through the same colours
+@keyframes rgb-text {
+  0% {
+    color: $color-primary;
+    text-shadow: 0 0 10px $color-primary;
+  }
+  20% {
+    color: $color-secondary;
+    text-shadow: 0 0 10px $color-secondary;
+  }
+  40% {
+    color: $color-accent;
+    text-shadow: 0 0 10px $color-accent;
+  }
+  60% {
+    color: $color-primary-light;
+    text-shadow: 0 0 10px $color-primary-light;
+  }
+  80% {
+    color: $color-accent-light;
+    text-shadow: 0 0 10px $color-accent-light;
+  }
+  100% {
+    color: $color-primary;
+    text-shadow: 0 0 10px $color-primary;
+  }
+}
+
+// Slides a wide gradient background back and forth
+@keyframes gradient-shift {
+  0% { background-position: 0 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+// Game cards (and the "no games" box) dropping in
+@keyframes card-drop {
+  0% {
+    opacity: 0;
+    transform: translateY(-100px);
+  }
+  60% {
+    transform: translateY(10px);
+  }
+  80% {
+    transform: translateY(-5px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Card screenshots sharpening in after the card lands
+@keyframes image-fade-in {
+  0% {
+    opacity: 0;
+    filter: blur(5px);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+// Popups appearing
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+// Filter chips shooting in, one after another (GameList)
+@keyframes chip-shoot {
+  from { opacity: 0; transform: translateX(-2rem) scale(0.6); }
+  70% { opacity: 1; transform: translateX(0.2rem) scale(1.05); }
+  to { opacity: 1; transform: none; }
+}

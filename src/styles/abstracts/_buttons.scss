@@ -1,0 +1,47 @@
+@use 'variables' as *;
+
+// Buttons and button-like links: filled for the main action, outlined for the rest.
+// Use with `@extend %button-filled;` or `@extend %button-outline;` (game page, error pages),
+// plus `@extend %button-secondary-font;` for a small label that's easy to read.
+
+%button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-sm; // between an icon and the text
+  padding: $spacing-sm $spacing-md;
+  border: 2px solid transparent;
+  border-radius: $radius-md;
+  font-weight: $font-weight-semibold;
+  text-align: center;
+  transition: background $transition-base ease, color $transition-base ease, transform $transition-base ease;
+}
+
+%button-filled {
+  @extend %button;
+  background: $color-primary;
+  color: $color-text-primary;
+
+  // A lighter purple that still keeps the white text readable
+  &:hover {
+    background: color-mix(in srgb, $color-primary 75%, $color-primary-light);
+    transform: translateY(-2px);
+  }
+}
+
+%button-outline {
+  @extend %button;
+  border-color: $color-primary;
+  color: $color-primary-light;
+
+  &:hover {
+    background: $color-primary;
+    color: $color-text-primary;
+  }
+}
+
+// Small dotted text is hard to read, so smaller buttons use the secondary font
+%button-secondary-font {
+  font-family: $font-secondary;
+  font-size: $font-size-sm;
+}

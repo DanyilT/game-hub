@@ -1,0 +1,265 @@
+@use '../../../../styles/abstracts/variables' as *;
+@use '../../../../styles/abstracts/mixins';
+
+$panel-speed: 350ms;
+$box-width-closed: 22rem;
+
+.gameList {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: $spacing-xl $spacing-xl $spacing-lg*2;
+}
+
+// Filters: a small box until opened, then the whole row. Width and height both animate.
+.filters {
+  @include mixins.panel;
+  width: 100%;
+  max-width: $box-width-closed;
+  margin: 0 auto;
+  transition: max-width $panel-speed ease;
+
+  &.open {
+    max-width: 100%;
+  }
+}
+
+.filtersBar {
+  container-type: inline-size; // the Clear button drops its word when the bar is narrow (see below)
+  display: flex;
+  align-items: center;
+}
+
+// Fills the row, so the whole header (not just the title) opens and closes the box
+.filtersToggle {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-sm;
+  min-width: 0;
+  padding: $spacing-sm $spacing-md;
+  border-radius: $radius-lg;
+  color: $color-text-secondary;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+
+  .open & {
+    justify-content: flex-start;
+  }
+
+  svg {
+    flex-shrink: 0;
+  }
+}
+
+.toggleLabel {
+  animation: global(rgb-text) $neon-cycle;
+}
+
+// How many chips are selected, shown while the box is closed too
+.selectedCount {
+  min-width: 1.5em;
+  padding: 0 $spacing-xs;
+  border-radius: $radius-full;
+  background: $color-secondary;
+  color: $color-black;
+  font-size: $font-size-xs;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.chevron {
+  transition: transform $panel-speed ease;
+
+  .open & {
+    transform: rotate(180deg);
+  }
+}
+
+// Next to the toggle while any chip is selected
+.clearButton {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  flex-shrink: 0;
+  margin-right: $spacing-sm;
+  padding: 2px $spacing-sm;
+  border: 1px solid color-mix(in srgb, $color-secondary 60%, transparent);
+  border-radius: $radius-full;
+  color: $color-secondary;
+  font-size: $font-size-sm;
+  animation: global(fade-in) $transition-base ease;
+  transition: background $transition-fast;
+
+  &:hover {
+    background: color-mix(in srgb, $color-secondary 15%, transparent);
+  }
+}
+
+// Small phones: just the icon, so "Filter games" stays on one line (the name is in aria-label)
+@container (width < 340px) {
+  .clearText {
+    display: none;
+  }
+}
+
+// Height animates from 0 to the content's own height (grid rows can do that, `height: auto` can't).
+// `visibility` hides the content from keyboards and screen readers once it's closed.
+.filtersPanel {
+  display: grid;
+  grid-template-rows: 0fr;
+  visibility: hidden;
+  transition: grid-template-rows $panel-speed ease, visibility 0s linear $panel-speed;
+
+  .open & {
+    grid-template-rows: 1fr;
+    visibility: visible;
+    transition: grid-template-rows $panel-speed ease, visibility 0s;
+  }
+}
+
+.panelContent {
+  min-height: 0;
+  overflow: hidden;
+  padding: 0 $spacing-md;
+  opacity: 0;
+  transition: opacity $panel-speed ease;
+
+  .open & {
+    padding-bottom: $spacing-md;
+    opacity: 1;
+  }
+}
+
+.groupButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+  margin: $spacing-xs 0 $spacing-md;
+}
+
+.groupButton {
+  padding: $spacing-xs $spacing-md;
+  border: 1px solid $color-primary;
+  border-radius: $radius-md;
+  color: $color-text-secondary;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  transition: background $transition-base, color $transition-base, border-color $transition-base;
+
+  &:hover {
+    background: $color-primary;
+    color: $color-text-primary;
+    border-color: transparent;
+  }
+
+  &.active {
+    background: $gradient-neon;
+    background-size: 500%;
+    color: $color-text-primary;
+    border-color: transparent;
+    font-weight: $font-weight-bold; // heavier dots; Doto is monospace, so the width stays put
+    @include mixins.label-on-gradient;
+    animation: global(gradient-shift) 60s infinite;
+  }
+}
+
+// Up to three rows of chips; GameList widens the rows when there are more, and this scrolls sideways
+.chipsBox {
+  overflow-x: auto;
+  padding: $spacing-xs 0; // room for a chip lifted on hover, and for the scrollbar
+  scrollbar-width: thin;
+  scrollbar-color: $color-primary transparent;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+}
+
+.chip {
+  padding: $spacing-xs $spacing-md;
+  font-family: $font-secondary;
+  border: 1px solid color-mix(in srgb, $color-primary 60%, transparent);
+  border-radius: $radius-full;
+  box-shadow: 0 2px 4px color-mix(in srgb, $color-black 10%, transparent);
+  color: $color-text-secondary;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  transition: background $transition-base, color $transition-base, border-color $transition-base,
+    box-shadow $transition-base, transform $transition-base;
+  // Shot in one after another (GameList.jsx sets --chip-index), all within half a second. Only the
+  // start state is held (`backwards`), so the hover lift below still works afterwards.
+  animation: global(chip-shoot) 240ms cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
+  animation-delay: min(var(--chip-index, 0) * 18ms, 500ms);
+
+  &:hover {
+    background: $color-primary;
+    color: $color-text-primary;
+    border-color: transparent;
+    box-shadow: 0 3px 8px color-mix(in srgb, $color-primary 20%, transparent);
+    transform: translateY(-2px);
+  }
+
+  &.active {
+    background: linear-gradient(90deg, $color-primary, $color-secondary, $color-primary-light);
+    color: $color-text-primary;
+    border-color: transparent;
+    box-shadow: 0 3px 8px color-mix(in srgb, $color-primary 40%, transparent);
+    @include mixins.label-on-gradient;
+  }
+}
+
+// "5 games + 1 collection available", or what the filters leave
+.count {
+  width: fit-content;
+  margin: $spacing-md auto;
+  padding: $spacing-sm $spacing-lg;
+  background: $color-panel;
+  backdrop-filter: blur($blur-length);
+  border: 1px solid $color-primary;
+  border-radius: $radius-full;
+  font-size: 0.9rem;
+  font-weight: $font-weight-medium;
+}
+
+.gamesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, min(350px, 100%));
+  justify-content: center;
+  justify-items: center;
+  gap: $spacing-xl;
+  padding: $spacing-md 0;
+}
+
+.noGamesFound {
+  @include mixins.panel;
+  grid-column: 1 / -1;
+  padding: $spacing-xl;
+  text-align: center;
+  opacity: 0;
+  animation: global(card-drop) $duration-card-drop $ease-drop forwards;
+  animation-delay: $transition-base;
+
+  p {
+    color: $color-text-secondary;
+    font-size: 1.2rem;
+  }
+}
+
+@media (width <= $breakpoint-mobile) {
+  .gameList {
+    padding: $spacing-md $spacing-md $spacing-lg*2;
+  }
+
+  .gamesGrid {
+    gap: $spacing-md;
+  }
+
+  .groupButton,
+  .chip {
+    padding: $spacing-xs $spacing-sm;
+    font-size: 0.8rem;
+  }
+}

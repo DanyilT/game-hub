@@ -1,0 +1,113 @@
+@use '../../styles/abstracts/variables' as *;
+@use '../../styles/abstracts/mixins';
+
+// Shared by Terms and Privacy: sharp-edged sections, the date at the bottom
+
+.page {
+  padding: $spacing-xl 0;
+}
+
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 $spacing-xl;
+
+  h1 {
+    margin-bottom: $spacing-xl;
+    color: $color-text-primary;
+    font-size: 2.5rem;
+    text-align: center;
+    animation: global(rgb-text) $neon-cycle;
+  }
+}
+
+// "Last updated", under a line after the last section
+.updated {
+  padding-top: $spacing-lg;
+  border-top: 1px solid $color-primary;
+  color: $color-text-secondary;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.intro {
+  margin-bottom: $spacing-xl;
+  line-height: 1.6;
+}
+
+.section {
+  margin-bottom: $spacing-xl;
+  padding: $spacing-lg;
+  border: 1px solid $color-primary;
+  transition: transform $transition-base ease, box-shadow $transition-base ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px $color-black-light;
+  }
+
+  h2 {
+    margin-bottom: $spacing-md;
+    color: $color-primary-light;
+    font-size: $font-size-2xl;
+  }
+
+  p,
+  li {
+    line-height: 1.6;
+  }
+
+  p + p,
+  p + ul,
+  ul + p {
+    margin-top: $spacing-sm;
+  }
+
+  ul {
+    @include mixins.arrow-list;
+  }
+}
+
+// Links in the text
+.intro a,
+.section a {
+  color: $color-primary-light;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+
+  &:hover {
+    color: $color-secondary;
+  }
+}
+
+@media (width <= $breakpoint-mobile) {
+  .container {
+    padding: 0 $spacing-md;
+
+    h1 {
+      font-size: 2rem;
+    }
+  }
+
+  .section {
+    padding: $spacing-md;
+
+    h2 {
+      font-size: $font-size-xl;
+    }
+  }
+}
+
+@media (width <= $breakpoint-small) {
+  .container h1 {
+    font-size: 1.75rem;
+  }
+
+  .section {
+    padding: $spacing-sm;
+
+    h2 {
+      font-size: 1.1rem;
+    }
+  }
+}

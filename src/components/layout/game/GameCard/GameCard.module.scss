@@ -1,0 +1,268 @@
+@use '../../../../styles/abstracts/variables' as *;
+
+$card-height: 450px;
+$card-padding: 25px;
+$card-shadow: 0 5px 15px color-mix(in srgb, $color-black 20%, transparent);
+$card-shadow-hover: 0 8px 25px color-mix(in srgb, $color-black 30%, transparent);
+$slide: 20px;         // how far the title and the actions slide in on hover
+$action-size: 40px;
+
+// Tint of each action (the Info button has none until hovered)
+$action-colors: (
+  play: $color-success,
+  direct: $color-info,
+  code: #9b59b6,
+  store: $color-accent-light,
+);
+
+// Drop-in delay: one card after another, capped at 1.5s (GameCard.jsx sets --card-index)
+$drop-delay: min(0.1s * (var(--card-index, 0) + 1), 1.5s);
+
+.gameCard {
+  position: relative;
+  z-index: 1;
+  width: 100%; // the grid column: 350px, or less on very narrow screens
+  height: $card-height;
+  overflow: hidden;
+  background-color: $color-surface;
+  border-radius: $radius-xl;
+  box-shadow: $card-shadow;
+  transition: box-shadow $transition-base ease;
+  opacity: 0;
+  animation: global(card-drop) $duration-card-drop $ease-drop forwards;
+  animation-delay: $drop-delay;
+
+  // Hovering or tabbing into the card shows its title, tags and actions
+  &:hover,
+  &:focus-within {
+    box-shadow: $card-shadow-hover;
+
+    .gameOverlay::before,
+    .gameHeader h3,
+    .gameTags .gameTag,
+    .actionButton {
+      opacity: 1;
+    }
+
+    .gameHeader,
+    .gameActions {
+      transform: translateY(0);
+    }
+  }
+}
+
+.gameImageContainer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gameImage {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  // Sharpens in once the card has landed
+  opacity: 0;
+  animation: global(image-fade-in) $transition-slow ease-in-out forwards;
+  animation-delay: calc($drop-delay + 0.5s);
+}
+
+.imageFallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $card-padding;
+  background:
+    radial-gradient(circle at 30% 20%, color-mix(in srgb, $color-primary 55%, transparent), transparent 60%),
+    radial-gradient(circle at 75% 85%, color-mix(in srgb, $color-secondary 35%, transparent), transparent 55%),
+    $color-black-light;
+
+  span {
+    color: $color-white;
+    font-size: $font-size-4xl;
+    font-weight: $font-weight-bold;
+    line-height: 1.2;
+    text-align: center;
+    text-transform: uppercase;
+    animation: global(rgb-text) $neon-cycle;
+  }
+}
+
+// Title, tags and actions over the picture.
+// The tags and buttons blur the picture behind them (backdrop-filter), and that blur can't see
+// through a parent that's partly transparent: fading the whole overlay would make them jump when
+// the fade ended. So the overlay itself never fades. Its gradient fades on its own layer (::before),
+// and the title, each tag and each button fade by themselves.
+.gameOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: $card-padding;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(
+      to bottom,
+      color-mix(in srgb, $color-black 50%, transparent),
+      color-mix(in srgb, $color-black 10%, transparent),
+      $color-black
+    );
+    opacity: 0;
+    transition: opacity $transition-base ease;
+  }
+}
+
+.gameHeader {
+  transform: translateY(-$slide);
+  transition: transform $transition-base ease;
+
+  h3 {
+    opacity: 0;
+    transition: opacity $transition-base ease;
+  }
+}
+
+.gameActions {
+  display: flex;
+  flex-wrap: wrap; // a second row when an entry has many links
+  justify-content: center;
+  gap: 15px;
+  transform: translateY($slide);
+  transition: transform $transition-base ease;
+}
+
+.actionButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: $action-size;
+  height: $action-size;
+  border-radius: $radius-full;
+  background: color-mix(in srgb, $color-white 20%, transparent);
+  backdrop-filter: blur(4px);
+  font-size: $font-size-xl;
+  opacity: 0;
+  transition: opacity $transition-base ease, background $transition-base ease, transform $transition-base ease;
+
+  &:hover {
+    background: color-mix(in srgb, $color-white 30%, transparent);
+    transform: scale(1.1);
+  }
+
+  &.info:hover {
+    background: color-mix(in srgb, $color-warning 50%, transparent);
+  }
+
+  @each $name, $color in $action-colors {
+    &.#{$name} {
+      background: color-mix(in srgb, $color 30%, transparent);
+
+      &:hover {
+        background: color-mix(in srgb, $color 50%, transparent);
+      }
+    }
+  }
+}
+
+.gameInfo {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  padding: $card-padding;
+  overflow-y: auto;
+  scrollbar-width: none;
+  border-radius: inherit;
+  background: color-mix(in srgb, $color-black 60%, transparent);
+  backdrop-filter: blur($blur-length);
+  cursor: pointer; // a click closes it
+  // Fades; `visibility` flips at once when opening (so focus can move in straight away)
+  // and only after the fade when closing
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity $transition-base ease, visibility 0s linear $transition-base;
+
+  &.show {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity $transition-base ease, visibility 0s;
+  }
+
+  // Focused when opened from the keyboard: the ring goes inside, where the card doesn't clip it
+  &:focus-visible {
+    outline-offset: -3px;
+  }
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.gameInfoContent h3 {
+  margin-bottom: 20px;
+  font-size: $font-size-2xl;
+  text-align: center;
+}
+
+.gameDescription {
+  margin-top: 20px;
+  padding: 20px;
+  background: color-mix(in srgb, $color-black-light 40%, transparent);
+  border-radius: $radius-xl;
+}
+
+.gameTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+
+  .gameTag {
+    opacity: 0;
+  }
+}
+
+.gameMetaTags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 30px;
+}
+
+.gameTag {
+  padding: 4px 12px;
+  font-family: $font-secondary;
+  border-radius: $radius-xl;
+  background: color-mix(in srgb, $color-white 10%, transparent);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 5px color-mix(in srgb, $color-black 20%, transparent);
+  font-size: 0.8em;
+  transition: opacity $transition-base ease, background $transition-fast ease, transform $transition-fast ease,
+    box-shadow $transition-fast ease;
+
+  &:hover {
+    background: color-mix(in srgb, $color-white 20%, transparent);
+    transform: translateY(-2px);
+  }
+
+  &.active {
+    background: linear-gradient(to right, rgba($color-white, 0.3), rgba($color-white, 0.4));
+    box-shadow: 0 3px 7px rgba($color-white, 0.3);
+  }
+
+  &.easy { background: $color-easy; }
+  &.medium { background: $color-medium; }
+  &.hard { background: $color-hard; }
+  &.genre { background: $color-genre; }
+  &.platform { background: $color-platform; }
+}

@@ -1,0 +1,278 @@
+@use '../../../styles/abstracts/variables' as *;
+@use '../../../styles/abstracts/mixins';
+
+$sidebar-border: 1px solid color-mix(in srgb, $color-primary 45%, transparent);
+$row-hover-bg: rgba($color-white, 0.08);
+
+.sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: $sidebar-width;
+  background: $color-black-light;
+  color: $color-text-primary;
+  border-right: $sidebar-border;
+  box-shadow: 2px 0 12px rgba($color-black, 0.35);
+  display: flex;
+  flex-direction: column;
+  transition: width $transition-base;
+  z-index: $z-fixed;
+
+  // Desktop: collapsed = icon rail
+  @media (width > $breakpoint-mobile) {
+    &.collapsed {
+      width: $sidebar-width-collapsed;
+
+      .sidebarHeader {
+        justify-content: center;
+      }
+
+      .navLink {
+        justify-content: center;
+      }
+
+      // Labels stay readable to screen readers
+      .navLabel,
+      .soonBadge {
+        @include mixins.visually-hidden;
+      }
+
+      .userInfo {
+        display: none;
+      }
+    }
+  }
+
+  // Phone: off-canvas drawer. `visibility` keeps the hidden links out of the tab order.
+  @media (width <= $breakpoint-mobile) {
+    transform: translateX(-100%);
+    visibility: hidden;
+    box-shadow: none;
+    transition: transform $transition-base, visibility 0s linear $transition-base;
+
+    &.open {
+      transform: translateX(0);
+      visibility: visible;
+      box-shadow: 4px 0 24px rgba($color-black, 0.6);
+      transition: transform $transition-base, visibility 0s;
+    }
+  }
+}
+
+// Header
+.sidebarHeader {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: $spacing-md;
+  border-bottom: $sidebar-border;
+  min-height: 72px;
+}
+
+.iconButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: $radius-md;
+  color: $color-text-secondary;
+  transition: background $transition-fast, color $transition-fast;
+
+  &:hover {
+    background: $row-hover-bg;
+    color: $color-text-primary;
+  }
+}
+
+.toggleIcon {
+  width: 28px;
+  height: 28px;
+}
+
+// Desktop has the collapse toggle, the phone drawer has a close button
+.closeBtn {
+  display: none;
+}
+
+@media (width <= $breakpoint-mobile) {
+  .toggleBtn {
+    display: none;
+  }
+
+  .closeBtn {
+    display: flex;
+  }
+}
+
+// Navigation
+.sidebarNav {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: $spacing-md 0;
+}
+
+.navList {
+  padding: 0 $spacing-sm;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.navLink {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  width: 100%;
+  padding: $spacing-md;
+  border-radius: $radius-md;
+  color: $color-text-secondary;
+  position: relative;
+  font-size: $font-size-base;
+  font-weight: $font-weight-medium;
+  transition: background $transition-fast, color $transition-fast;
+
+  &:hover {
+    background: $row-hover-bg;
+    color: $color-text-primary;
+  }
+
+  // Inside the row, so the sidebar's edges don't clip it
+  &:focus-visible {
+    outline-offset: -2px;
+  }
+
+  &.active {
+    background: linear-gradient(
+                    135deg,
+                    rgba($color-primary, 0.45) 0%,
+                    rgba($color-secondary, 0.2) 100%
+    );
+    color: $color-text-primary;
+
+    &::before {
+      content: '';
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 4px;
+      height: 70%;
+      background: linear-gradient(135deg, $color-primary-light 0%, $color-secondary 100%);
+      border-radius: $radius-sm 0 0 $radius-sm;
+    }
+  }
+
+  // Pages that aren't built yet (the badge stays full colour so it's readable)
+  &.disabled {
+    cursor: default;
+
+    .navIcon,
+    .navLabel {
+      opacity: 0.55;
+    }
+
+    &:hover {
+      background: transparent;
+      color: $color-text-secondary;
+    }
+  }
+}
+
+.navIcon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.navLabel {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.soonBadge {
+  flex-shrink: 0;
+  padding: 0 $spacing-sm;
+  border: 1px solid color-mix(in srgb, $color-secondary 60%, transparent);
+  border-radius: $radius-full;
+  color: $color-secondary;
+  font-size: $font-size-xs;
+  line-height: 1.6;
+}
+
+.navDivider {
+  height: 1px;
+  background: color-mix(in srgb, $color-primary 45%, transparent);
+  margin: $spacing-md $spacing-sm;
+}
+
+.logoutBtn {
+  $logout-red: color-mix(in srgb, $color-error 80%, $color-white);
+  color: $logout-red;
+
+  &:hover {
+    background: rgba($color-error, 0.12);
+    color: $logout-red;
+  }
+}
+
+// Footer
+.sidebarFooter {
+  border-top: $sidebar-border;
+  padding: $spacing-md 0;
+  overflow-x: hidden;
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-md;
+  margin: $spacing-sm;
+  background: rgba($color-white, 0.06);
+  border-radius: $radius-lg;
+}
+
+.userAvatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: $radius-full;
+  background: linear-gradient(135deg, $color-primary 0%, $color-secondary 100%);
+  color: $color-white;
+  font-weight: $font-weight-bold;
+  font-size: $font-size-lg;
+  flex-shrink: 0;
+}
+
+.userDetails {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  min-width: 0;
+}
+
+.userName,
+.userUsername {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.userName {
+  font-weight: $font-weight-semibold;
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+}
+
+.userUsername {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+}

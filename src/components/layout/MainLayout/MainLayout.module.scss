@@ -1,0 +1,46 @@
+@use '../../../styles/abstracts/variables' as *;
+
+.layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+// Header, page and footer, to the right of the fixed sidebar (see Sidebar.module.scss)
+.column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin-left: $sidebar-width-collapsed;
+  transition: margin-left $transition-base;
+
+  .sidebarExpanded & {
+    margin-left: $sidebar-width;
+  }
+
+  // Phone: the sidebar is a drawer over the page, so no room is kept for it
+  @media (width <= $breakpoint-mobile) {
+    &,
+    .sidebarExpanded & {
+      margin-left: 0;
+    }
+  }
+}
+
+.mainContent {
+  flex: 1;
+}
+
+// Dims the page behind the open drawer (phone only); sits above the header, below the sidebar
+.backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: $z-fixed - 1;
+  background: rgba($color-black, 0.6);
+
+  @media (width <= $breakpoint-mobile) {
+    display: block;
+  }
+}

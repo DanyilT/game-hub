@@ -1,13 +1,49 @@
 {
+  "version": 2,
+  "developer": {
+    "name": "Dany",
+    "url": "https://github.com/DanyilT",
+    "projects": [
+      {
+        "label": "ChillZone",
+        "url": "https://danyilt.github.io/ChillZone/",
+        "icon": "RxCrumpledPaper"
+      },
+      {
+        "label": "Flashback Arcade",
+        "url": "https://danyilt.github.io/flashback-arcade/",
+        "icon": "GiCupcake"
+      },
+      {
+        "label": "Apps on Google Play",
+        "url": "https://play.google.com/store/apps/dev?id=4651236494730192525",
+        "icon": "DiAndroid"
+      }
+    ],
+    "repos": [
+      {
+        "label": "Repo of This",
+        "url": "https://github.com/DanyilT/game-hub"
+      }
+    ]
+  },
   "games": [
     {
       "id": "snake",
+      "kind": "game",
       "title": "Snake Game",
       "description": "Classic Snake game where you control a snake to eat food and grow longer. Avoid hitting the walls or yourself!",
-      "about": "A classic Snake game with simple controls using arrow keys, wasd, or touch swipes. Perfect for quick, nostalgic gaming sessions and casual fun.",
       "style": "Minimalistic design with a clean interface. Simple contrast colored b&w and sharp edged graphics. Old fashion retro style.",
-      "genre": ["action", "arcade"],
-      "tags": ["classic", "arcade", "snake", "retro"],
+      "genre": [
+        "action",
+        "arcade"
+      ],
+      "tags": [
+        "classic",
+        "arcade",
+        "snake",
+        "retro"
+      ],
       "features": [
         "Responsive controls",
         "Score tracking",
@@ -16,44 +52,210 @@
         "Easter Egg"
       ],
       "difficulty": "easy",
-      "rating": 0,
-      "controls": "Use arrow/wasd keys or swipe on mobile to control the snake.",
-      "imageUrl": "https://raw.githubusercontent.com/DanyilT/WebDev/refs/heads/page/games/snake/img/desktop-screenshot.png",
-      "playLink": "https://danyilt-games.pages.dev/snake",
-      "repoLink": "https://github.com/DanyilT/WebDev/tree/page/games/snake"
+      "controls": {
+        "keys": [
+          {
+            "keys": [
+              "w",
+              "up"
+            ],
+            "action": "Go up"
+          },
+          {
+            "keys": [
+              "a",
+              "left"
+            ],
+            "action": "Go left"
+          },
+          {
+            "keys": [
+              "s",
+              "down"
+            ],
+            "action": "Go down"
+          },
+          {
+            "keys": [
+              "d",
+              "right"
+            ],
+            "action": "Go right"
+          },
+          {
+            "keys": [
+              "space"
+            ],
+            "action": "Pause or resume"
+          },
+          {
+            "keys": [
+              "r"
+            ],
+            "action": "Restart"
+          },
+          {
+            "keys": [
+              "i"
+            ],
+            "action": "Show or hide the instructions"
+          }
+        ],
+        "mobile": true,
+        "touch": [
+          {
+            "gesture": "swipe",
+            "action": "Turn the snake"
+          },
+          {
+            "gesture": "tap",
+            "action": "The buttons under the board restart, pause and show the instructions"
+          }
+        ]
+      },
+      "thumb": "https://raw.githubusercontent.com/DanyilT/WebDev/refs/heads/page/games/snake/img/desktop-screenshot.png",
+      "dimensions": {
+        "w": 460,
+        "h": 740,
+        "center": true
+      },
+      "platforms": [
+        {
+          "type": "web",
+          "url": "https://danyilt-games.pages.dev/snake/",
+          "embed": true
+        }
+      ],
+      "sourceCode": {
+        "url": "https://github.com/DanyilT/WebDev/tree/page/games/snake"
+      }
     },
     {
       "id": "tetris",
+      "kind": "game",
       "title": "TETRIS Game",
       "description": "The classic block-stacking puzzle game. Rotate and move falling blocks to create complete lines.",
-      "about": "A modern take on the iconic Tetris game with smooth controls, next piece preview, and an engaging scoring system. Challenge yourself to achieve higher scores!",
       "style": "Vibrant retro-inspired design with animated, colorful borders that cycle through classic Tetris piece colors. Modern UI elements with a nostalgic feel.",
-      "genre": ["puzzle"],
-      "tags": ["classic", "puzzle", "tetris", "blocks"],
+      "genre": [
+        "puzzle"
+      ],
+      "tags": [
+        "classic",
+        "puzzle",
+        "tetris",
+        "blocks"
+      ],
       "features": [
-          "Classic Tetris gameplay",
-          "Next piece preview",
-          "Score system",
-          "Level progression",
-          "Hold piece",
-          "Mobile-friendly",
-          "Easter Egg"
+        "Classic Tetris gameplay",
+        "Next piece preview",
+        "Score system",
+        "Level progression",
+        "Hold piece",
+        "Mobile-friendly",
+        "Easter Egg"
       ],
       "difficulty": "medium",
-      "rating": 0,
-      "controls": "Use arrow/wasd keys, control buttons, or swipe on mobile to control(move, rotate, drop) the pieces.",
-      "imagePath": "https://raw.githubusercontent.com/DanyilT/WebDev/refs/heads/page/games/tetris/img/desktop-screenshot.png",
-      "playLink": "https://danyilt-games.pages.dev/tetris",
-      "repoLink": "https://github.com/DanyilT/WebDev/tree/page/games/tetris"
+      "controls": {
+        "keys": [
+          {
+            "keys": [
+              "w",
+              "up"
+            ],
+            "action": "Rotate"
+          },
+          {
+            "keys": [
+              "a",
+              "left"
+            ],
+            "action": "Move left"
+          },
+          {
+            "keys": [
+              "s",
+              "down"
+            ],
+            "action": "Move down"
+          },
+          {
+            "keys": [
+              "d",
+              "right"
+            ],
+            "action": "Move right"
+          },
+          {
+            "keys": [
+              "space"
+            ],
+            "action": "Drop"
+          },
+          {
+            "keys": [
+              "p"
+            ],
+            "action": "Pause"
+          },
+          {
+            "keys": [
+              "r"
+            ],
+            "action": "Reset the game"
+          },
+          {
+            "keys": [
+              "i"
+            ],
+            "action": "Show or hide the instructions"
+          }
+        ],
+        "mobile": true,
+        "touch": [
+          {
+            "gesture": "swipe",
+            "action": "Left or right to move, up to rotate, down to move down"
+          },
+          {
+            "gesture": "tap",
+            "action": "The on-screen buttons move, rotate and drop the piece"
+          }
+        ]
+      },
+      "thumb": "https://raw.githubusercontent.com/DanyilT/WebDev/refs/heads/page/games/tetris/img/desktop-screenshot.png",
+      "dimensions": {
+        "w": 800,
+        "h": 765,
+        "center": true
+      },
+      "platforms": [
+        {
+          "type": "web",
+          "url": "https://danyilt-games.pages.dev/tetris/",
+          "embed": true
+        }
+      ],
+      "sourceCode": {
+        "url": "https://github.com/DanyilT/WebDev/tree/page/games/tetris"
+      }
     },
     {
       "id": "minesweeper",
+      "kind": "game",
       "title": "Minesweeper Game",
       "description": "Test your logic and luck in this classic minesweeper game. Clear the board without hitting any mines.",
-      "about": "A faithful recreation of the classic Minesweeper game with multiple difficulty levels, timer, and mine counter. Perfect for strategy and logic puzzle enthusiasts.",
       "style": "Authentic Windows 95/98 aesthetic with the classic teal background and gray UI elements featuring 3D beveled effects. Includes the iconic blue title bar, digital-style counter displays, and traditional cell styling with classic number colors - a perfect recreation of the nostalgic Windows experience. Windows 9x style.",
-      "genre": ["logical puzzle", "strategy"],
-      "tags": ["classic", "puzzle", "strategy", "minesweeper", "old windows"],
+      "genre": [
+        "logical puzzle",
+        "strategy"
+      ],
+      "tags": [
+        "classic",
+        "puzzle",
+        "strategy",
+        "minesweeper",
+        "old windows"
+      ],
       "features": [
         "Multiple difficulty levels",
         "Timer and mine counter",
@@ -64,20 +266,129 @@
         "Easter Egg"
       ],
       "difficulty": "medium",
-      "rating": 0,
-      "controls": "Left-click to reveal cells, right-click to flag mines.",
-      "imagePath": "https://raw.githubusercontent.com/DanyilT/WebDev/refs/heads/page/games/minesweeper/img/desktop-screenshot.png",
-      "playLink": "https://danyilt-games.pages.dev/minesweeper",
-      "repoLink": "https://github.com/DanyilT/WebDev/tree/page/games/minesweeper"
+      "controls": {
+        "keys": [
+          {
+            "keys": [
+              "click"
+            ],
+            "action": "Reveal a cell. On a number, reveal the cells around it (when the mines there are flagged)"
+          },
+          {
+            "keys": [
+              "right-click"
+            ],
+            "action": "Place or remove a flag"
+          },
+          {
+            "keys": [
+              "up",
+              "down",
+              "left",
+              "right"
+            ],
+            "action": "Move the selection"
+          },
+          {
+            "keys": [
+              "space"
+            ],
+            "action": "Reveal the selected cell"
+          },
+          {
+            "keys": [
+              "shift+space"
+            ],
+            "action": "Flag the selected cell"
+          },
+          {
+            "keys": [
+              "m"
+            ],
+            "action": "Switch between reveal and flag mode"
+          },
+          {
+            "keys": [
+              "1"
+            ],
+            "action": "Difficulty: beginner"
+          },
+          {
+            "keys": [
+              "2"
+            ],
+            "action": "Difficulty: intermediate"
+          },
+          {
+            "keys": [
+              "3"
+            ],
+            "action": "Difficulty: expert"
+          },
+          {
+            "keys": [
+              "r"
+            ],
+            "action": "Restart"
+          },
+          {
+            "keys": [
+              "i"
+            ],
+            "action": "Show or hide the instructions"
+          },
+          {
+            "keys": [
+              "esc"
+            ],
+            "action": "Close dialogs"
+          }
+        ],
+        "mobile": true,
+        "touch": [
+          {
+            "gesture": "tap",
+            "action": "Reveal a cell (or flag it in flag mode, switched with the 🔍/🚩 button)"
+          },
+          {
+            "gesture": "long-press",
+            "action": "Place or remove a flag"
+          }
+        ]
+      },
+      "thumb": "https://raw.githubusercontent.com/DanyilT/WebDev/refs/heads/page/games/minesweeper/img/desktop-screenshot.png",
+      "dimensions": {
+        "w": 400,
+        "h": 520,
+        "center": true
+      },
+      "platforms": [
+        {
+          "type": "web",
+          "url": "https://danyilt-games.pages.dev/minesweeper/",
+          "embed": true
+        }
+      ],
+      "sourceCode": {
+        "url": "https://github.com/DanyilT/WebDev/tree/page/games/minesweeper"
+      }
     },
     {
       "id": "sudoku",
+      "kind": "game",
       "title": "Sudoku Game",
       "description": "Challenge your mind with this classic japanese number puzzle game. Fill the grid following Sudoku rules.",
-      "about": "Number-placement logic puzzle. Fill a 9×9 grid with digits so each column, row, and section contains all digits from 1 to 9.",
       "style": "Modern Neomorphic design featuring soft shadows and subtle gradients on a light background. Uses purple accent colors, elegant rounded corners, and sophisticated shadow effects to create a clean, tactile interface. Includes visual feedback for valid/invalid entries and smooth transitions for a premium puzzle experience. Neomorphic/Neumorphism style.",
-      "genre": ["logic-based puzzle"],
-      "tags": ["classic", "puzzle", "logic", "sudoku", "numbers"],
+      "genre": [
+        "logic-based puzzle"
+      ],
+      "tags": [
+        "classic",
+        "puzzle",
+        "logic",
+        "sudoku",
+        "numbers"
+      ],
       "features": [
         "Multiple difficulty levels",
         "Auto-save progress",
@@ -88,11 +399,212 @@
         "Easter Egg"
       ],
       "difficulty": "hard",
-      "rating": 0,
-      "controls": "Click cells and use number pad or keyboard to fill in values.",
-      "imageUrl": "https://raw.githubusercontent.com/DanyilT/WebDev/refs/heads/page/games/sudoku/img/desktop-screenshot.png",
-      "playLink": "https://danyilt-games.pages.dev/sudoku",
-      "repoLink": "https://github.com/DanyilT/WebDev/tree/page/games/sudoku"
+      "controls": {
+        "keys": [
+          {
+            "keys": [
+              "click"
+            ],
+            "action": "Select a cell"
+          },
+          {
+            "keys": [
+              "up",
+              "down",
+              "left",
+              "right",
+              "w",
+              "a",
+              "s",
+              "d"
+            ],
+            "action": "Move around the grid"
+          },
+          {
+            "keys": [
+              "1",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6",
+              "7",
+              "8",
+              "9"
+            ],
+            "action": "Fill in the number"
+          },
+          {
+            "keys": [
+              "delete",
+              "backspace"
+            ],
+            "action": "Clear the cell"
+          },
+          {
+            "keys": [
+              "enter"
+            ],
+            "action": "Check the solution (when no cell is selected)"
+          },
+          {
+            "keys": [
+              "shift+enter"
+            ],
+            "action": "Check the solution"
+          },
+          {
+            "keys": [
+              "shift+1"
+            ],
+            "action": "Difficulty: For a Bread"
+          },
+          {
+            "keys": [
+              "shift+2"
+            ],
+            "action": "Difficulty: easy"
+          },
+          {
+            "keys": [
+              "shift+3"
+            ],
+            "action": "Difficulty: medium"
+          },
+          {
+            "keys": [
+              "shift+4"
+            ],
+            "action": "Difficulty: hard"
+          },
+          {
+            "keys": [
+              "shift+5"
+            ],
+            "action": "Difficulty: expert"
+          },
+          {
+            "keys": [
+              "r"
+            ],
+            "action": "New game"
+          },
+          {
+            "keys": [
+              "i"
+            ],
+            "action": "Show or hide the info"
+          }
+        ],
+        "mobile": true,
+        "touch": [
+          {
+            "gesture": "tap",
+            "action": "Tap a cell, then a number on the pad"
+          }
+        ]
+      },
+      "thumb": "https://raw.githubusercontent.com/DanyilT/WebDev/refs/heads/page/games/sudoku/img/desktop-screenshot.png",
+      "dimensions": {
+        "w": 480,
+        "h": 860,
+        "center": true
+      },
+      "platforms": [
+        {
+          "type": "web",
+          "url": "https://danyilt-games.pages.dev/sudoku/",
+          "embed": true
+        }
+      ],
+      "sourceCode": {
+        "url": "https://github.com/DanyilT/WebDev/tree/page/games/sudoku"
+      }
+    },
+    {
+      "id": "chillzone",
+      "kind": "game",
+      "title": "ChillZone",
+      "description": "A free augmented-reality throwing game for Android. Place a bin in your room, flick the ball in and beat your best score.",
+      "genre": [
+        "casual",
+        "sports"
+      ],
+      "tags": [
+        "ar",
+        "unity",
+        "physics",
+        "open source"
+      ],
+      "features": [
+        "Real physics throws",
+        "Plays in your room (AR)",
+        "Unlockable balls & baskets",
+        "Three throw modes",
+        "Beat your best",
+        "Free & open source"
+      ],
+      "difficulty": "easy",
+      "controls": {
+        "mobile": true,
+        "touch": [
+          {
+            "gesture": "move",
+            "action": "Move your phone to find a flat surface"
+          },
+          {
+            "gesture": "tap",
+            "action": "Place the bin"
+          },
+          {
+            "gesture": "swipe",
+            "action": "Throw the ball: the speed sets the power, swiping up the arc, and a curved swipe adds spin"
+          }
+        ]
+      },
+      "thumb": "https://danyilt.github.io/ChillZone/assets/og-image.jpg",
+      "website": "https://danyilt.github.io/ChillZone/",
+      "platforms": [
+        {
+          "type": "android",
+          "storeId": "com.DanyT.ChillZone",
+          "url": "https://play.google.com/store/apps/details?id=com.DanyT.ChillZone"
+        }
+      ],
+      "sourceCode": {
+        "url": "https://github.com/DanyilT/ChillZone"
+      }
+    },
+    {
+      "id": "flashback-arcade",
+      "kind": "portal",
+      "title": "Flashback Arcade",
+      "description": "A wall of classic Flash games, played in your browser with Ruffle. No plugins, no downloads.",
+      "genre": [
+        "collection"
+      ],
+      "tags": [
+        "flash",
+        "retro",
+        "classic",
+        "ruffle"
+      ],
+      "features": [
+        "60+ classic Flash games",
+        "Runs in the browser with Ruffle",
+        "No plugins, no downloads",
+        "Games open right on the wall"
+      ],
+      "platforms": [
+        {
+          "type": "web",
+          "url": "https://danyilt.github.io/flashback-arcade/",
+          "embed": false
+        }
+      ],
+      "sourceCode": {
+        "url": "https://github.com/DanyilT/flashback-arcade"
+      }
     }
   ]
 }

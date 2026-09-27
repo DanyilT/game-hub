@@ -1,0 +1,61 @@
+@use '../abstracts/variables' as *;
+@use '../abstracts/mixins';
+
+html {
+  font-size: 16px;
+  color-scheme: dark;
+}
+
+body {
+  font-family: $font-primary;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: $color-black;
+  color: $color-text-primary;
+  line-height: 1.5;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: $font-weight-bold;
+  line-height: 1.2;
+}
+
+// Keyboard focus ring (inputs and buttons included: nothing turns it off)
+:focus-visible {
+  outline: 2px solid $color-primary-light;
+  outline-offset: 2px;
+}
+
+::selection {
+  background: rgba($color-primary, 0.6);
+  color: $color-white;
+}
+
+// While a game in the page has keyboard focus, the page doesn't scroll (GamePage.jsx), so the game's
+// arrow keys and space don't scroll it too. The scrollbar's space stays, so nothing moves sideways.
+html.game-focused {
+  scrollbar-gutter: stable;
+
+  body {
+    overflow: hidden;
+  }
+}
+
+// Hidden on screen, still read by screen readers (e.g. "opens in a new tab")
+.visually-hidden {
+  @include mixins.visually-hidden;
+}
+
+// Less motion for people who ask their system for it: animations jump to their end without
+// waiting their turn (no staggered cards or chips), transitions are instant
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

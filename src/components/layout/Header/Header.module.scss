@@ -1,0 +1,90 @@
+@use '../../../styles/abstracts/variables' as *;
+@use '../../../styles/abstracts/mixins';
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: $z-sticky;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: $spacing-lg 0;
+  background: $color-panel;
+  backdrop-filter: blur($blur-length);
+  border-bottom: 2px solid $color-primary;
+  animation: global(rgb-border) $neon-cycle;
+  transition: transform $transition-base ease-in-out;
+}
+
+// Slid up out of view while scrolling down
+.hidden {
+  transform: translateY(-100%);
+}
+
+.titleLogo {
+  position: relative;
+  color: $color-text-primary;
+  font-size: $font-size-4xl;
+  font-weight: 800;
+  letter-spacing: -1px;
+  text-transform: uppercase;
+  animation: global(rgb-text) $neon-cycle;
+
+  &::after {
+    @include mixins.neon-line(2px);
+    bottom: -5px;
+    transition: background-size 0.3s ease;
+  }
+
+  // Hovering holds the colour, and the underline shows the whole gradient
+  &:hover,
+  &:hover::after {
+    animation-play-state: paused;
+  }
+
+  &:hover::after {
+    background-size: 100% 100%;
+  }
+}
+
+// Opens the sidebar drawer; phones only. Absolutely placed so the logo stays centred.
+.menuButton {
+  display: none;
+  position: absolute;
+  left: $spacing-md;
+  top: 50%;
+  transform: translateY(-50%);
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: $radius-md;
+  color: $color-text-secondary;
+  font-size: 1.75rem;
+  transition: background $transition-fast, color $transition-fast;
+
+  &:hover {
+    background: rgba($color-white, 0.08);
+    color: $color-text-primary;
+  }
+}
+
+@media (width <= $breakpoint-mobile) {
+  .header {
+    padding: $spacing-md 0;
+  }
+
+  .titleLogo {
+    font-size: 1.75rem;
+  }
+
+  .menuButton {
+    display: flex;
+  }
+}
+
+@media (width <= $breakpoint-small) {
+  .titleLogo {
+    font-size: $font-size-2xl;
+  }
+}

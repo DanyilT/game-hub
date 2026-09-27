@@ -1,0 +1,254 @@
+@use '../../../../styles/abstracts/variables' as *;
+@use '../../../../styles/abstracts/mixins';
+@use '../../../../styles/abstracts/buttons'; // %button-outline
+
+$outline: 2px solid color-mix(in srgb, $color-primary 70%, transparent);
+$line: 1px solid color-mix(in srgb, $color-primary 70%, transparent);
+$device-bg: color-mix(in srgb, $color-black 40%, transparent);
+$device-gap: $spacing-md;
+$device-max-height: 15rem;
+$cap-depth: inset 0 -0.2em 0 color-mix(in srgb, $color-black 55%, transparent);
+
+.controls {
+  @include mixins.info-card;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.headerButtons {
+  display: flex;
+  gap: $spacing-xs;
+  margin-left: auto;
+}
+
+// Icon buttons: phone / keyboard, and maximize / minimize
+.headerButton {
+  @extend %button-outline;
+  padding: $spacing-xs;
+  border-width: 1px;
+  font-size: $font-size-lg;
+}
+
+// The devices side by side, all the same height: the tallest that lets the row fit the panel's
+// width, each keeping its shape. GameControls.jsx sets --row-ratio (the devices' widths ÷ height,
+// added up) and --gaps (how many gaps between them).
+.devices {
+  --device-height: min(#{$device-max-height}, (100cqw - var(--gaps) * #{$device-gap}) / var(--row-ratio));
+  display: flex;
+  justify-content: center;
+  gap: $device-gap;
+  container-type: inline-size;
+}
+
+.keyboard,
+.mouse,
+.phone {
+  flex: none;
+  height: var(--device-height);
+  border: $outline;
+  background: $device-bg;
+}
+
+// Only the keys the game uses, each where it sits on a real keyboard (GameControls.jsx places them)
+.keyboard {
+  position: relative;
+  width: calc(var(--device-height) * var(--ratio));
+  border-radius: $radius-lg;
+  container-type: inline-size; // the key labels scale with the keyboard
+}
+
+// A keycap: keys, mouse buttons and gestures
+.control {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, $color-primary-light 50%, transparent);
+  border-radius: $radius-sm;
+  background: $color-black-light;
+  box-shadow: $cap-depth;
+  color: $color-text-primary;
+  font-family: $font-secondary;
+  line-height: 1;
+  cursor: help;
+  transition: border-color $transition-fast, box-shadow $transition-fast, color $transition-fast;
+
+  // Keys that do the same thing as the one shown (W with ↑)
+  &.linked {
+    border-color: $color-primary-light;
+    color: $color-primary-light;
+  }
+
+  &.active {
+    z-index: 2; // its tooltip over the keys around it
+    border-color: $color-secondary;
+    box-shadow: $cap-depth, 0 0 10px color-mix(in srgb, $color-secondary 60%, transparent);
+    color: $color-secondary;
+  }
+}
+
+.face {
+  display: contents;
+}
+
+.key {
+  position: absolute;
+  font-size: clamp(0.5625rem, 2cqw, 1rem);
+}
+
+// What the control does, above it
+.tip {
+  position: absolute;
+  bottom: calc(100% + 0.5rem);
+  left: 50%;
+  translate: -50% 0; // not `transform`: the fade-in animation uses that
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  width: max-content;
+  max-width: 16rem;
+  padding: $spacing-xs $spacing-sm;
+  background: $color-black-light;
+  border: 1px solid $color-primary;
+  border-radius: $radius-md;
+  box-shadow: 0 4px 12px rgba($color-black, 0.4);
+  color: $color-text-primary;
+  font-size: $font-size-sm;
+  line-height: 1.4;
+  text-align: left;
+  pointer-events: none;
+  animation: global(fade-in) $transition-fast ease;
+}
+
+// Near a side: lined up with the control's edge on that side
+.tipStart {
+  left: 0;
+  translate: none;
+}
+
+.tipEnd {
+  left: auto;
+  right: 0;
+  translate: none;
+}
+
+// A mouse, 3:5: two buttons over the body, and the wheel between them. Its corners are in
+// percentages, so it keeps its shape at any size.
+.mouse {
+  position: relative;
+  width: calc(var(--device-height) * 3 / 5);
+  border-radius: 50% 50% 45% 45% / 30% 30% 35% 35%;
+}
+
+.mousePart {
+  position: absolute;
+  font-size: clamp(0.625rem, calc(var(--device-height) * 0.08), 1rem);
+}
+
+.leftButton,
+.rightButton {
+  top: 0;
+  width: 50%;
+  height: 42%;
+}
+
+// Their outer corners follow the body's (50% of its width, 30% of its height)
+.leftButton {
+  left: 0;
+  border-radius: 100% 0 0 0 / 71.4% 0 0 0;
+}
+
+.rightButton {
+  right: 0;
+  border-radius: 0 100% 0 0 / 0 71.4% 0 0;
+}
+
+.wheel {
+  top: 12%;
+  left: 50%;
+  translate: -50% 0;
+  z-index: 1;
+  width: 16%;
+  height: 18%;
+  border: 1px solid color-mix(in srgb, $color-primary-light 50%, transparent);
+  border-radius: $radius-full;
+  background: $color-black;
+}
+
+// Buttons the game doesn't use: just the lines between the buttons and the body
+.unused {
+  &.leftButton,
+  &.rightButton {
+    border-bottom: $line;
+  }
+
+  &.leftButton {
+    border-right: $line;
+  }
+}
+
+// A phone, 9:16: the gestures, or whether the game plays on phones at all
+.phone {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  width: calc(var(--device-height) * 9 / 16);
+  padding: 1.25rem $spacing-xs $spacing-sm;
+  border-radius: 1rem;
+
+  // The speaker slot
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0.5rem;
+    left: 50%;
+    translate: -50% 0;
+    width: 30%;
+    height: 0.2rem;
+    border-radius: $radius-full;
+    background: color-mix(in srgb, $color-primary 70%, transparent);
+  }
+}
+
+.notOnPhones {
+  opacity: 0.6;
+}
+
+// The gestures share the phone's screen
+.gesture {
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-height: 0;
+  padding: $spacing-xs;
+  font-size: $font-size-xs;
+  text-align: center;
+
+  svg {
+    flex: none;
+    font-size: 1.25rem;
+  }
+}
+
+.phoneNote {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-xs;
+  color: $color-text-secondary;
+  font-family: $font-secondary;
+  font-size: $font-size-xs;
+  text-align: center;
+
+  svg {
+    font-size: 1.75rem;
+  }
+}

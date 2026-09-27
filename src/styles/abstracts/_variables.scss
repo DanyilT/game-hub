@@ -1,0 +1,104 @@
+// ==========================================
+// Design values: the one place colours, sizes and timings are defined
+// ==========================================
+// Stylesheets read them with `@use '<path>/styles/abstracts/variables' as *;`.
+// CSS custom properties are only for values that change at runtime
+// (--card-index, set on each game card).
+
+// Brand
+$color-primary: #662c91;        // rebecca purple
+$color-primary-light: #c054f2;  // phlox: text and outlines on the dark background
+$color-secondary: #ff5cb3;      // hot pink
+$color-accent: #548c67;         // sea green
+$color-accent-light: #5ef38c;   // spring green
+
+// Neutrals
+$color-black: #151414;          // night: the page background
+$color-black-light: #232020;    // raisin black: sidebar, popups
+$color-white: #ffffff;
+$color-white-pink: #feeafa;     // pale purple
+
+// Text
+$color-text-primary: #f5f4f5;   // white smoke (v1's text colour)
+$color-text-secondary: $color-white-pink;
+
+// Status
+$color-success: #2ecc71;
+$color-warning: #f1c40f;
+$color-error: #e74c3c;
+$color-info: #3498db;
+
+// Game chips (card info panel and game page)
+$color-easy: color-mix(in srgb, $color-success 40%, transparent);
+$color-medium: color-mix(in srgb, $color-warning 40%, transparent);
+$color-hard: color-mix(in srgb, $color-error 40%, transparent);
+$color-genre: color-mix(in srgb, $color-info 40%, transparent);
+$color-platform: color-mix(in srgb, $color-primary-light 40%, transparent);
+
+// Surfaces
+$color-surface: color-mix(in srgb, $color-white 10%, transparent);     // cards, chips
+$color-panel: color-mix(in srgb, $color-black-light 20%, transparent); // header, footer, filters (over a blur)
+$color-section: color-mix(in srgb, $color-white-pink 5%, transparent);  // the game page's info cards
+$blur-length: 10px;
+
+// The neon cycle: header and footer borders, glowing headings, animated underlines
+$gradient-neon: linear-gradient(90deg,
+  $color-primary,
+  $color-secondary,
+  $color-accent,
+  $color-primary-light,
+  $color-accent-light,
+  $color-primary
+);
+$neon-cycle: 8s infinite;
+
+// Typography. Fonts load in index.html (keep the two in sync).
+// Doto (dotted) is the site's font. Small dotted text is hard to read, so game tags (and some other elements) use the secondary one.
+$font-primary: 'Doto', monospace;
+$font-secondary: 'Chakra Petch', system-ui, sans-serif;
+
+$font-size-xs: 0.75rem;     // 12px
+$font-size-sm: 0.875rem;    // 14px
+$font-size-base: 1rem;      // 16px
+$font-size-lg: 1.125rem;    // 18px
+$font-size-xl: 1.25rem;     // 20px
+$font-size-2xl: 1.5rem;     // 24px
+$font-size-4xl: 2rem;       // 32px
+
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
+$font-weight-bold: 700;
+
+// Spacing
+$spacing-xs: 0.25rem;       // 4px
+$spacing-sm: 0.5rem;        // 8px
+$spacing-md: 1rem;          // 16px
+$spacing-lg: 1.5rem;        // 24px
+$spacing-xl: 2rem;          // 32px
+
+// Border radius
+$radius-sm: 0.25rem;        // 4px
+$radius-md: 0.5rem;         // 8px
+$radius-lg: 0.75rem;        // 12px
+$radius-xl: 1rem;           // 16px
+$radius-full: 9999px;       // pill
+
+// Timing
+$transition-fast: 150ms;
+$transition-base: 250ms;
+$transition-slow: 500ms;
+$duration-card-drop: 700ms;                                  // game cards landing
+$ease-drop: cubic-bezier(0.175, 0.885, 0.32, 1.275);         // with a little bounce
+
+// Stacking
+$z-sticky: 1020;            // header
+$z-fixed: 1030;             // sidebar (the phone drawer's backdrop sits just below)
+
+// Layout
+$sidebar-width: 250px;
+$sidebar-width-collapsed: 80px;
+
+// Breakpoints. Phones get the sidebar drawer at or below $breakpoint-mobile
+// (keep MainLayout.jsx's DESKTOP_QUERY in sync).
+$breakpoint-mobile: 768px;
+$breakpoint-small: 480px;

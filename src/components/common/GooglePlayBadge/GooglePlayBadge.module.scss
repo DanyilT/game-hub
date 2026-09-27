@@ -1,0 +1,26 @@
+@use '../../../styles/abstracts/variables' as *;
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.link {
+  display: inline-block;
+  border-radius: $radius-md;
+  line-height: 0;
+}
+
+.badge {
+  width: auto;
+  max-width: 100%;
+}
+
+.legal {
+  color: $color-text-secondary;
+  font-size: $font-size-xs;
+  opacity: 0.8;
+  text-align: center;
+}

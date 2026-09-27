@@ -1,0 +1,381 @@
+@use '../../styles/abstracts/variables' as *;
+@use '../../styles/abstracts/mixins';
+@use '../../styles/abstracts/buttons'; // %button-filled, %button-outline
+
+$handle-size: 20px;
+$pinch-cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewport='0 0 32 32'><text y='20' font-size='24'>🤌</text></svg>");
+$shadow: 0 4px 20px rgba($color-black, 0.2);
+
+.gamePage {
+  padding: $spacing-xl $spacing-xl $spacing-xl*2;
+}
+
+.gameHeader {
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: $spacing-md;
+  max-width: 1200px;
+  margin: 0 auto $spacing-xl;
+  padding: $spacing-md;
+
+  h1 {
+    color: $color-primary-light;
+    font-size: 2.5rem;
+  }
+}
+
+.gameMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-md;
+}
+
+.metaChip {
+  padding: $spacing-sm $spacing-md;
+  border-radius: $radius-full;
+  background: $color-surface;
+  font-family: $font-secondary;
+  font-size: 0.9rem;
+  font-weight: $font-weight-semibold;
+  cursor: help;
+
+  &.genre { background: $color-genre; }
+  &.easy { background: $color-easy; }
+  &.medium { background: $color-medium; }
+  &.hard { background: $color-hard; }
+  &.platform { background: $color-platform; }
+}
+
+.gameContent {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: $spacing-xl;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+// "Full Width" size mode: the game takes the whole row, info goes below
+.fullWidth .gameContent {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+// Game frame
+.gameFrameSection {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+  min-width: 0;
+}
+
+.gameFrameContainer {
+  max-width: 100%; // a dragged width can't grow past its column
+  margin-inline: auto; // a game narrower than the column sits in the middle
+  aspect-ratio: 16/9;
+  overflow: hidden;
+  border-radius: $radius-lg;
+  box-shadow: $shadow;
+
+  &.resizable {
+    position: relative;
+    min-height: 200px;
+    border: 2px dashed $color-secondary;
+  }
+}
+
+.gameFrame {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.gameFrameActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: $spacing-md;
+}
+
+.resizeControls,
+.sizeControls,
+.frameButtons {
+  display: flex;
+  gap: $spacing-sm;
+}
+
+.resizeControls {
+  gap: $spacing-md;
+}
+
+.resizeToggle {
+  @extend %button-filled;
+  @extend %button-secondary-font;
+}
+
+// Just an icon (its name is in title and aria-label)
+.fullscreenButton {
+  @extend %button-filled;
+  padding: $spacing-sm;
+  font-size: $font-size-xl; // the icon's size
+}
+
+.resizeToggle.active {
+  background: $color-secondary;
+  color: $color-black;
+}
+
+.sizeButton {
+  @extend %button-outline;
+  @extend %button-secondary-font;
+
+  &.active {
+    background: $color-primary;
+    color: $color-text-primary;
+  }
+}
+
+// Drag handles along the bottom edge, the right edge and in the bottom-right corner
+.resizeHandle {
+  position: absolute;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, $color-white 10%, transparent);
+  touch-action: none; // touch drags resize instead of scrolling the page
+
+  &:hover {
+    background: color-mix(in srgb, $color-white 20%, transparent);
+  }
+
+  &:active {
+    background: color-mix(in srgb, $color-secondary 30%, transparent);
+  }
+
+  &.bottom {
+    left: 0;
+    right: $handle-size;
+    bottom: 0;
+    height: $handle-size;
+    cursor: $pinch-cursor, ns-resize;
+
+    // The only handle (full width): nothing in the corner, so it runs the whole width
+    &:last-child {
+      right: 0;
+    }
+  }
+
+  &.right {
+    top: 0;
+    right: 0;
+    bottom: $handle-size;
+    width: $handle-size;
+    cursor: $pinch-cursor, ew-resize;
+  }
+
+  &.corner {
+    right: 0;
+    bottom: 0;
+    width: $handle-size;
+    height: $handle-size;
+    cursor: $pinch-cursor, nwse-resize;
+  }
+}
+
+.handleBar {
+  width: 50px;
+  height: 4px;
+  border-radius: $radius-sm;
+  background: $color-secondary;
+
+  .right & {
+    width: 4px;
+    height: 50px;
+  }
+}
+
+// Entries that aren't played in the hub (other sites, store apps): picture + links out
+.heroSection {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+  min-width: 0;
+}
+
+.heroImage {
+  width: 100%;
+  aspect-ratio: 16/9;
+  object-fit: cover;
+  border-radius: $radius-lg;
+  box-shadow: $shadow;
+}
+
+// Title tile when there's no picture yet (same idea as the game cards)
+.heroFallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-xl;
+  background:
+    radial-gradient(circle at 30% 20%, color-mix(in srgb, $color-primary 55%, transparent), transparent 60%),
+    radial-gradient(circle at 75% 85%, color-mix(in srgb, $color-secondary 35%, transparent), transparent 55%),
+    $color-black-light;
+
+  span {
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: $font-weight-bold;
+    text-align: center;
+    text-transform: uppercase;
+    animation: global(rgb-text) $neon-cycle;
+  }
+}
+
+.heroActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-lg;
+}
+
+.openButton {
+  @extend %button-filled;
+  padding: 0.75rem $spacing-lg;
+}
+
+// Google Play trademark line, under the whole row so the badge and buttons stay level
+.storeLegal {
+  color: $color-text-secondary;
+  font-size: $font-size-xs;
+  opacity: 0.8;
+  text-align: center;
+}
+
+// Info column
+.gameInfoAside {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+  align-self: start; // its own height, not stretched to a tall game frame beside it
+
+  section {
+    position: relative;
+    @include mixins.info-card;
+  }
+}
+
+.styleToggle {
+  position: relative;
+}
+
+.styleButton {
+  @extend %button-outline;
+  width: 100%;
+  border-width: 1px;
+  border-style: dashed;
+
+  &:hover {
+    background: $color-section;
+    color: $color-primary-light;
+  }
+}
+
+.stylePopup {
+  @include mixins.popup;
+  max-width: 100%;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.toggleFeaturesBtn {
+  width: 30px;
+  height: 30px;
+  border-radius: $radius-full;
+  color: $color-primary-light;
+  font-size: 0.9rem;
+  transition: background $transition-fast ease;
+
+  &:hover {
+    background: color-mix(in srgb, $color-primary 20%, transparent);
+  }
+}
+
+.gameFeatures {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height $transition-slow ease;
+
+  &.expanded {
+    max-height: 500px;
+  }
+
+  h2 {
+    margin-bottom: $spacing-xs;
+  }
+
+  ul {
+    color: $color-text-secondary;
+    @include mixins.arrow-list;
+  }
+}
+
+.tagsContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+}
+
+.tag {
+  padding: $spacing-xs $spacing-sm;
+  background: $color-surface;
+  border: 1px solid color-mix(in srgb, $color-white 20%, transparent);
+  border-radius: $radius-xl;
+  font-size: 0.9rem;
+}
+
+.gameLinks {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.playButton {
+  @extend %button-filled;
+  padding: 0.75rem $spacing-lg;
+}
+
+.sourceLink {
+  @extend %button-outline;
+  padding: 0.75rem $spacing-lg;
+}
+
+@media (width <= 1024px) {
+  .gameContent {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .gameFrameActions {
+    justify-content: flex-end;
+  }
+
+  // Resizing is for wide screens; the frame already fills the width here
+  .resizeControls {
+    display: none;
+  }
+}
+
+@media (width <= $breakpoint-mobile) {
+  .gamePage {
+    padding: $spacing-xl $spacing-xl $spacing-xl*2;
+  }
+
+  .gameHeader h1 {
+    font-size: 2rem;
+  }
+}

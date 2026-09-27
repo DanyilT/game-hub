@@ -1,0 +1,89 @@
+@use 'variables' as *;
+
+// Hidden on screen, still read by screen readers
+@mixin visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+// A card of game info on the game page (Description, Controls, Tags…)
+@mixin info-card {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+  padding: $spacing-lg;
+  background: $color-section;
+  border-radius: $radius-lg;
+
+  h2 {
+    font-size: $font-size-lg;
+  }
+}
+
+// A list with purple → bullets (a game's features, the legal pages). The arrow sits in the item's
+// padding, so an item wraps like any text, links included.
+@mixin arrow-list {
+  display: grid;
+  gap: 0.75rem;
+
+  li {
+    position: relative;
+    padding-left: 1.5em;
+
+    &::before {
+      content: '→';
+      position: absolute;
+      left: 0;
+      color: $color-primary-light;
+    }
+  }
+}
+
+// A note floating under the button that shows it (ⓘ notes, the game page's style details)
+@mixin popup {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 10;
+  width: max-content;
+  max-width: 350px;
+  padding: $spacing-md;
+  background: $color-black-light;
+  border: 1px solid $color-primary;
+  border-radius: $radius-md;
+  box-shadow: 0 4px 12px rgba($color-black, 0.4);
+  animation: global(fade-in) $transition-fast ease;
+}
+
+// Frosted box with the brand border (filters, "no games found")
+@mixin panel {
+  background: $color-panel;
+  backdrop-filter: blur($blur-length);
+  border: 1px solid $color-primary;
+  border-radius: $radius-lg;
+}
+
+// Light label on a bright gradient (selected filter buttons and chips). No text colour works across
+// the whole gradient, so the label gets a dark halo. Not bold: that would widen the chip in most fonts.
+@mixin label-on-gradient {
+  text-shadow: 0 0 2px $color-black, 0 0 6px $color-black;
+}
+
+// Animated neon line (header logo underline, footer link underlines); use on a ::before/::after
+@mixin neon-line($height) {
+  content: '';
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: $height;
+  background: $gradient-neon;
+  background-size: 300% 100%;
+  animation: global(gradient-shift) $neon-cycle;
+}
