@@ -1,0 +1,53 @@
+@use 'variables' as *;
+
+// Form fields in the neon look of the first rewrite's sign-in window (AuthModal):
+// green uppercase labels, transparent fields with a purple edge and green text.
+
+@mixin label {
+  color: $color-accent-light;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-shadow: 0 0 5px rgba($color-accent-light, 0.3);
+}
+
+@mixin text-input {
+  width: 100%;
+  padding: 12px 14px;
+  background: none;
+  border: 1px solid $color-primary-light;
+  color: $color-accent-light;
+  font-size: 0.95rem;
+  text-shadow: 0 0 3px rgba($color-accent-light, 0.3);
+  transition: border-color $transition-fast ease, box-shadow $transition-fast ease;
+
+  &::placeholder {
+    color: $color-white-pink;
+    opacity: 0.7;
+  }
+
+  // The reset removes the outline from focused inputs, so they get a glow instead
+  &:focus {
+    border-color: $color-primary;
+    box-shadow: 0 0 15px rgba($color-primary-light, 0.4), inset 0 0 10px rgba($color-primary-light, 0.1);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  &[aria-invalid='true'] {
+    border-color: $color-error;
+  }
+}
+
+// Messages under a field or form ("Saved", "That username is taken")
+@mixin form-status {
+  min-height: 1.5em;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+$color-status-ok: $color-success;
+$color-status-error: color-mix(in srgb, $color-error 70%, $color-white);

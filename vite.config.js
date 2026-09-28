@@ -66,7 +66,11 @@ function gamesCatalog() {
 }
 
 // The app's pages besides the home page (index.html). Keep in step with the routes in App.jsx.
-const PAGES = ['games', 'terms', 'privacy'];
+const PAGES = ['games', 'users', 'terms', 'privacy'];
+// Account pages get a file of their own too, but stay out of sitemap.xml (robots.txt keeps crawlers out)
+const ACCOUNT_PAGES = ['settings', 'auth/callback'];
+// Profiles (/u/<username>) can't have a file per player, so _redirects answers all of them with the app
+const PROFILE_PATHS = '/u/*';
 
 // The site's address: the Worker's `name` (wrangler.jsonc) on the account's workers.dev subdomain.
 // sitemap.xml and the other root files use it for full URLs. Change it if the site gets a domain.
@@ -75,8 +79,10 @@ const SITE_URL = 'https://game-hub.danyt.workers.dev';
 /**
  * Gives every page of the app a file of its own, so the site stays static and still answers
  * with real status codes (wrangler.jsonc: "404-page"):
- * - PAGES, and games/<id> for every catalogue entry, get a copy of the app (e.g. games/snake.html),
- *   so opening or refreshing them is a 200
+ * - PAGES, ACCOUNT_PAGES, and games/<id> for every catalogue entry, get a copy of the app
+ *   (e.g. games/snake.html), so opening or refreshing them is a 200
+ * - profiles get the app with a 200 from a rule in _redirects ("200" serves another file in
+ *   place of the missing one, without redirecting)
  * - 404.html, another copy, is what Cloudflare sends with a 404 status for any other path;
  *   the app then shows its 404 page
  */
@@ -89,9 +95,11 @@ function appPages() {
       async handler(_options, bundle) {
         const { catalog } = await checkCatalogFile();
         const app = bundle['index.html'].source;
-        for (const page of [...PAGES, ...catalog.games.map((game) => `games/${game.id}`), '404']) {
+        for (const page of [...PAGES, ...ACCOUNT_PAGES, ...catalog.games.map((game) => `games/${game.id}`), '404']) {
           this.emitFile({ type: 'asset', fileName: `${page}.html`, source: app });
         }
+        // To "/", not "/index.html": Cloudflare shortens that to "/" itself, so it would count as a loop
+        this.emitFile({ type: 'asset', fileName: '_redirects', source: `${PROFILE_PATHS} / 200\n` });
       },
     },
   };
@@ -108,7 +116,8 @@ function rootFiles() {
     async generateBundle() {
       const { catalog } = await checkCatalogFile();
       if (!SITE_URL) this.warn('no sitemap.xml: set SITE_URL in vite.config.js once the site has an address');
-      for (const [fileName, source] of Object.entries(siteFiles({ catalog, pages: PAGES, siteUrl: SITE_URL }))) {
+      const files = siteFiles({ catalog, pages: PAGES, accountPages: ACCOUNT_PAGES, siteUrl: SITE_URL });
+      for (const [fileName, source] of Object.entries(files)) {
         this.emitFile({ type: 'asset', fileName, source });
       }
     },
@@ -118,24 +127,32 @@ function rootFiles() {
 /**
  * Writes dist/_headers: headers Cloudflare adds to every response (Workers static assets read
  * this file). The Content-Security-Policy allows only the sites the pages really use, and is
- * built from the catalogue at build time, so adding a game can't leave it out of date:
+ * built from the catalogue and the Supabase URL at build time, so it can't drift from them:
  * - frame-src: EMBED_ORIGINS (the only site games are embedded from)
- * - img-src: the catalogue's picture hosts, the Google Play badge, and http.cat (error pages)
+ * - img-src: the catalogue's picture hosts, the Google Play badge, http.cat (error pages), and
+ *   profile pictures from Google (and Discord's, ready for when its sign-in is switched on)
+ * - connect-src: this project's Supabase URL (none when accounts aren't configured)
  * The dev server doesn't send these; try them with `npm run cf:preview`.
  */
 function securityHeaders() {
+  let supabaseUrl;
+
   const contentSecurityPolicy = (catalog) => {
     const origins = (urls) => [...new Set(urls.map((url) => new URL(url).origin))];
     const pictures = origins(catalog.games.filter((game) => game.thumb).map((game) => game.thumb));
     const hasStoreBadge = catalog.games.some((game) => game.platforms.some((p) => p.type === 'android'));
+    const supabase = supabaseUrl ? new URL(supabaseUrl) : null;
 
     return [
       "default-src 'self'",
       "script-src 'self'",
       "style-src 'self' https://fonts.googleapis.com",
       'font-src https://fonts.gstatic.com',
-      ["img-src 'self' data:", ...pictures, ...(hasStoreBadge ? ['https://play.google.com'] : []), 'https://http.cat'].join(' '),
-      "connect-src 'self'",
+      ["img-src 'self' data:", ...pictures, ...(hasStoreBadge ? ['https://play.google.com'] : []), 'https://http.cat',
+        'https://*.googleusercontent.com', 'https://cdn.discordapp.com'].join(' '),
+      ["connect-src 'self'",
+        ...(supabase ? [supabase.origin, `${supabase.protocol === 'https:' ? 'wss' : 'ws'}://${supabase.host}`] : []),
+      ].join(' '),
       `frame-src ${EMBED_ORIGINS.join(' ')}`,
       "frame-ancestors 'none'",
       "base-uri 'self'",
@@ -147,6 +164,11 @@ function securityHeaders() {
   return {
     name: 'gamehub-security-headers',
     apply: 'build',
+    configResolved(config) {
+      // Same rule as src/lib/supabase.js: accounts are on only with both values
+      const { VITE_SUPABASE_URL: url, VITE_SUPABASE_PUBLISHABLE_KEY: key } = config.env;
+      supabaseUrl = url && key ? url : undefined;
+    },
     async generateBundle() {
       const { catalog } = await checkCatalogFile();
       const source = [
@@ -167,6 +189,17 @@ function securityHeaders() {
 
 export default defineConfig({
   plugins: [react(), gamesCatalog(), appPages(), rootFiles(), securityHeaders()],
+  build: {
+    rolldownOptions: {
+      output: {
+        // Supabase's client (about 190 kB) gets a file of its own. It changes less often than the
+        // site's code, so browsers keep it cached across deploys, and the main file stays small.
+        codeSplitting: {
+          groups: [{ name: 'supabase', test: /node_modules[\\/]@supabase[\\/]/ }],
+        },
+      },
+    },
+  },
   server: {
     port: 3000,
     strictPort: true, // fail instead of silently moving to another port

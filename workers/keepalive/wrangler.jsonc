@@ -1,0 +1,17 @@
+// A second, tiny Cloudflare Worker (separate from the site) that keeps the free Supabase
+// project awake. Deploy with `npm run deploy:keepalive`. Its two settings are Worker
+// secrets, so nothing project-specific is in this file:
+//   npx wrangler secret put SUPABASE_URL --config workers/keepalive/wrangler.jsonc
+//   npx wrangler secret put SUPABASE_PUBLISHABLE_KEY --config workers/keepalive/wrangler.jsonc
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "game-hub-keepalive",
+  "main": "index.js",
+  "compatibility_date": "2026-09-28",
+  // No public URL: it only runs on the schedule
+  "workers_dev": false,
+  "triggers": {
+    // Every day at 06:17 UTC
+    "crons": ["17 6 * * *"]
+  }
+}

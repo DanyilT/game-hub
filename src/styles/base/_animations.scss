@@ -111,3 +111,50 @@
   70% { opacity: 1; transform: translateX(0.2rem) scale(1.05); }
   to { opacity: 1; transform: none; }
 }
+
+// The window's title cycling through the brand colours
+@keyframes rgb-text-purple {
+  0% {
+    color: $color-secondary;
+    text-shadow: 0 0 10px $color-secondary;
+  }
+  50% {
+    color: $color-primary;
+    text-shadow: 0 0 10px $color-primary;
+  }
+  100% {
+    color: $color-secondary;
+    text-shadow: 0 0 10px $color-secondary;
+  }
+}
+
+// The window's × on hover
+@keyframes glitch-shake {
+  0% {
+    transform: translate(0, 0);
+    text-shadow: 0 0 5px $color-secondary;
+  }
+  10% {
+    transform: translate(-2px, 0);
+    text-shadow: -1px 0 6px $color-secondary;
+  }
+  20% {
+    transform: translate(2px, 1px);
+    text-shadow: 1px 1px 6px $color-secondary;
+  }
+  30% {
+    transform: translate(-1px, -1px);
+    text-shadow: -1px 1px 6px $color-secondary;
+  }
+  40% {
+    transform: translate(1px, 0);
+    text-shadow: 0 1px 6px $color-secondary;
+  }
+  50% {
+    transform: translate(0, 0);
+    text-shadow: 0 0 5px $color-secondary;
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}

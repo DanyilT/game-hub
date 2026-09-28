@@ -1,0 +1,222 @@
+@use '../../styles/abstracts/variables' as *;
+@use '../../styles/abstracts/forms';
+
+// Content of the account modals (sign-in, welcome)
+
+.error,
+.success {
+  padding: 12px;
+  margin-bottom: 20px;
+  font-size: 0.9rem;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.error {
+  background: rgba($color-error, 0.1);
+  border: 1px solid rgba($color-error, 0.3);
+  color: forms.$color-status-error;
+}
+
+.success {
+  background: rgba($color-success, 0.1);
+  border: 1px solid rgba($color-success, 0.3);
+  color: $color-success;
+}
+
+.formGroup {
+  margin-bottom: 18px;
+}
+
+.label {
+  @include forms.label;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.input {
+  @include forms.text-input;
+}
+
+.text {
+  margin-bottom: 18px;
+  color: $color-text-secondary;
+  font-size: 0.9rem;
+}
+
+.hint {
+  display: block;
+  margin-top: 6px;
+  color: $color-white-pink;
+  font-size: 0.75rem;
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+// Main action: gradient, green text (also the Google / Discord buttons)
+.submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, $color-primary, $color-primary-light);
+  border: 1px solid $color-primary-light;
+  color: $color-accent-light;
+  font-size: 1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 0 0 10px rgba($color-primary-light, 0.3);
+  transition: box-shadow 0.2s, text-shadow 0.2s, transform 0.2s;
+
+  &:hover:not(:disabled) {
+    box-shadow: 0 0 20px rgba($color-primary-light, 0.6), inset 0 0 10px rgba($color-primary-light, 0.2);
+    text-shadow: 0 0 10px rgba($color-accent-light, 0.5);
+    transform: translateY(-2px);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  // A provider that isn't switched on yet (Discord): like the email link, its name is dimmed
+  // but its "soon" badge stays readable
+  &.soon:disabled {
+    opacity: 1;
+    background: rgba($color-primary, 0.35);
+
+    .providerIcon,
+    .providerLabel {
+      opacity: 0.55;
+    }
+  }
+}
+
+.providers {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.providerIcon {
+  color: $color-white;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  margin: 24px 0;
+
+  &::before,
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, $color-primary, transparent);
+  }
+
+  span {
+    padding: 0 16px;
+    color: $color-primary-light;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+}
+
+// Other ways in: green outline
+.alt {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px;
+  background: transparent;
+  border: 1px solid $color-accent-light;
+  color: $color-accent-light;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 0 10px rgba($color-accent-light, 0.2);
+  transition: background 0.2s, box-shadow 0.2s, text-shadow 0.2s;
+
+  &:hover:not(:disabled) {
+    background: rgba($color-accent-light, 0.1);
+    box-shadow: 0 0 20px rgba($color-accent-light, 0.4), inset 0 0 10px rgba($color-accent-light, 0.1);
+    text-shadow: 0 0 10px rgba($color-accent-light, 0.5);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+  }
+}
+
+.altLabel {
+  opacity: 1;
+
+  .alt:disabled & {
+    opacity: 0.55;
+  }
+}
+
+.soonBadge {
+  padding: 0 $spacing-sm;
+  border: 1px solid color-mix(in srgb, $color-secondary 60%, transparent);
+  border-radius: $radius-full;
+  color: $color-secondary;
+  font-size: $font-size-xs;
+  line-height: 1.6;
+  text-transform: lowercase;
+}
+
+// "Back", "Decide later"
+.switch {
+  margin-top: 20px;
+  text-align: center;
+  color: $color-accent;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.switchButton {
+  color: $color-primary-light;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-decoration: underline;
+  transition: color 0.1s, text-shadow 0.1s;
+
+  &:hover:not(:disabled) {
+    color: $color-secondary;
+    text-shadow: 0 0 10px rgba($color-secondary, 0.5);
+  }
+}
+
+.finePrint {
+  margin-top: 20px;
+  color: $color-text-secondary;
+  font-size: 0.75rem;
+  opacity: 0.85;
+
+  a {
+    color: $color-primary-light;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+
+    &:hover {
+      color: $color-secondary;
+    }
+  }
+}

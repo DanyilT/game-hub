@@ -1,0 +1,291 @@
+@use '../../styles/abstracts/variables' as *;
+@use '../../styles/abstracts/forms';
+
+// Shared by the account pages: AuthCallback, Profile, Settings, Users (sign-in is a modal:
+// components/account). Square-cornered and see-through, like the legal pages and the neon windows.
+
+.page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: $spacing-xl $spacing-lg;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+
+  @media (width <= $breakpoint-mobile) {
+    padding: $spacing-lg $spacing-md;
+  }
+}
+
+.narrow {
+  max-width: 480px;
+}
+
+.wide {
+  max-width: 1100px;
+}
+
+// The site's neon gradient, sliding through the title
+.title {
+  font-size: clamp(2rem, 4vw, 2.75rem);
+  background: $gradient-neon;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 400%;
+  animation: global(gradient-shift) $neon-cycle;
+  overflow-wrap: anywhere;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+  padding: $spacing-lg;
+  border: 1px solid $color-primary;
+
+  @media (width <= $breakpoint-mobile) {
+    padding: $spacing-md;
+  }
+}
+
+.cardTitle {
+  font-size: $font-size-xl;
+}
+
+.muted {
+  color: $color-text-secondary;
+  font-size: $font-size-sm;
+}
+
+.textLink {
+  color: $color-primary-light;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+
+  &:hover {
+    color: $color-secondary;
+  }
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+// Messages
+.status {
+  @include forms.form-status;
+}
+
+.ok {
+  color: forms.$color-status-ok;
+}
+
+.error {
+  color: forms.$color-status-error;
+}
+
+// Fields
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.label {
+  @include forms.label;
+}
+
+.input {
+  @include forms.text-input;
+}
+
+// Profile
+.profileHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-lg;
+}
+
+.profileNames {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  min-width: 120px;
+  flex: 1;
+}
+
+.handle {
+  color: $color-text-secondary;
+  font-size: $font-size-lg;
+  overflow-wrap: anywhere;
+}
+
+// Settings: the picture beside the display name (wrapping under it when there's no room)
+.profileRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-lg;
+}
+
+.grow {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+// The picture is also the button that removes it (or puts the provider's back): the action
+// shows over it on hover or focus, and all the time on touch screens, which can't hover
+.picture {
+  position: relative;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: $radius-full;
+
+  &:disabled {
+    cursor: progress;
+  }
+}
+
+.pictureAction {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-xs;
+  background: rgba($color-black, 0.7);
+  color: $color-text-primary;
+  font-size: $font-size-xs;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  opacity: 0;
+  transition: opacity $transition-fast;
+
+  svg {
+    font-size: 2rem;
+  }
+
+  .picture:hover &,
+  .picture:focus-visible & {
+    opacity: 1;
+  }
+
+  @media (hover: none) {
+    background: rgba($color-black, 0.45);
+    opacity: 1;
+  }
+}
+
+// A text field that fills the row, with its buttons beside it (wrapping on narrow screens)
+.inputRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+
+  .input {
+    flex: 1 1 14rem;
+    width: auto;
+  }
+}
+
+.danger {
+  border-color: $color-error;
+}
+
+// Users: search and sort (an .inputRow), and a grid of player cards
+.sorts {
+  display: flex;
+}
+
+.sortButton {
+  padding: $spacing-sm $spacing-md;
+  border: 1px solid $color-primary;
+  color: $color-text-secondary;
+  font-size: $font-size-sm;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: background $transition-fast, color $transition-fast;
+
+  & + & {
+    border-left: none;
+  }
+
+  &:hover {
+    color: $color-text-primary;
+  }
+
+  &.active {
+    background: $color-primary;
+    color: $color-text-primary;
+  }
+}
+
+.userGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: $spacing-md;
+}
+
+.userCard {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  height: 100%;
+  padding: $spacing-md;
+  border: 1px solid $color-primary;
+  color: $color-text-primary;
+  text-decoration: none;
+  transition: border-color $transition-fast, box-shadow $transition-fast;
+
+  &:hover {
+    border-color: $color-primary-light;
+    box-shadow: 0 0 10px rgba($color-primary-light, 0.3);
+  }
+}
+
+.userNames {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.userNameRow {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  min-width: 0;
+}
+
+.userName {
+  min-width: 0;
+  overflow: hidden;
+  font-weight: $font-weight-bold;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.userMeta {
+  color: $color-text-secondary;
+  font-size: $font-size-sm;
+  overflow-wrap: anywhere;
+}
+
+.youBadge {
+  flex-shrink: 0;
+  padding: 0 $spacing-xs;
+  border: 1px solid $color-accent-light;
+  color: $color-accent-light;
+  font-size: $font-size-xs;
+  text-transform: uppercase;
+}

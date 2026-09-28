@@ -4,6 +4,9 @@ import Header from '../Header/Header';
 import Sidebar from '../Sidebar/Sidebar';
 import Footer from '../Footer/Footer';
 import ErrorBoundary from '../../common/ErrorBoundary/ErrorBoundary';
+import UsernameDialog from '../../account/UsernameDialog/UsernameDialog';
+import SignInModal from '../../account/SignInModal/SignInModal';
+import { useAuth } from '../../../contexts/AuthContext';
 import styles from './MainLayout.module.scss';
 
 // Remember whether the desktop sidebar was left expanded. Storage can be
@@ -26,6 +29,7 @@ const MainLayout = () => {
   const menuButtonRef = useRef(null);
   const wasMenuOpenRef = useRef(false);
   const location = useLocation();
+  const { signInOpen } = useAuth();
 
   useEffect(() => {
     try {
@@ -115,6 +119,10 @@ const MainLayout = () => {
         </main>
         <Footer />
       </div>
+
+      {/* The sign-in window, and new players keeping or changing the username they got */}
+      {signInOpen && <SignInModal />}
+      <UsernameDialog />
     </div>
   );
 };

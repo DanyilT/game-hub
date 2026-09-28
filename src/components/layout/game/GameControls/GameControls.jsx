@@ -146,7 +146,7 @@ const GameControls = ({ controls, expanded, onToggleExpanded, takeFocus }) => {
   });
 
   return (
-    <section className={`${styles.controls} ${expanded ? styles.expanded : ''}`}>
+    <section className={`${styles.controls}`}>
       <div className={styles.header}>
         <h2>Controls</h2>
         {hasTips && (

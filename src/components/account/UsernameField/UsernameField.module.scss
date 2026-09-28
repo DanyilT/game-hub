@@ -1,0 +1,80 @@
+@use '../../../styles/abstracts/variables' as *;
+@use '../../../styles/abstracts/forms';
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.label {
+  @include forms.label;
+}
+
+.inputRow {
+  display: flex;
+  gap: 10px;
+}
+
+.inputWrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.at {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: $color-accent;
+  pointer-events: none;
+}
+
+.input {
+  @include forms.text-input;
+  padding-left: calc(14px + 1.1em);
+}
+
+// 🎲 random username (spins on hover, like the first rewrite's)
+.generate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  flex-shrink: 0;
+  border: 1px solid $color-primary;
+  font-size: 1.2rem;
+  transition: transform 0.4s ease-in-out, box-shadow 0.2s, border-color 0.4s;
+
+  &:hover:not(:disabled) {
+    border-color: $color-primary-light;
+    box-shadow: 0 0 10px rgba($color-primary-light, 0.4);
+    transform: rotate(180deg);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &:hover:not(:disabled) {
+      transform: none;
+    }
+  }
+}
+
+.status {
+  @include forms.form-status;
+  margin: 0;
+}
+
+.available {
+  color: forms.$color-status-ok;
+}
+
+.invalid,
+.taken {
+  color: forms.$color-status-error;
+}

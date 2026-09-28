@@ -6,7 +6,7 @@ Welcome to the **GameHub** project! This repository contains the source code for
 
 Hub for all games, that was created by me.
 
-This is **v2** (branch [`main-v2`](https://github.com/DanyilT/game-hub/tree/main-v2)): a rewrite on Vite, to be hosted on Cloudflare Workers, with user accounts, ratings and activity on the way. The roadmap is in [docs/V2_PLAN.md](docs/V2_PLAN.md).
+This is **v2** (branch [`main-v2`](https://github.com/DanyilT/game-hub/tree/main-v2)): a rewrite on Vite, hosted on Cloudflare Workers. It adds accounts (sign in with Google, with Discord coming, and public profiles), with ratings and activity on the way.
 
 > [!NOTE]
 > ### 🕹️ v1
@@ -15,39 +15,51 @@ This is **v2** (branch [`main-v2`](https://github.com/DanyilT/game-hub/tree/main
 
 ## ☁️ Hosting
 
-v2 is a **static site**: `npm run build` turns it into plain HTML/CSS/JS files in `dist/`, and Cloudflare serves those files from its CDN. There is no web server to run. The build writes a copy of `index.html` for every page (`games.html`, `games/snake.html`, `terms.html`…), so opening or refreshing any page works, and React Router shows it. Any other path gets `404.html` with a real 404 status (`not_found_handling: "404-page"` in `wrangler.jsonc`), and the site shows its 404 page, with a cat from [http.cat](https://http.cat).
+v2 is a **static site**: `npm run build` turns it into plain HTML/CSS/JS files in `dist/`, and Cloudflare serves those files from its CDN. There is no web server to run. The build writes a copy of `index.html` for every page (`games.html`, `games/snake.html`, `terms.html`…), so opening or refreshing any page works, and React Router shows it. Profiles (`/u/<username>`) can't have a file each, so a rule in `_redirects` serves the app for all of them. Any other path gets `404.html` with a real 404 status (`not_found_handling: "404-page"` in `wrangler.jsonc`), and the site shows its 404 page, with a cat from [http.cat](https://http.cat).
 
-The build also writes `dist/_headers` (see `vite.config.js`), so Cloudflare sends security headers, including a Content-Security-Policy that allows only the sites the pages use.
-
-And it writes the usual files at the site's root, from the catalogue (their text is in `scripts/site-files.mjs`): `robots.txt`, `sitemap.xml`, `llms.txt` (for AI assistants), `humans.txt` and `.well-known/security.txt`. For full URLs they use the site's address, `SITE_URL` in `vite.config.js` (https://game-hub.danyt.workers.dev). Change it there if the site moves, e.g. to a domain of its own.
+- **Accounts** live in [Supabase](https://supabase.com) (sign-in, database, access rules). The browser talks to it directly.
+- **Security headers:** the build also writes `dist/_headers` (see `vite.config.js`), so Cloudflare sends a Content-Security-Policy that allows only the sites the pages use.
+- **Files at the root:** the build writes the usual ones from the catalogue (their text is in `scripts/site-files.mjs`): `robots.txt`, `sitemap.xml`, `llms.txt` (for AI assistants), `humans.txt` and `.well-known/security.txt`. For full URLs they use the site's address, `SITE_URL` in `vite.config.js` (https://game-hub.danyt.workers.dev). Change it there if the site moves, e.g. to a domain of its own.
 
 ## 🚀 Getting Started
 
-Requires **Node 22.22+** (see `.nvmrc`).
+Requires **Node 22.22+**.
 
 1. **Install dependencies**:
    ```bash
    npm install
    ```
-2. **Start the development server**:
+2. **Accounts (optional)**: copy `.env.example` to `.env.local` and fill in the Supabase project URL and publishable key. Without them, the site runs with accounts switched off ("Sign in" shows "soon").
+3. **Start the development server**:
    ```bash
    npm run dev
    ```
    Open [http://localhost:3000](http://localhost:3000) to view it in your browser. If port 3000 is already taken, the command stops with an error (it won't silently switch ports).
-3. **Build for production**:
+4. **Build for production**:
    ```bash
    npm run build
    ```
    This will create an optimized production build in the `dist` folder.
-4. **Try the production build on Cloudflare's local runtime** (this is where the security headers apply):
+5. **Try the production build on Cloudflare's local runtime** (this is where the security headers apply):
    ```bash
    npm run cf:preview
    ```
-5. **Deploy to Cloudflare** (the first time, log in with `npx wrangler login`):
+6. **Deploy to Cloudflare** (the first time, log in with `npx wrangler login`). The build reads `.env.local`, so accounts go live with it:
    ```bash
    npm run deploy
    ```
    It prints the site's address, which should match `SITE_URL` in `vite.config.js` (see Hosting).
+
+   The daily keep-alive for the free Supabase project is a separate Worker:
+   ```bash
+   npm run deploy:keepalive
+   ```
+7. **Local Supabase (optional, needs Docker)**: the same database and sign-in server on your machine, for trying schema changes and running the database tests.
+   ```bash
+   npm run db:start    # then: npm run test:db, or npm run dev:local (the site against it)
+   npm run db:reset    # a fresh local database, with 240 mock players (supabase/seed.sql)
+   npm run db:stop
+   ```
 
 ## 🎮 Adding a game
 
@@ -133,27 +145,38 @@ Each list is optional, and every link needs a `label`. A new game on another sit
 - **SCSS modules**: component styles (`*.module.scss`, `@use` only). Colours, sizes, fonts and timings are Sass variables in `src/styles/abstracts/_variables.scss`, and shared mixins are in `_mixins.scss` next to it.
 - **Fonts** (Google Fonts): Doto for the site, and Chakra Petch (easier to read small) for game tags. To change one, edit `$font-primary` / `$font-secondary` in `_variables.scss` and the Google Fonts link in `index.html`.
 - **react-icons**: interface icons, and the icons the catalogue names.
-- **Cloudflare Workers (static assets)**: hosting.
+- **Supabase**: sign-in (Google; Discord is coming), Postgres with row level security. Schema changes are migrations in `supabase/migrations/`, applied with `npx supabase db push`.
+- **Cloudflare Workers (static assets)**: hosting, plus a cron Worker that keeps Supabase awake.
 
 ## 📂 Project Structure
 
 ```
 game-hub/
-├── docs/V2_PLAN.md          # roadmap for v2
 ├── public/                  # copied as-is into dist/ (favicon, manifest)
-├── scripts/check-catalog.mjs  # checks src/data/games.json (also run by vite.config.js)
-├── scripts/site-files.mjs   # robots.txt, sitemap.xml, llms.txt, humans.txt, security.txt (written by the build)
+├── scripts/
+│   ├── check-catalog.mjs    # checks src/data/games.json (also run by vite.config.js)
+│   ├── site-files.mjs       # robots.txt, sitemap.xml, llms.txt, humans.txt, security.txt (written by the build)
+│   └── dev-local.mjs        # `npm run dev:local`: the dev server against the local Supabase
 ├── src/
-│   ├── components/common/   # GooglePlayBadge, ErrorBoundary
-│   ├── components/layout/   # Header, Footer, Sidebar, MainLayout, game/GameCard, game/GameList
-│   ├── contexts/            # AuthContext (guest-only until Supabase is added)
-│   ├── data/                # games.json (the catalogue) + games.js (helpers)
-│   ├── pages/               # Games, GamePage, Legal (Terms, Privacy), ErrorPage (404, 500)
-│   ├── styles/              # Sass variables, mixins and buttons, shared animations, reset, base
+│   ├── components/account/  # SignInModal, UsernameDialog (new players pick a username), UsernameField (🎲)
+│   ├── components/common/   # Avatar, Button, ErrorBoundary, GooglePlayBadge, InfoTip, Modal (the neon window)
+│   ├── components/layout/   # Header, Footer, Sidebar, MainLayout, game/GameCard, game/GameList, game/GameControls
+│   ├── contexts/            # AuthContext: the signed-in player and their profile (useAuth())
+│   ├── data/                # games.json (the catalogue), games.js (helpers), controls.js (key and gesture names)
+│   ├── lib/                 # supabase.js (the client), account.js (username rules, helpers)
+│   ├── pages/               # Games, GamePage, Account/ (users, profile, settings, sign-in callback), Legal/ (terms, privacy), ErrorPage
+│   ├── styles/              # Sass variables, mixins, buttons and forms, shared animations, reset, base
 │   ├── App.jsx              # routes
 │   └── index.jsx            # entry point
+├── supabase/
+│   ├── config.toml          # Supabase CLI settings
+│   ├── migrations/          # database schema, applied with `npx supabase db push`
+│   ├── seed.sql             # 240 mock players, local only (`npm run db:reset`; never pushed)
+│   └── tests/               # database tests (pgTAP), `npm run test:db`
+├── workers/keepalive/       # daily cron Worker that keeps the free Supabase project awake
+├── .env.example             # template for .env.local (Supabase URL + publishable key)
 ├── index.html
-├── vite.config.js           # also writes /catalog.json, the catalogue's icons module, the security headers (dist/_headers) and the root files; SITE_URL is here
+├── vite.config.js           # also writes /catalog.json, the catalogue's icons module, the security headers (dist/_headers), _redirects and the root files; SITE_URL is here
 ├── wrangler.jsonc           # Cloudflare config
 └── package.json
 ```

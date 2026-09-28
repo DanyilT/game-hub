@@ -129,6 +129,7 @@ $row-hover-bg: rgba($color-white, 0.08);
   padding: $spacing-md;
   border-radius: $radius-md;
   color: $color-text-secondary;
+  text-align: left; // the Sign in and Sign out rows are <button>s, which centre their text
   position: relative;
   font-size: $font-size-base;
   font-weight: $font-weight-medium;
@@ -236,20 +237,6 @@ $row-hover-bg: rgba($color-white, 0.08);
   margin: $spacing-sm;
   background: rgba($color-white, 0.06);
   border-radius: $radius-lg;
-}
-
-.userAvatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: $radius-full;
-  background: linear-gradient(135deg, $color-primary 0%, $color-secondary 100%);
-  color: $color-white;
-  font-weight: $font-weight-bold;
-  font-size: $font-size-lg;
-  flex-shrink: 0;
 }
 
 .userDetails {

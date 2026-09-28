@@ -1,7 +1,7 @@
 // The small files people and programs look for at the root of a site. vite.config.js writes
 // them into dist/ on every build (try them with `npm run cf:preview`). They're built from the
 // catalogue, so a new game shows up in them by itself. Each one ends with the cat.
-//   robots.txt                what crawlers may visit (everything), and where the sitemap is
+//   robots.txt                what crawlers may visit (all but the account pages), and where the sitemap is
 //   sitemap.xml               every page, for search engines
 //   llms.txt                  the site for AI assistants (https://llmstxt.org)
 //   humans.txt                who made the site (https://humanstxt.org)
@@ -25,10 +25,11 @@ const day = (date) => date.toISOString().slice(0, 10); // 2026-09-27
 /**
  * The files, as { fileName: contents }.
  * - `pages`: the app's pages (PAGES in vite.config.js); each catalogue entry adds games/<id>
+ * - `accountPages`: pages crawlers have no use for (settings, the sign-in callback)
  * - `siteUrl`: the site's address. A sitemap needs full URLs, so without it there's no
  *   sitemap.xml, and the other files link with paths (/catalog.json) instead.
  */
-export function siteFiles({ catalog, pages, siteUrl, date = new Date() }) {
+export function siteFiles({ catalog, pages, accountPages = [], siteUrl, date = new Date() }) {
   const origin = siteUrl ? new URL(siteUrl).origin : '';
   const url = (path) => `${origin}/${path}`;
   const { developer, games } = catalog;
@@ -39,8 +40,9 @@ export function siteFiles({ catalog, pages, siteUrl, date = new Date() }) {
 
   const files = {
     'robots.txt': text([
-      '# GameHub: every page is open to crawlers',
+      '# GameHub: every page is open to crawlers, except the account ones',
       'User-agent: *',
+      ...accountPages.map((page) => `Disallow: /${page}`),
       'Allow: /',
       ...(origin ? ['', `Sitemap: ${url('sitemap.xml')}`] : []),
       '',

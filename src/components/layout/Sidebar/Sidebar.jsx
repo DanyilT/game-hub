@@ -13,13 +13,14 @@ import {
   CiUser,
 } from 'react-icons/ci';
 import { useAuth } from '../../../contexts/AuthContext';
+import Avatar from '../../common/Avatar/Avatar';
 import styles from './Sidebar.module.scss';
 
-// Navigation items. `soon` marks pages that aren't built yet (see docs/V2_PLAN.md):
-// they're shown greyed out with a badge instead of linking nowhere.
+// Navigation items. `soon` marks pages that aren't built yet: they're shown greyed out with a
+// badge instead of linking nowhere. `needsAccounts` pages are "soon" on a site without Supabase.
 const mainNav = [
   { path: '/games', label: 'Games', icon: CiPizza },
-  { path: '/users', label: 'Users', icon: CiCircleList, soon: true },
+  { path: '/users', label: 'Users', icon: CiCircleList, needsAccounts: true },
 ];
 
 const footerNav = [
@@ -36,7 +37,7 @@ const footerNav = [
  * @param {function} onClose - phone: close the drawer
  */
 const Sidebar = ({ isExpanded = false, onToggleExpanded = () => {}, isOpen = false, onClose = () => {} }) => {
-  const { user, userProfile, logout } = useAuth();
+  const { isAvailable, loading, user, profile, signOut, openSignIn } = useAuth();
   const closeButtonRef = useRef(null);
 
   // Phone: move focus into the drawer when it opens
@@ -46,25 +47,39 @@ const Sidebar = ({ isExpanded = false, onToggleExpanded = () => {}, isOpen = fal
 
   const userNav = user
     ? [
-      { path: `/u/${userProfile?.username ?? ''}`, label: 'Profile', icon: CiUser },
+      // The profile link needs the username, so it appears once the profile has loaded
+      ...(profile ? [{ path: `/u/${profile.username}`, label: 'Profile', icon: CiUser }] : []),
       { path: '/settings', label: 'Settings', icon: CiSettings },
     ]
     : [];
 
-  const accountNav = user ? [] : [{ path: '/sign-in', label: 'Sign in', icon: CiLogin, soon: true }];
+  // Opens the sign-in window over this page (and closes the phone drawer first). Nothing is shown
+  // until we know whether someone is signed in, so "Sign in" doesn't flash for players who are.
+  const accountNav = user || loading
+    ? []
+    : [{
+      key: 'sign-in',
+      label: 'Sign in',
+      icon: CiLogin,
+      soon: !isAvailable,
+      onClick: () => {
+        onClose();
+        openSignIn();
+      },
+    }];
 
-  const handleLogout = async () => {
-    if (window.confirm('Are you sure you want to logout?')) {
-      await logout();
+  const handleSignOut = async () => {
+    if (window.confirm('Sign out of GameHub?')) {
+      await signOut();
     }
   };
 
   /**
    * Renders one navigation row: a NavLink, or a disabled row with a "soon" badge
-   * @param {object} item - { path, label, icon, soon? }
+   * @param {object} item - { path, label, icon, soon? } or, for a button, { key, label, icon, onClick }
    * @return {JSX.Element} - the list item
    */
-  const renderNavItem = ({ path, label, icon: Icon, soon }) => {
+  const renderNavItem = ({ path, key, label, icon: Icon, soon, onClick }) => {
     const content = (
       <>
         <Icon className={styles.navIcon} aria-hidden="true" />
@@ -74,11 +89,15 @@ const Sidebar = ({ isExpanded = false, onToggleExpanded = () => {}, isOpen = fal
     );
 
     return (
-      <li key={path}>
+      <li key={path ?? key}>
         {soon ? (
           <span className={`${styles.navLink} ${styles.disabled}`} title={`${label}: coming soon`}>
             {content}
           </span>
+        ) : onClick ? (
+          <button type="button" className={styles.navLink} onClick={onClick} title={label}>
+            {content}
+          </button>
         ) : (
           <NavLink
             to={path}
@@ -138,7 +157,7 @@ const Sidebar = ({ isExpanded = false, onToggleExpanded = () => {}, isOpen = fal
       {/* Main Navigation */}
       <nav className={styles.sidebarNav} aria-label="Main">
         <ul className={styles.navList}>
-          {mainNav.map(renderNavItem)}
+          {mainNav.map((item) => renderNavItem({ ...item, soon: item.soon || (item.needsAccounts && !isAvailable) }))}
         </ul>
 
         {/* User Section */}
@@ -161,26 +180,24 @@ const Sidebar = ({ isExpanded = false, onToggleExpanded = () => {}, isOpen = fal
             <li>
               <button
                 type="button"
-                onClick={handleLogout}
+                onClick={handleSignOut}
                 className={`${styles.navLink} ${styles.logoutBtn}`}
-                title="Logout"
+                title="Sign out"
               >
                 <CiLogout className={styles.navIcon} aria-hidden="true" />
-                <span className={styles.navLabel}>Logout</span>
+                <span className={styles.navLabel}>Sign out</span>
               </button>
             </li>
           )}
         </ul>
 
         {/* User Info (hidden while collapsed) */}
-        {user && userProfile && (
+        {user && profile && (
           <div className={styles.userInfo}>
-            <div className={styles.userAvatar} aria-hidden="true">
-              {userProfile.username?.charAt(0).toUpperCase()}
-            </div>
+            <Avatar url={profile.avatar_url} name={profile.display_name ?? profile.username} size={40} />
             <div className={styles.userDetails}>
-              <div className={styles.userName}>{userProfile.displayName}</div>
-              <div className={styles.userUsername}>@{userProfile.username}</div>
+              <div className={styles.userName}>{profile.display_name ?? profile.username}</div>
+              <div className={styles.userUsername}>@{profile.username}</div>
             </div>
           </div>
         )}

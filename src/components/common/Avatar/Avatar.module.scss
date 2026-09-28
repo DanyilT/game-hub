@@ -1,0 +1,19 @@
+@use '../../../styles/abstracts/variables' as *;
+
+.avatar {
+  flex-shrink: 0;
+  border-radius: $radius-full;
+  object-fit: cover;
+  background: $color-black-light;
+}
+
+.letter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, $color-primary 0%, $color-secondary 100%);
+  color: $color-white;
+  font-weight: $font-weight-bold;
+  line-height: 1;
+  user-select: none;
+}

@@ -1,0 +1,59 @@
+@use '../../../styles/abstracts/variables' as *;
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-sm;
+  padding: $spacing-sm $spacing-md;
+  border: 2px solid transparent; // square corners, like the legal pages and the neon windows
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background $transition-fast ease, border-color $transition-fast ease,
+    transform $transition-fast ease;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &:hover:not(:disabled) {
+      transform: none;
+    }
+  }
+}
+
+.primary {
+  background: $color-primary;
+  color: $color-text-primary;
+
+  // Keeps white text readable (the light purple alone is too bright for it)
+  &:hover:not(:disabled) {
+    background: color-mix(in srgb, $color-primary 75%, $color-primary-light);
+  }
+}
+
+.outline {
+  border-color: $color-primary-light;
+  color: $color-text-primary;
+
+  &:hover:not(:disabled) {
+    background: color-mix(in srgb, $color-primary-light 15%, transparent);
+  }
+}
+
+.danger {
+  background: color-mix(in srgb, $color-error 70%, $color-black);
+  color: $color-white;
+
+  &:hover:not(:disabled) {
+    background: color-mix(in srgb, $color-error 85%, $color-black);
+  }
+}
