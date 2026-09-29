@@ -13,7 +13,19 @@ const KINDS = ['game', 'portal'];
 const PLATFORM_TYPES = ['web', 'android'];
 const DIFFICULTIES = ['easy', 'medium', 'hard'];
 // Sites the hub may put in an iframe. The CSP's `frame-src` is built from this list (vite.config.js).
-export const EMBED_ORIGINS = ['https://danyilt-games.pages.dev'];
+export const EMBED_ORIGINS = ['https://*.dt-games.pages.dev'];
+
+/**
+ * Whether the hub may embed a page from this origin (EMBED_ORIGINS, `*.` wildcards included)
+ * @param {string} origin - e.g. "https://snake.dt-games.pages.dev"
+ * @return {boolean}
+ */
+export const isEmbedOrigin = (origin) => EMBED_ORIGINS.some((allowed) => {
+  if (!allowed.includes('://*.')) return origin === allowed;
+  const [scheme, host] = allowed.split('://*.');
+  const url = new URL(origin);
+  return url.protocol === `${scheme}:` && !url.port && url.hostname.endsWith(`.${host}`);
+});
 
 // Known keys, so leftovers and typos (`imagePath`) don't slip through
 const ENTRY_KEYS = ['id', 'kind', 'title', 'description', 'style', 'genre', 'tags', 'features', 'difficulty',
@@ -234,7 +246,7 @@ export function validateCatalog(catalog) {
       if (platform.embed !== undefined && typeof platform.embed !== 'boolean') at('`embed` must be true or false');
       if (platform.embed === true) {
         if (platform.type !== 'web') at('only `web` platforms can be embedded');
-        else if (isHttpsUrl(platform.url) && !EMBED_ORIGINS.includes(new URL(platform.url).origin)) {
+        else if (isHttpsUrl(platform.url) && !isEmbedOrigin(new URL(platform.url).origin)) {
           at(`embedded games must be hosted on ${EMBED_ORIGINS.join(' or ')} (the site's iframe allow-list)`);
         }
       }

@@ -83,7 +83,7 @@ Everything shown in the hub comes from one file, [`src/data/games.json`](src/dat
   "website": "https://…",                                // optional: a homepage that isn't a way to play
   "dimensions": { "w": 460, "h": 740, "center": true },  // optional, embedded games: the frame's size (below)
   "platforms": [                                         // where it can be played; one entry per type
-    { "type": "web", "url": "https://danyilt-games.pages.dev/my-game/", "embed": true, "icon": "CiShare1" }  // plays inside the hub
+    { "type": "web", "url": "https://<game>.dt-games.pages.dev/", "embed": true, "icon": "CiShare1" }  // plays inside the hub
     // { "type": "web", "url": "https://…", "embed": false }  // plays on its own site, opened in a new tab
     // { "type": "android", "storeId": "com.example.game",
     //   "url": "https://play.google.com/store/apps/details?id=com.example.game", "icon": "CiMobile3" }
@@ -92,7 +92,7 @@ Everything shown in the hub comes from one file, [`src/data/games.json`](src/dat
 }
 ```
 
-- **Embedded games** get the in-hub player. They must be hosted on `danyilt-games.pages.dev`, the only site the hub will put in an iframe (`EMBED_ORIGINS` in `scripts/check-catalog.mjs`).
+- **Embedded games** get the in-hub player. The games live in [`DanyilT/dt-games`](https://github.com/DanyilT/dt-games), a branch per game, and Cloudflare Pages serves each branch at its own address (`https://<game>.dt-games.pages.dev/`). Those are the only sites the hub will put in an iframe (`EMBED_ORIGINS` in `scripts/check-catalog.mjs`).
 - **Everything else** gets a details page with its picture and links out. Android apps get the official "Get it on Google Play" badge.
 - **Platform chips and the Platform filter** come from `platforms`, so a `website` doesn't make an Android game count as "web".
 - **Icons** (`icon` on platforms and links) are [react-icons](https://react-icons.github.io/react-icons) names, like `CiGlobe` or `FaGithub`. The build bundles only the icons the catalogue names, and the check rejects a name react-icons doesn't have. Without an `icon`, a web platform shows `CiShare1`, Android shows `CiMobile3` and source code shows a floppy disk (`CiFloppyDisk`).

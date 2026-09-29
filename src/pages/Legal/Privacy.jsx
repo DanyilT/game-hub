@@ -4,7 +4,7 @@ import styles from './Legal.module.scss';
 
 // Change this whenever the policy changes. Keep it in step with what the site really does:
 // sign-in providers, where data is stored, and which other sites pages load from (the CSP in vite.config.js lists them).
-const LAST_UPDATED = '28 September 2026';
+const LAST_UPDATED = '29 September 2026';
 
 const Privacy = () => (
   <div className={styles.page}>
@@ -19,7 +19,7 @@ const Privacy = () => (
 
       <section className={styles.section}>
         <h2>1. Playing without an account</h2>
-        <p>You can browse and play every game without an account. GameHub then keeps nothing about you on a server. Your browser remembers one setting on your device: whether the sidebar is expanded.</p>
+        <p>You can browse and play every game without an account. GameHub then keeps nothing about you on a server. Your browser remembers a few small things on your device: whether the sidebar is expanded and, for the suggestion to install GameHub as an app, how many games you've opened, when you last chose "Not now", and whether you've installed it.</p>
       </section>
 
       <section className={styles.section}>
@@ -45,8 +45,8 @@ const Privacy = () => (
         <h2>4. Other sites the pages load from</h2>
         <p>Some parts of the pages come from other sites, which see your IP address when your browser fetches them:</p>
         <ul>
-          <li>the games, from danyilt-games.pages.dev (also run by {developer.name}, hosted on Cloudflare)</li>
-          <li>game pictures, from GitHub (raw.githubusercontent.com and danyilt.github.io)</li>
+          <li>the games, each from its own address on dt-games.pages.dev, such as snake.dt-games.pages.dev (also run by {developer.name}, hosted on Cloudflare)</li>
+          <li>game pictures, from the games' own addresses and from GitHub Pages (danyilt.github.io)</li>
           <li>the "Get it on Google Play" badge, from Google Play</li>
           <li>the fonts, from Google Fonts</li>
           <li>the cat pictures on error pages, from http.cat</li>
@@ -57,7 +57,7 @@ const Privacy = () => (
 
       <section className={styles.section}>
         <h2>5. Cookies and storage on your device</h2>
-        <p>GameHub has no ads, no analytics and no tracking cookies. Besides the sidebar setting, some games save things like your high score or progress in your browser. That stays on your device.</p>
+        <p>GameHub has no ads, no analytics and no tracking cookies. Besides those settings, some games save things like your high score or progress in your browser, each under its own address. That stays on your device.</p>
         <p>When you sign in, your browser keeps a sign-in token in its local storage, so you stay signed in. Signing out removes it.</p>
       </section>
 

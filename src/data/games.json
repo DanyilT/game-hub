@@ -113,7 +113,7 @@
           }
         ]
       },
-      "thumb": "https://raw.githubusercontent.com/DanyilT/WebDev/refs/heads/page/games/snake/img/desktop-screenshot.png",
+      "thumb": "https://snake.dt-games.pages.dev/img/desktop-screenshot.png",
       "dimensions": {
         "w": 460,
         "h": 740,
@@ -122,12 +122,12 @@
       "platforms": [
         {
           "type": "web",
-          "url": "https://danyilt-games.pages.dev/snake/",
+          "url": "https://snake.dt-games.pages.dev/",
           "embed": true
         }
       ],
       "sourceCode": {
-        "url": "https://github.com/DanyilT/WebDev/tree/page/games/snake"
+        "url": "https://github.com/DanyilT/dt-games/tree/snake"
       }
     },
     {
@@ -222,7 +222,7 @@
           }
         ]
       },
-      "thumb": "https://raw.githubusercontent.com/DanyilT/WebDev/refs/heads/page/games/tetris/img/desktop-screenshot.png",
+      "thumb": "https://tetris.dt-games.pages.dev/img/desktop-screenshot.png",
       "dimensions": {
         "w": 800,
         "h": 765,
@@ -231,12 +231,12 @@
       "platforms": [
         {
           "type": "web",
-          "url": "https://danyilt-games.pages.dev/tetris/",
+          "url": "https://tetris.dt-games.pages.dev/",
           "embed": true
         }
       ],
       "sourceCode": {
-        "url": "https://github.com/DanyilT/WebDev/tree/page/games/tetris"
+        "url": "https://github.com/DanyilT/dt-games/tree/tetris"
       }
     },
     {
@@ -356,7 +356,7 @@
           }
         ]
       },
-      "thumb": "https://raw.githubusercontent.com/DanyilT/WebDev/refs/heads/page/games/minesweeper/img/desktop-screenshot.png",
+      "thumb": "https://minesweeper.dt-games.pages.dev/img/desktop-screenshot.png",
       "dimensions": {
         "w": 400,
         "h": 520,
@@ -365,12 +365,12 @@
       "platforms": [
         {
           "type": "web",
-          "url": "https://danyilt-games.pages.dev/minesweeper/",
+          "url": "https://minesweeper.dt-games.pages.dev/",
           "embed": true
         }
       ],
       "sourceCode": {
-        "url": "https://github.com/DanyilT/WebDev/tree/page/games/minesweeper"
+        "url": "https://github.com/DanyilT/dt-games/tree/minesweeper"
       }
     },
     {
@@ -504,7 +504,7 @@
           }
         ]
       },
-      "thumb": "https://raw.githubusercontent.com/DanyilT/WebDev/refs/heads/page/games/sudoku/img/desktop-screenshot.png",
+      "thumb": "https://sudoku.dt-games.pages.dev/img/desktop-screenshot.png",
       "dimensions": {
         "w": 480,
         "h": 860,
@@ -513,12 +513,12 @@
       "platforms": [
         {
           "type": "web",
-          "url": "https://danyilt-games.pages.dev/sudoku/",
+          "url": "https://sudoku.dt-games.pages.dev/",
           "embed": true
         }
       ],
       "sourceCode": {
-        "url": "https://github.com/DanyilT/WebDev/tree/page/games/sudoku"
+        "url": "https://github.com/DanyilT/dt-games/tree/sudoku"
       }
     },
     {
