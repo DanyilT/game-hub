@@ -20,7 +20,7 @@ v2 is a **static site**: `npm run build` turns it into plain HTML/CSS/JS files i
 - **Accounts** live in [Supabase](https://supabase.com) (sign-in, database, access rules). The browser talks to it directly.
 - **Security headers:** the build also writes `dist/_headers` (see `vite.config.js`), so Cloudflare sends a Content-Security-Policy that allows only the sites the pages use.
 - **Files at the root:** the build writes the usual ones from the catalogue (their text is in `scripts/site-files.mjs`): `robots.txt`, `sitemap.xml`, `llms.txt` (for AI assistants), `humans.txt` and `.well-known/security.txt`. For full URLs they use the site's address, `SITE_URL` in `vite.config.js` (https://game-hub.danyt.workers.dev). Change it there if the site moves, e.g. to a domain of its own.
-- **Installable as an app (a PWA):** `public/manifest.json`, with the icons `favicon-192.png` and `favicon-512.png`. Phones and tablets get "Install app" in the sidebar, and after a couple of games a suggestion floating at the bottom of the games page. It opens the browser's own install dialog where there is one (Chrome, Edge and Samsung Internet, once the site has been used for a bit), and otherwise shows the steps: the browser menu's Add to Home screen on Android, Share → Add to Home Screen on iPhone and iPad. Computers see it only once the browser's dialog is ready (`src/lib/install.js`). Installing needs HTTPS, so try it on the deployed site: a phone opening the dev server over your network (`http://192.168…`) can only add a shortcut.
+- **Installable as an app (a PWA):** `public/manifest.json`. The icons are "GAME" over "HUB" in Doto's dots with the display-name gradient: transparent ones for tabs and desktops, maskable ones on the app's dark background (Android fills its icon shape with them), and a white silhouette for Android's themed icons (`purpose: monochrome`: the launcher recolours it and its background to match the icon theme). At 16 px they say "GH" instead: seven letters can't be read that small (`favicon.ico`'s 16 px frame, and `favicon.svg` switches when it's drawn at 24 px or less). They're in `public/icons/`, plus `favicon.ico`, `favicon.svg` and `apple-touch-icon.png`. Phones and tablets get "Install app" in the sidebar, and after a couple of games a suggestion floating at the bottom of the games page. It opens the browser's own install dialog where there is one (Chrome, Edge and Samsung Internet, once the site has been used for a bit), and otherwise shows the steps: the browser menu's Add to Home screen on Android, Share → Add to Home Screen on iPhone and iPad. Computers see it only once the browser's dialog is ready (`src/lib/install.js`). Installing needs HTTPS, so try it on the deployed site: a phone opening the dev server over your network (`http://192.168…`) can only add a shortcut.
 
 ## 🚀 Getting Started
 
@@ -154,7 +154,7 @@ Each list is optional, and every link needs a `label`. A new game on another sit
 
 ```
 game-hub/
-├── public/                  # copied as-is into dist/ (favicon, manifest.json, the app icons favicon-192/512.png)
+├── public/                  # copied as-is into dist/: favicon.ico/.svg, apple-touch-icon.png, manifest.json, icons/ (every size and kind)
 ├── scripts/
 │   ├── check-catalog.mjs    # checks src/data/games.json (also run by vite.config.js)
 │   ├── site-files.mjs       # robots.txt, sitemap.xml, llms.txt, humans.txt, security.txt (written by the build)
