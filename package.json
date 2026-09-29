@@ -17,8 +17,7 @@
     "db:reset": "supabase db reset",
     "test:db": "supabase test db",
     "cf:preview": "npm run build && wrangler dev",
-    "deploy": "npm run build && wrangler deploy",
-    "deploy:keepalive": "wrangler deploy --config workers/keepalive/wrangler.jsonc"
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",

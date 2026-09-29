@@ -50,9 +50,10 @@ Requires **Node 22.22+**.
    ```
    It prints the site's address, which should match `SITE_URL` in `vite.config.js` (see Hosting).
 
-   The daily keep-alive for the free Supabase project is a separate Worker:
+   The same Worker keeps the free Supabase project awake: a cron in `wrangler.jsonc` pings the database every 6 hours. With accounts on, give it the project's URL and publishable key once, as Worker secrets (they stay set across deploys):
    ```bash
-   npm run deploy:keepalive
+   npx wrangler secret put SUPABASE_URL
+   npx wrangler secret put SUPABASE_PUBLISHABLE_KEY
    ```
 7. **Local Supabase (optional, needs Docker)**: the same database and sign-in server on your machine, for trying schema changes and running the database tests.
    ```bash
@@ -146,7 +147,7 @@ Each list is optional, and every link needs a `label`. A new game on another sit
 - **Fonts** (Google Fonts): Doto for the site, and Chakra Petch (easier to read small) for game tags. To change one, edit `$font-primary` / `$font-secondary` in `_variables.scss` and the Google Fonts link in `index.html`.
 - **react-icons**: interface icons, and the icons the catalogue names.
 - **Supabase**: sign-in (Google; Discord is coming), Postgres with row level security. Schema changes are migrations in `supabase/migrations/`, applied with `npx supabase db push`.
-- **Cloudflare Workers (static assets)**: hosting, plus a cron Worker that keeps Supabase awake.
+- **Cloudflare Workers (static assets)**: hosting, plus a small script (`worker/index.js`) whose cron trigger keeps Supabase awake.
 
 ## 📂 Project Structure
 
@@ -173,7 +174,7 @@ game-hub/
 │   ├── migrations/          # database schema, applied with `npx supabase db push`
 │   ├── seed.sql             # 240 mock players, local only (`npm run db:reset`; never pushed)
 │   └── tests/               # database tests (pgTAP), `npm run test:db`
-├── workers/keepalive/       # daily cron Worker that keeps the free Supabase project awake
+├── worker/index.js          # the Worker's script: passes unmatched paths to the files, pings Supabase every 6 hours
 ├── .env.example             # template for .env.local (Supabase URL + publishable key)
 ├── index.html
 ├── vite.config.js           # also writes /catalog.json, the catalogue's icons module, the security headers (dist/_headers), _redirects and the root files; SITE_URL is here
