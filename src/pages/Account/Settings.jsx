@@ -11,12 +11,11 @@ import {
   describeProfileError,
   nextUsernameChange,
 } from '../../lib/account';
+import { fullDate } from '../../lib/dates';
 import Avatar from '../../components/common/Avatar/Avatar';
 import Button from '../../components/common/Button/Button';
 import UsernameField, { useUsernameCheck } from '../../components/account/UsernameField/UsernameField';
 import styles from './Account.module.scss';
-
-const longDate = (date) => new Intl.DateTimeFormat(undefined, { dateStyle: 'long' }).format(date);
 
 // The picture Google / Discord gave at the last sign-in (the only one a profile may use)
 const providerPicture = (user) => {
@@ -176,7 +175,7 @@ const UsernameSection = ({ profile }) => {
         />
         <p className={styles.muted}>
           {nextChange
-            ? `You can change it again on ${longDate(nextChange)}, ${USERNAME_COOLDOWN_DAYS} days after you picked or kept it.`
+            ? `You can change it again on ${fullDate(nextChange)}, ${USERNAME_COOLDOWN_DAYS} days after you picked or kept it.`
             : `You can change it once every ${USERNAME_COOLDOWN_DAYS} days. Links to your old profile address stop working.`}
         </p>
         {!nextChange && (
@@ -300,7 +299,7 @@ const Settings = () => {
     return page(
       <section className={styles.card} role="status">
         <p>Your account has been deleted. Thanks for playing!</p>
-        <p><Link to="/games" className={styles.textLink}>Back to the games</Link></p>
+        <p><Link to="/" className={styles.textLink}>Back to the games</Link></p>
       </section>,
     );
   }

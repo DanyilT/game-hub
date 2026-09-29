@@ -9,18 +9,21 @@ import {
   CiLogin,
   CiLogout,
   CiPizza,
+  CiSaveDown2,
   CiSettings,
   CiUser,
 } from 'react-icons/ci';
 import { useAuth } from '../../../contexts/AuthContext';
+import { canInstall, install } from '../../../lib/install';
+import { useInstall } from '../../install/InstallApp';
 import Avatar from '../../common/Avatar/Avatar';
 import styles from './Sidebar.module.scss';
 
 // Navigation items. `soon` marks pages that aren't built yet: they're shown greyed out with a
 // badge instead of linking nowhere. `needsAccounts` pages are "soon" on a site without Supabase.
 const mainNav = [
-  { path: '/games', label: 'Games', icon: CiPizza },
-  { path: '/users', label: 'Users', icon: CiCircleList, needsAccounts: true },
+  { path: '/', label: 'Games', icon: CiPizza },
+  { path: '/players', label: 'Players', icon: CiCircleList, needsAccounts: true },
 ];
 
 const footerNav = [
@@ -38,6 +41,7 @@ const footerNav = [
  */
 const Sidebar = ({ isExpanded = false, onToggleExpanded = () => {}, isOpen = false, onClose = () => {} }) => {
   const { isAvailable, loading, user, profile, signOut, openSignIn } = useAuth();
+  const installState = useInstall();
   const closeButtonRef = useRef(null);
 
   // Phone: move focus into the drawer when it opens
@@ -67,6 +71,19 @@ const Sidebar = ({ isExpanded = false, onToggleExpanded = () => {}, isOpen = fal
         openSignIn();
       },
     }];
+
+  // Installing the site as an app (src/lib/install.js): only where the browser can, and not in the app itself
+  const installNav = canInstall(installState)
+    ? [{
+      key: 'install',
+      label: 'Install app',
+      icon: CiSaveDown2,
+      onClick: () => {
+        onClose();
+        install();
+      },
+    }]
+    : [];
 
   const handleSignOut = async () => {
     if (window.confirm('Sign out of GameHub?')) {
@@ -174,7 +191,7 @@ const Sidebar = ({ isExpanded = false, onToggleExpanded = () => {}, isOpen = fal
       {/* Footer Navigation */}
       <div className={styles.sidebarFooter}>
         <ul className={styles.navList}>
-          {[...accountNav, ...footerNav].map(renderNavItem)}
+          {[...accountNav, ...installNav, ...footerNav].map(renderNavItem)}
 
           {user && (
             <li>

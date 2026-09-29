@@ -29,7 +29,7 @@ const RETURN_KEY = 'gamehub:auth-return';
 /**
  * A path on this site that's safe to go to after signing in, or null.
  * Rejects other sites ("//evil.example", "https://…") and the sign-in pages themselves.
- * @param {*} path - e.g. "/games/snake"
+ * @param {*} path - e.g. "/g/snake"
  * @return {string|null}
  */
 export const safeReturnPath = (path) => {

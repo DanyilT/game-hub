@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
+import { monthYear } from '../../lib/dates';
 import Avatar from '../../components/common/Avatar/Avatar';
 import Button from '../../components/common/Button/Button';
 import styles from './Account.module.scss';
@@ -13,14 +14,11 @@ const SORTS = [
   { id: 'name', label: 'A–Z', column: 'username', ascending: true },
 ];
 
-const joinedDate = (timestamp) =>
-  new Intl.DateTimeFormat(undefined, { month: 'short', year: 'numeric' }).format(new Date(timestamp));
-
 // Only letters, digits, spaces, _ and -: anything else would mean something to the search filter
 const cleanSearch = (text) => text.replace(/[^\p{L}\p{N} _-]/gu, '').trim();
 
-/** Everyone with an account: /users. Search by username or display name; newest first, or A–Z. */
-const Users = () => {
+/** Everyone with an account: /players. Search by username or display name; newest first, or A–Z. */
+const Players = () => {
   const { isAvailable, profile: me } = useAuth();
   const [search, setSearch] = useState(''); // as typed
   const [term, setTerm] = useState(''); // what's searched for, a moment after typing stops
@@ -71,7 +69,7 @@ const Users = () => {
 
   const page = (content) => (
     <div className={`${styles.page} ${styles.wide}`}>
-      <h1 className={styles.title}>Users</h1>
+      <h1 className={styles.title}>Players</h1>
       {content}
     </div>
   );
@@ -130,21 +128,21 @@ const Users = () => {
       )}
 
       {players.length > 0 && (
-        <ul className={styles.userGrid} aria-busy={loading}>
+        <ul className={styles.playerGrid} aria-busy={loading}>
           {players.map((player) => {
             const name = player.display_name ?? player.username;
             return (
               <li key={player.id}>
-                <Link to={`/u/${player.username}`} className={styles.userCard}>
+                <Link to={`/u/${player.username}`} className={styles.playerCard}>
                   <Avatar url={player.avatar_url} name={name} size={48} />
-                  <span className={styles.userNames}>
+                  <span className={styles.playerNames}>
                     {/* Only the name gets cut short ("…"), never the badge */}
-                    <span className={styles.userNameRow}>
-                      <span className={styles.userName}>{name}</span>
+                    <span className={styles.playerNameRow}>
+                      <span className={styles.playerName}>{name}</span>
                       {player.id === me?.id && <span className={styles.youBadge}>you</span>}
                     </span>
-                    <span className={styles.userMeta}>@{player.username}</span>
-                    <span className={styles.userMeta}>Joined {joinedDate(player.created_at)}</span>
+                    <span className={styles.playerMeta}>@{player.username}</span>
+                    <span className={styles.playerMeta}>Joined {monthYear(player.created_at, 'short')}</span>
                   </span>
                 </Link>
               </li>
@@ -164,4 +162,4 @@ const Users = () => {
   );
 };
 
-export default Users;
+export default Players;

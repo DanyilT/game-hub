@@ -1,0 +1,96 @@
+@use '../../styles/abstracts/variables' as *;
+
+// The suggestion and the steps float over the page at the bottom of the screen: square, with the
+// neon window's edge and background, but no dimmed backdrop, so the page stays usable. Over the
+// page, under the phone drawer.
+.panel {
+  position: fixed;
+  z-index: $z-floating;
+  inset-inline: $spacing-md;
+  bottom: max($spacing-md, env(safe-area-inset-bottom));
+  max-width: 420px;
+  max-height: calc(100dvh - 2 * $spacing-md);
+  margin-inline: auto; // centred once it reaches max-width
+  padding: $spacing-lg;
+  overflow-y: auto;
+  background: linear-gradient(235deg, rgba($color-black, 0.95), rgba($color-black-light, 0.92));
+  backdrop-filter: blur(10px);
+  border: 2px solid $color-primary;
+  box-shadow: 0 0 24px rgba($color-black, 0.8), 0 0 12px rgba($color-primary-light, 0.25);
+  color: $color-text-primary;
+  transition: border-color $transition-fast ease;
+
+  &:hover {
+    border-color: $color-secondary;
+  }
+}
+
+// The suggestion
+.bannerText {
+  margin-bottom: $spacing-md;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+}
+
+// The steps
+.title {
+  margin: 0 40px $spacing-md 0; // clear of the ×
+  color: $color-primary-light;
+  font-size: $font-size-xl;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-shadow: 0 0 10px rgba($color-primary-light, 0.5);
+}
+
+// The ×, like the neon window's
+.close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid $color-primary-light;
+  color: $color-primary-light;
+  font-size: 24px;
+  line-height: 1;
+  transition: color $transition-fast, border-color $transition-fast;
+
+  &:hover {
+    color: $color-secondary;
+    border-color: $color-secondary;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $color-primary-light;
+    outline-offset: 2px;
+  }
+}
+
+.text {
+  margin-bottom: $spacing-md;
+  color: $color-text-secondary;
+  font-size: $font-size-sm;
+}
+
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+  padding-left: 1.5em;
+  list-style: decimal;
+}
+
+// The Share and menu icons, inline with the words (the reset makes SVGs blocks)
+.icon {
+  display: inline-block;
+  font-size: 1.2em;
+  vertical-align: -0.2em;
+}

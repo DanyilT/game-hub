@@ -1,7 +1,7 @@
 @use '../../styles/abstracts/variables' as *;
 @use '../../styles/abstracts/forms';
 
-// Shared by the account pages: AuthCallback, Profile, Settings, Users (sign-in is a modal:
+// Shared by the account pages: AuthCallback, Me, Players, Profile, Settings (sign-in is a modal:
 // components/account). Square-cornered and see-through, like the legal pages and the neon windows.
 
 .page {
@@ -203,7 +203,7 @@
   border-color: $color-error;
 }
 
-// Users: search and sort (an .inputRow), and a grid of player cards
+// Players: search and sort (an .inputRow), and a grid of player cards
 .sorts {
   display: flex;
 }
@@ -231,13 +231,13 @@
   }
 }
 
-.userGrid {
+.playerGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
   gap: $spacing-md;
 }
 
-.userCard {
+.playerCard {
   display: flex;
   align-items: center;
   gap: $spacing-md;
@@ -254,20 +254,20 @@
   }
 }
 
-.userNames {
+.playerNames {
   display: flex;
   flex-direction: column;
   min-width: 0;
 }
 
-.userNameRow {
+.playerNameRow {
   display: flex;
   align-items: center;
   gap: $spacing-sm;
   min-width: 0;
 }
 
-.userName {
+.playerName {
   min-width: 0;
   overflow: hidden;
   font-weight: $font-weight-bold;
@@ -275,7 +275,7 @@
   white-space: nowrap;
 }
 
-.userMeta {
+.playerMeta {
   color: $color-text-secondary;
   font-size: $font-size-sm;
   overflow-wrap: anywhere;

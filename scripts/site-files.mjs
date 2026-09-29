@@ -22,10 +22,14 @@ const HASH_CAT = CAT.map((line) => `#${line}`);
 const text = (lines) => `${lines.join('\n')}\n`;
 const day = (date) => date.toISOString().slice(0, 10); // 2026-09-27
 
+/** A game's page, without the leading slash: g/snake (the route in App.jsx) */
+export const gamePage = (game) => `g/${game.id}`;
+
 /**
  * The files, as { fileName: contents }.
- * - `pages`: the app's pages (PAGES in vite.config.js); each catalogue entry adds games/<id>
- * - `accountPages`: pages crawlers have no use for (settings, the sign-in callback)
+ * - `pages`: the app's pages (PAGES in vite.config.js), besides the home page (the games list)
+ *   and each catalogue entry's g/<id>, which are added here
+ * - `accountPages`: pages crawlers have no use for (settings, the sign-in callback, /me)
  * - `siteUrl`: the site's address. A sitemap needs full URLs, so without it there's no
  *   sitemap.xml, and the other files link with paths (/catalog.json) instead.
  */
@@ -62,7 +66,7 @@ export function siteFiles({ catalog, pages, accountPages = [], siteUrl, date = n
       '',
       '## Games',
       '',
-      ...games.map((game) => `- [${game.title}](${url(`games/${game.id}`)}): ${game.description}`),
+      ...games.map((game) => `- [${game.title}](${url(gamePage(game))}): ${game.description}`),
       '',
       '## Optional',
       '',
@@ -113,7 +117,8 @@ export function siteFiles({ catalog, pages, accountPages = [], siteUrl, date = n
     files['sitemap.xml'] = text([
       '<?xml version="1.0" encoding="UTF-8"?>',
       '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
-      ...[...pages, ...games.map((game) => `games/${game.id}`)].map((path) => `  <url><loc>${url(path)}</loc></url>`),
+      // '' is the home page, the games list
+      ...['', ...pages, ...games.map(gamePage)].map((path) => `  <url><loc>${url(path)}</loc></url>`),
       '</urlset>',
       // An XML comment can't contain "--" (the cat's back has "---"), so the cat is a processing instruction
       '<?cat',

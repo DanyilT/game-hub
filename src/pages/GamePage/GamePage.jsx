@@ -7,6 +7,7 @@ import {
   games, getEmbedUrl, getPlatformIcon, getPlatformTypes, getSourceLinks, getStorePlatforms, getWebPlatform,
 } from '../../data/games.js';
 import GooglePlayBadge, { GOOGLE_PLAY_TRADEMARK } from '../../components/common/GooglePlayBadge/GooglePlayBadge.jsx';
+import { noteGameOpened } from '../../lib/install';
 import GameControls from '../../components/layout/game/GameControls/GameControls.jsx';
 import ErrorPage from '../ErrorPage/ErrorPage.jsx';
 import styles from './GamePage.module.scss';
@@ -52,6 +53,11 @@ const GamePageContent = ({ gameId }) => {
   const [columnWidth, setColumnWidth] = useState(null); // the game's column, for Expand / Collapse Width
   const dragRef = useRef(null); // the drag in progress: which edge, where it started
   const dimensions = game?.dimensions; // the game's own frame size (games.json), if it has one
+
+  // Counts toward the install suggestion on the games page, which waits for a game or two
+  useEffect(() => {
+    if (game) noteGameOpened();
+  }, [game]);
 
   // Size the game frame for the chosen mode ("full-width" is also a class on the page, see render).
   // The height is the game's own (dimensions.h), or 16:9 for games without dimensions.

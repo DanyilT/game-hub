@@ -19,7 +19,7 @@ const AuthCallback = () => {
   const { loading, user, profile, profileError, refreshProfile, openSignIn } = useAuth();
   const [problem, setProblem] = useState(null);
   // Read once: taking it clears it from storage
-  const [returnTo] = useState(() => takeReturnPath() ?? '/games');
+  const [returnTo] = useState(() => takeReturnPath() ?? '/');
   // Settled once the profile is in, so saving the new name doesn't make them a "returning" player
   const [welcoming, setWelcoming] = useState(false);
 
@@ -61,7 +61,7 @@ const AuthCallback = () => {
         <p className={styles.error} role="alert">{problem}</p>
         <div className={styles.actions}>
           <Button onClick={openSignIn}>Try again</Button>
-          <Button as={Link} to="/games" variant="outline">Back to the games</Button>
+          <Button as={Link} to="/" variant="outline">Back to the games</Button>
         </div>
       </>
     );

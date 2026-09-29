@@ -47,7 +47,7 @@ const GameCard = ({ game, index = 0, onTagClick, selectedTags = [] }) => {
   const infoButtonRef = useRef(null);
   const infoPanelRef = useRef(null);
   const moveFocusRef = useRef(false); // set when the info panel is opened/closed from the keyboard
-  const gamePage = `/games/${game.id}`;
+  const gamePage = `/g/${game.id}`;
   const embedUrl = getEmbedUrl(game); // null for entries that live on their own site or in a store
   const webPlatform = getWebPlatform(game);
 

@@ -92,6 +92,7 @@ $ease-drop: cubic-bezier(0.175, 0.885, 0.32, 1.275);         // with a little bo
 
 // Stacking
 $z-sticky: 1020;            // header
+$z-floating: 1025;          // panels floating over the page (installing the app), under the phone drawer
 $z-fixed: 1030;             // sidebar (the phone drawer's backdrop sits just below)
 
 // Layout

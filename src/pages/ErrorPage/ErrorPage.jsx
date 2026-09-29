@@ -37,7 +37,7 @@ const ErrorPage = ({ status, title, text }) => {
             Reload
           </button>
         )}
-        <Link to="/games" className={status === 500 ? styles.secondary : styles.primary}>Back to Games</Link>
+        <Link to="/" className={status === 500 ? styles.secondary : styles.primary}>Back to Games</Link>
       </div>
     </div>
   );

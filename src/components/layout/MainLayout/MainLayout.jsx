@@ -6,6 +6,7 @@ import Footer from '../Footer/Footer';
 import ErrorBoundary from '../../common/ErrorBoundary/ErrorBoundary';
 import UsernameDialog from '../../account/UsernameDialog/UsernameDialog';
 import SignInModal from '../../account/SignInModal/SignInModal';
+import { InstallSteps, useInstall } from '../../install/InstallApp';
 import { useAuth } from '../../../contexts/AuthContext';
 import styles from './MainLayout.module.scss';
 
@@ -30,6 +31,7 @@ const MainLayout = () => {
   const wasMenuOpenRef = useRef(false);
   const location = useLocation();
   const { signInOpen } = useAuth();
+  const { stepsOpen } = useInstall();
 
   useEffect(() => {
     try {
@@ -123,6 +125,8 @@ const MainLayout = () => {
       {/* The sign-in window, and new players keeping or changing the username they got */}
       {signInOpen && <SignInModal />}
       <UsernameDialog />
+      {/* Phones and tablets: how to install the site as an app (floats at the bottom of the screen) */}
+      {stepsOpen && <InstallSteps />}
     </div>
   );
 };

@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { CATALOG_PATH, EMBED_ORIGINS, checkCatalogFile } from './scripts/check-catalog.mjs';
-import { siteFiles } from './scripts/site-files.mjs';
+import { gamePage, siteFiles } from './scripts/site-files.mjs';
 
 // The react-icons the catalogue names (`"icon": "FaGithub"`), as `import icons from 'virtual:catalog-icons'`
 const ICONS_MODULE = 'virtual:catalog-icons';
@@ -65,12 +65,22 @@ function gamesCatalog() {
   };
 }
 
-// The app's pages besides the home page (index.html). Keep in step with the routes in App.jsx.
-const PAGES = ['games', 'users', 'terms', 'privacy'];
+// The app's pages besides the home page (index.html, the games list) and the games' own pages
+// (g/<id>, from the catalogue). Keep in step with the routes in App.jsx.
+const PAGES = ['players', 'terms', 'privacy'];
 // Account pages get a file of their own too, but stay out of sitemap.xml (robots.txt keeps crawlers out)
-const ACCOUNT_PAGES = ['settings', 'auth/callback'];
+const ACCOUNT_PAGES = ['settings', 'auth/callback', 'me'];
 // Profiles (/u/<username>) can't have a file per player, so _redirects answers all of them with the app
 const PROFILE_PATHS = '/u/*';
+// Addresses that moved, sent on with a 301 (permanent, so bookmarks and search engines update).
+// The same list is in App.jsx, for the dev server.
+const MOVED = [
+  ['/games', '/'],
+  ['/games/:id', '/g/:id'],
+  ['/users', '/players'],
+  ['/users/:name', '/u/:name'],
+  ['/players/:name', '/u/:name'],
+];
 
 // The site's address: the Worker's `name` (wrangler.jsonc) on the account's workers.dev subdomain.
 // sitemap.xml and the other root files use it for full URLs. Change it if the site gets a domain.
@@ -79,10 +89,10 @@ const SITE_URL = 'https://game-hub.danyt.workers.dev';
 /**
  * Gives every page of the app a file of its own, so the site stays static and still answers
  * with real status codes (wrangler.jsonc: "404-page"):
- * - PAGES, ACCOUNT_PAGES, and games/<id> for every catalogue entry, get a copy of the app
- *   (e.g. games/snake.html), so opening or refreshing them is a 200
+ * - PAGES, ACCOUNT_PAGES, and g/<id> for every catalogue entry, get a copy of the app
+ *   (e.g. g/snake.html), so opening or refreshing them is a 200
  * - profiles get the app with a 200 from a rule in _redirects ("200" serves another file in
- *   place of the missing one, without redirecting)
+ *   place of the missing one, without redirecting), and MOVED addresses a 301 from it
  * - 404.html, another copy, is what Cloudflare sends with a 404 status for any other path;
  *   the app then shows its 404 page
  */
@@ -95,11 +105,16 @@ function appPages() {
       async handler(_options, bundle) {
         const { catalog } = await checkCatalogFile();
         const app = bundle['index.html'].source;
-        for (const page of [...PAGES, ...ACCOUNT_PAGES, ...catalog.games.map((game) => `games/${game.id}`), '404']) {
+        for (const page of [...PAGES, ...ACCOUNT_PAGES, ...catalog.games.map(gamePage), '404']) {
           this.emitFile({ type: 'asset', fileName: `${page}.html`, source: app });
         }
-        // To "/", not "/index.html": Cloudflare shortens that to "/" itself, so it would count as a loop
-        this.emitFile({ type: 'asset', fileName: '_redirects', source: `${PROFILE_PATHS} / 200\n` });
+        const rules = [
+          // With and without a trailing slash (/games/snake/ too)
+          ...MOVED.flatMap(([from, to]) => [`${from} ${to} 301`, `${from}/ ${to} 301`]),
+          // To "/", not "/index.html": Cloudflare shortens that to "/" itself, so it would count as a loop
+          `${PROFILE_PATHS} / 200`,
+        ];
+        this.emitFile({ type: 'asset', fileName: '_redirects', source: `${rules.join('\n')}\n` });
       },
     },
   };

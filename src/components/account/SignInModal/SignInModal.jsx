@@ -25,7 +25,7 @@ const liveNames = (separator) => LIVE_PROVIDERS.map(({ name }) => name).join(sep
 const SignInModal = () => {
   const { closeSignIn, signInWith, sendSignInLink } = useAuth();
   const location = useLocation();
-  const returnTo = safeReturnPath(`${location.pathname}${location.search}${location.hash}`) ?? '/games';
+  const returnTo = safeReturnPath(`${location.pathname}${location.search}${location.hash}`) ?? '/';
   // Providers switched on in Supabase: null while checking, false if Supabase can't be reached
   const [enabled, setEnabled] = useState(null);
   const [busy, setBusy] = useState(null); // 'google' | 'discord' | 'email'

@@ -1,4 +1,5 @@
 import GameList from '../../components/layout/game/GameList/GameList';
+import { InstallBanner } from '../../components/install/InstallApp';
 import { games } from '../../data/games';
 
 // The catalogue ships with the site (src/data/games.json), so the list works without any backend.
@@ -6,6 +7,7 @@ import { games } from '../../data/games';
 const Games = () => (
   <>
     <h1 className="visually-hidden">Games</h1>
+    <InstallBanner />
     <GameList games={games} />
   </>
 );

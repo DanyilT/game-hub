@@ -15,11 +15,12 @@ This is **v2** (branch [`main-v2`](https://github.com/DanyilT/game-hub/tree/main
 
 ## ☁️ Hosting
 
-v2 is a **static site**: `npm run build` turns it into plain HTML/CSS/JS files in `dist/`, and Cloudflare serves those files from its CDN. There is no web server to run. The build writes a copy of `index.html` for every page (`games.html`, `games/snake.html`, `terms.html`…), so opening or refreshing any page works, and React Router shows it. Profiles (`/u/<username>`) can't have a file each, so a rule in `_redirects` serves the app for all of them. Any other path gets `404.html` with a real 404 status (`not_found_handling: "404-page"` in `wrangler.jsonc`), and the site shows its 404 page, with a cat from [http.cat](https://http.cat).
+v2 is a **static site**: `npm run build` turns it into plain HTML/CSS/JS files in `dist/`, and Cloudflare serves those files from its CDN. There is no web server to run. The build writes a copy of `index.html` for every page (`g/snake.html`, `players.html`, `terms.html`…; the games list is the home page, `index.html` itself), so opening or refreshing any page works, and React Router shows it. Profiles (`/u/<username>`) can't have a file each, so a rule in `_redirects` serves the app for all of them, and old addresses (`/games`, `/games/<id>`, `/users`) get a 301 to the new ones (`MOVED` in `vite.config.js`). Any other path gets `404.html` with a real 404 status (`not_found_handling: "404-page"` in `wrangler.jsonc`), and the site shows its 404 page, with a cat from [http.cat](https://http.cat).
 
 - **Accounts** live in [Supabase](https://supabase.com) (sign-in, database, access rules). The browser talks to it directly.
 - **Security headers:** the build also writes `dist/_headers` (see `vite.config.js`), so Cloudflare sends a Content-Security-Policy that allows only the sites the pages use.
 - **Files at the root:** the build writes the usual ones from the catalogue (their text is in `scripts/site-files.mjs`): `robots.txt`, `sitemap.xml`, `llms.txt` (for AI assistants), `humans.txt` and `.well-known/security.txt`. For full URLs they use the site's address, `SITE_URL` in `vite.config.js` (https://game-hub.danyt.workers.dev). Change it there if the site moves, e.g. to a domain of its own.
+- **Installable as an app (a PWA):** `public/manifest.json`, with the icons `favicon-192.png` and `favicon-512.png`. Phones and tablets get "Install app" in the sidebar, and after a couple of games a suggestion floating at the bottom of the games page. It opens the browser's own install dialog where there is one (Chrome, Edge and Samsung Internet, once the site has been used for a bit), and otherwise shows the steps: the browser menu's Add to Home screen on Android, Share → Add to Home Screen on iPhone and iPad. Computers see it only once the browser's dialog is ready (`src/lib/install.js`). Installing needs HTTPS, so try it on the deployed site: a phone opening the dev server over your network (`http://192.168…`) can only add a shortcut.
 
 ## 🚀 Getting Started
 
@@ -68,7 +69,7 @@ Everything shown in the hub comes from one file, [`src/data/games.json`](src/dat
 
 ```jsonc
 {
-  "id": "my-game",                  // URL: /games/my-game (a-z, 0-9, -)
+  "id": "my-game",                  // URL: /g/my-game (a-z, 0-9, -)
   "kind": "game",                   // "game", or "portal" for a collection like Flashback Arcade
   "title": "My Game",
   "description": "One or two sentences.",
@@ -153,19 +154,20 @@ Each list is optional, and every link needs a `label`. A new game on another sit
 
 ```
 game-hub/
-├── public/                  # copied as-is into dist/ (favicon, manifest)
+├── public/                  # copied as-is into dist/ (favicon, manifest.json, the app icons favicon-192/512.png)
 ├── scripts/
 │   ├── check-catalog.mjs    # checks src/data/games.json (also run by vite.config.js)
 │   ├── site-files.mjs       # robots.txt, sitemap.xml, llms.txt, humans.txt, security.txt (written by the build)
 │   └── dev-local.mjs        # `npm run dev:local`: the dev server against the local Supabase
 ├── src/
 │   ├── components/account/  # SignInModal, UsernameDialog (new players pick a username), UsernameField (🎲)
+│   ├── components/install/  # installing as an app: the steps for iPhone/iPad, the banner on phones, useInstall()
 │   ├── components/common/   # Avatar, Button, ErrorBoundary, GooglePlayBadge, InfoTip, Modal (the neon window)
 │   ├── components/layout/   # Header, Footer, Sidebar, MainLayout, game/GameCard, game/GameList, game/GameControls
 │   ├── contexts/            # AuthContext: the signed-in player and their profile (useAuth())
 │   ├── data/                # games.json (the catalogue), games.js (helpers), controls.js (key and gesture names)
-│   ├── lib/                 # supabase.js (the client), account.js (username rules, helpers)
-│   ├── pages/               # Games, GamePage, Account/ (users, profile, settings, sign-in callback), Legal/ (terms, privacy), ErrorPage
+│   ├── lib/                 # supabase.js (the client), account.js (username rules, helpers), install.js (installing as an app)
+│   ├── pages/               # Games, GamePage, Account/ (players, profile, /me, settings, sign-in callback), Legal/ (terms, privacy), ErrorPage
 │   ├── styles/              # Sass variables, mixins, buttons and forms, shared animations, reset, base
 │   ├── App.jsx              # routes
 │   └── index.jsx            # entry point

@@ -3,14 +3,12 @@ import { Link, Navigate, useParams } from 'react-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { USERNAME_PATTERN } from '../../lib/account';
+import { monthYear } from '../../lib/dates';
 import Avatar from '../../components/common/Avatar/Avatar';
 import Button from '../../components/common/Button/Button';
 import styles from './Account.module.scss';
 
 const PUBLIC_COLUMNS = 'id, username, display_name, avatar_url, created_at';
-
-const joinedDate = (timestamp) =>
-  new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' }).format(new Date(timestamp));
 
 /** Public profile: /u/:username */
 const Profile = () => {
@@ -60,7 +58,7 @@ const Profile = () => {
       <section className={styles.card}>
         <h1 className={styles.cardTitle}>No player called @{username}</h1>
         <p className={styles.muted}>They may have changed their username or deleted their account.</p>
-        <p><Link to="/users" className={styles.textLink}>See all players</Link></p>
+        <p><Link to="/players" className={styles.textLink}>See all players</Link></p>
       </section>,
     );
   }
@@ -76,7 +74,7 @@ const Profile = () => {
         <div className={styles.profileNames}>
           <h1 className={styles.title}>{name}</h1>
           <p className={styles.handle}>@{player.username}</p>
-          <p className={styles.muted}>Joined {joinedDate(player.created_at)}</p>
+          <p className={styles.muted}>Joined {monthYear(player.created_at)}</p>
         </div>
         {isMe && <Button as={Link} to="/settings" variant="outline">Edit profile</Button>}
       </section>
