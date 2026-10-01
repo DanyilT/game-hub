@@ -2,12 +2,15 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { Outlet, useLocation } from 'react-router';
 import Header from '../Header/Header';
 import Sidebar from '../Sidebar/Sidebar';
+import FloatingNav from '../FloatingNav/FloatingNav';
 import Footer from '../Footer/Footer';
 import ErrorBoundary from '../../common/ErrorBoundary/ErrorBoundary';
+import Toasts from '../../common/Toasts/Toasts';
 import UsernameDialog from '../../account/UsernameDialog/UsernameDialog';
 import SignInModal from '../../account/SignInModal/SignInModal';
 import { InstallSteps, useInstall } from '../../install/InstallApp';
 import { useAuth } from '../../../contexts/AuthContext';
+import { usePreferences } from '../../../lib/preferences';
 import styles from './MainLayout.module.scss';
 
 // Remember whether the desktop sidebar was left expanded. Storage can be
@@ -32,6 +35,9 @@ const MainLayout = () => {
   const location = useLocation();
   const { signInOpen } = useAuth();
   const { stepsOpen } = useInstall();
+  // Settings → Preferences: the sidebar, or the floating button in a corner
+  const { navStyle, navCorner } = usePreferences();
+  const floating = navStyle === 'floating';
 
   useEffect(() => {
     try {
@@ -57,11 +63,13 @@ const MainLayout = () => {
   }, []);
 
   // Every page opens at the top, instantly (html has smooth scrolling on). That includes
-  // Back/Forward: the browser's own restoring of the old position is turned off.
+  // Back/Forward: the browser's own restoring of the old position is turned off. Changes within a
+  // page that only update the address (the profile's tabs) say so with `state.keepScroll`.
   useLayoutEffect(() => {
     window.history.scrollRestoration = 'manual';
   }, []);
   useLayoutEffect(() => {
+    if (location.state?.keepScroll) return;
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, [location.key]);
 
@@ -95,21 +103,33 @@ const MainLayout = () => {
     };
   }, [isMenuOpen, closeMenu]);
 
+  const layoutClassName = [
+    styles.layout,
+    floating ? styles.floatingNav : isExpanded && styles.sidebarExpanded,
+  ].filter(Boolean).join(' ');
+
   return (
-    <div className={`${styles.layout} ${isExpanded ? styles.sidebarExpanded : ''}`}>
-      <Sidebar
-        isExpanded={isExpanded}
-        onToggleExpanded={() => setIsExpanded((expanded) => !expanded)}
-        isOpen={isMenuOpen}
-        onClose={closeMenu}
-      />
-      {isMenuOpen && <div className={styles.backdrop} onClick={closeMenu} aria-hidden="true" />}
+    <div className={layoutClassName}>
+      {floating ? (
+        <FloatingNav corner={navCorner} />
+      ) : (
+        <>
+          <Sidebar
+            isExpanded={isExpanded}
+            onToggleExpanded={() => setIsExpanded((expanded) => !expanded)}
+            isOpen={isMenuOpen}
+            onClose={closeMenu}
+          />
+          {isMenuOpen && <div className={styles.backdrop} onClick={closeMenu} aria-hidden="true" />}
+        </>
+      )}
 
       {/* Everything right of the fixed sidebar. Inert while the phone drawer is open,
           so keyboard focus and screen readers stay inside the drawer. */}
       <div className={styles.column} inert={isMenuOpen || undefined}>
+        {/* The phone menu button opens the sidebar; the floating button needs none */}
         <Header
-          onMenuToggle={() => setIsMenuOpen(true)}
+          onMenuToggle={floating ? undefined : () => setIsMenuOpen(true)}
           isMenuOpen={isMenuOpen}
           menuButtonRef={menuButtonRef}
         />
@@ -127,6 +147,8 @@ const MainLayout = () => {
       <UsernameDialog />
       {/* Phones and tablets: how to install the site as an app (floats at the bottom of the screen) */}
       {stepsOpen && <InstallSteps />}
+      {/* Short messages ("Couldn't save…"), at the bottom of the screen */}
+      <Toasts />
     </div>
   );
 };

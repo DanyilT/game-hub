@@ -4,6 +4,12 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+
+  // With the floating button: what floats at the bottom of the screen (installing the app, messages)
+  // stays above it, and the footer's last line can scroll clear of it
+  &.floatingNav {
+    --floating-nav-space: 84px;
+  }
 }
 
 // Header, page and footer, to the right of the fixed sidebar (see Sidebar.module.scss)
@@ -19,7 +25,12 @@
     margin-left: $sidebar-width;
   }
 
-  // Phone: the sidebar is a drawer over the page, so no room is kept for it
+  // Phone: the sidebar is a drawer over the page, so no room is kept for it. The floating button
+  // takes no room either (the footer leaves space under its last line for it).
+  .floatingNav & {
+    margin-left: 0;
+  }
+
   @media (width <= $breakpoint-mobile) {
     &,
     .sidebarExpanded & {

@@ -29,12 +29,19 @@ const Footer = () => (
       <section className={styles.footerSection}>
         <h3>Legal</h3>
         <ul>
+          <li><Link to="/about">About</Link></li>
           <li><Link to="/terms">Terms & Conditions</Link></li>
           <li><Link to="/privacy">Privacy Policy</Link></li>
-          <LinkItems links={developer.repos} />
+          {/*{developer.repo && (*/}
+          {/*  <li>*/}
+          {/*    <a href={developer.repo} target="_blank" rel="noopener noreferrer">*/}
+          {/*      Source Code*/}
+          {/*    </a>*/}
+          {/*  </li>*/}
+          {/*)}*/}
         </ul>
       </section>
-  
+
       {developer.projects.length > 0 && (
         <section className={styles.footerSection}>
           <h3>More by {developer.name}</h3>

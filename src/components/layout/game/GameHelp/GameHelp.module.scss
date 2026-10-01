@@ -1,0 +1,124 @@
+@use '../../../../styles/abstracts/variables' as *;
+@use '../../../../styles/abstracts/forms';
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+}
+
+.gameName {
+  margin-top: -$spacing-md; // under the window's title
+  color: $color-text-secondary;
+  text-align: center;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.groupTitle {
+  @include forms.label;
+}
+
+// A row that's a link or a button: icon, then what it does
+.item {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  width: 100%;
+  padding: $spacing-sm $spacing-md;
+  border: 1px solid $color-primary;
+  color: $color-text-primary;
+  text-align: left;
+  text-decoration: none;
+  transition: background $transition-fast ease, border-color $transition-fast ease;
+
+  svg {
+    flex-shrink: 0;
+    font-size: 1.4rem;
+    color: $color-primary-light;
+  }
+
+  &:hover:not(:disabled) {
+    border-color: $color-primary-light;
+    background: color-mix(in srgb, $color-primary-light 12%, transparent);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &.danger {
+    border-color: color-mix(in srgb, $color-error 70%, transparent);
+
+    svg {
+      color: forms.$color-status-error;
+    }
+
+    &:hover:not(:disabled) {
+      border-color: $color-error;
+      background: color-mix(in srgb, $color-error 12%, transparent);
+    }
+  }
+}
+
+.muted {
+  color: $color-text-secondary;
+  font-family: $font-secondary;
+  font-size: $font-size-sm;
+
+  a {
+    color: $color-primary-light;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+
+    &:hover {
+      color: $color-secondary;
+    }
+  }
+}
+
+.error {
+  color: forms.$color-status-error;
+  font-size: $font-size-sm;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.label {
+  @include forms.label;
+}
+
+.textarea {
+  @include forms.text-input;
+  min-height: 7rem;
+  resize: vertical;
+  font-family: $font-secondary;
+}
+
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-sm;
+  font-family: $font-secondary;
+  font-size: $font-size-sm;
+
+  input {
+    margin-top: 0.2em;
+    accent-color: $color-primary-light;
+  }
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+}

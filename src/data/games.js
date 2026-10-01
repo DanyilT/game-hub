@@ -1,8 +1,9 @@
 import { CiFloppyDisk, CiMobile3, CiShare1 } from 'react-icons/ci';
 import catalogIcons from 'virtual:catalog-icons';
-import gamesData from './games.json';
+import gamesData from 'virtual:catalog';
 
-// The catalogue (src/data/games.json, checked by scripts/check-catalog.mjs; the format is in the README).
+// The catalogue: the Supabase `games` table when the site is connected to Supabase, else src/data/games.json
+// (vite.config.js and scripts/catalog-source.mjs; checked by scripts/check-catalog.mjs; the format is in the README).
 // Each entry lists where it can be played in `platforms`:
 //   { type: 'web', url, embed: true }   plays inside the hub (iframe)
 //   { type: 'web', url, embed: false }  plays on a site of its own, opened in a new tab
@@ -17,9 +18,9 @@ const PLATFORM_ICONS = { web: CiShare1, android: CiMobile3 };
 /** Links as the catalogue lists them, each with its `Icon` component (`fallback` when it names none) */
 const withIcons = (links = [], fallback = null) => links.map((link) => ({ ...link, Icon: catalogIcons[link.icon] ?? fallback }));
 
-const { projects, repos, socials, ...person } = gamesData.developer;
+const { projects, socials, ...person } = gamesData.developer;
 /** The developer: `name` and `url` (the footer's © line), and the footer's lists of links */
-export const developer = { ...person, projects: withIcons(projects), repos: withIcons(repos), socials: withIcons(socials) };
+export const developer = { ...person, projects: withIcons(projects), socials: withIcons(socials) };
 
 /** The URL the hub embeds, or null if the entry can't be played inside the hub */
 export const getEmbedUrl = (game) => game.platforms.find((p) => p.type === 'web' && p.embed)?.url ?? null;

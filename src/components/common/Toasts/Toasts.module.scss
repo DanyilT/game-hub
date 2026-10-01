@@ -1,0 +1,69 @@
+@use '../../../styles/abstracts/variables' as *;
+
+// Stacked at the bottom of the screen, over the page and clear of the floating menu button (if
+// it's on: MainLayout sets --floating-nav-space). Only the messages themselves catch clicks.
+.toasts {
+  position: fixed;
+  z-index: $z-floating + 1;
+  inset-inline: $spacing-md;
+  bottom: calc(max($spacing-md, env(safe-area-inset-bottom)) + var(--floating-nav-space, 0px));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-sm;
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  width: min(100%, 420px);
+  padding: $spacing-sm $spacing-sm $spacing-sm $spacing-md;
+  background: linear-gradient(235deg, rgba($color-black, 0.95), rgba($color-black-light, 0.92));
+  backdrop-filter: blur(10px);
+  border: 2px solid $color-primary;
+  box-shadow: 0 0 24px rgba($color-black, 0.8), 0 0 12px rgba($color-primary-light, 0.25);
+  color: $color-text-primary;
+  pointer-events: auto;
+  animation: global(fade-in) $transition-base ease;
+
+  &.error {
+    border-color: $color-error;
+  }
+}
+
+.text {
+  flex: 1;
+  font-family: $font-secondary;
+  font-size: $font-size-sm;
+}
+
+.action {
+  flex-shrink: 0;
+  padding: $spacing-xs $spacing-sm;
+  border: 1px solid $color-primary-light;
+  color: $color-primary-light;
+  font-family: $font-secondary;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+
+  &:hover {
+    background: color-mix(in srgb, $color-primary-light 15%, transparent);
+  }
+}
+
+.close {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  color: $color-text-secondary;
+  font-size: 18px; // the icon's size
+
+  &:hover {
+    color: $color-secondary;
+  }
+}

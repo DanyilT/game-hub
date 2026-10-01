@@ -21,6 +21,25 @@ export const supabase = url && publishableKey
   : null;
 
 /**
+ * Calls a database function with fetch's `keepalive`, so the request still goes out while the page
+ * closes (supabase-js can't ask for that). The body is JSON text.
+ * @param {string} fn - e.g. 'save_game'
+ * @param {string} body - its arguments, e.g. '{"p_game":"snake","p_data":{…}}'
+ * @param {string} accessToken - the signed-in player's (session.access_token)
+ * @return {Promise<*>} - what the function returned
+ */
+export const rpcWithKeepalive = async (fn, body, accessToken) => {
+  const response = await fetch(`${url}/rest/v1/rpc/${fn}`, {
+    method: 'POST',
+    keepalive: true,
+    headers: { apikey: publishableKey, Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    body,
+  });
+  if (!response.ok) throw new Error(`Supabase ${fn}: HTTP ${response.status}`);
+  return response.json();
+};
+
+/**
  * True with the local Supabase from `npm run dev:local`. Its emails never leave your machine:
  * they're caught at http://127.0.0.1:54324 ([local_smtp] in supabase/config.toml).
  */

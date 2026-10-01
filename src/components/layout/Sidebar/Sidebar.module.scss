@@ -32,10 +32,15 @@ $row-hover-bg: rgba($color-white, 0.08);
         justify-content: center;
       }
 
-      // Labels stay readable to screen readers
+      // Labels stay readable to screen readers (a count shows as a dot on the icon instead)
       .navLabel,
-      .soonBadge {
+      .soonBadge,
+      .countBadge {
         @include mixins.visually-hidden;
+      }
+
+      .dot {
+        display: block;
       }
 
       .userInfo {
@@ -186,6 +191,40 @@ $row-hover-bg: rgba($color-white, 0.08);
   width: 24px;
   height: 24px;
   flex-shrink: 0;
+}
+
+// The icon, with room for a dot when the rail is collapsed and a count is waiting
+.iconWrap {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+}
+
+.dot {
+  display: none;
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 10px;
+  height: 10px;
+  border: 2px solid $color-black-light;
+  border-radius: $radius-full;
+  background: $color-secondary;
+}
+
+// How many are waiting (friend requests on Profile)
+.countBadge {
+  flex-shrink: 0;
+  min-width: 1.5em;
+  padding: 0 $spacing-xs;
+  border-radius: $radius-full;
+  background: $color-secondary;
+  color: $color-black;
+  font-family: $font-secondary;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-bold;
+  line-height: 1.6;
+  text-align: center;
 }
 
 .navLabel {

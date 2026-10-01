@@ -1,9 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { CiCircleInfo, CiCircleMore, CiGlobe, CiPlay1 } from 'react-icons/ci';
+import { PiBookmarkSimple, PiBookmarkSimpleFill } from 'react-icons/pi';
+import { useAuth } from '../../../../contexts/AuthContext';
+import { useLibrary } from '../../../../contexts/LibraryContext';
 import {
   getEmbedUrl, getPlatformIcon, getPlatformTypes, getSourceLinks, getStorePlatforms, getWebPlatform,
 } from '../../../../data/games';
+import { calendarDate } from '../../../../lib/dates';
 import styles from './GameCard.module.scss';
 
 /**
@@ -43,6 +47,9 @@ const TagButton = ({ tag, kind = 'Tag', className = '', selected, onToggle, ...r
 );
 
 const GameCard = ({ game, index = 0, onTagClick, selectedTags = [] }) => {
+  const { isAvailable } = useAuth();
+  const { bookmarks, toggleBookmark } = useLibrary();
+  const bookmarked = bookmarks.has(game.id);
   const [showInfo, setShowInfo] = useState(false);
   const infoButtonRef = useRef(null);
   const infoPanelRef = useRef(null);
@@ -52,8 +59,7 @@ const GameCard = ({ game, index = 0, onTagClick, selectedTags = [] }) => {
   const webPlatform = getWebPlatform(game);
 
   // Keyboard users: focus goes to the info panel when it opens and back to the Info button
-  // when it closes. Mouse users keep their focus where it was (otherwise the card's
-  // :focus-within reveal would stay on after the pointer leaves).
+  // when it closes. Mouse users keep their focus where it was.
   const openInfo = (fromKeyboard) => {
     moveFocusRef.current = fromKeyboard;
     setShowInfo(true);
@@ -97,10 +103,32 @@ const GameCard = ({ game, index = 0, onTagClick, selectedTags = [] }) => {
         )}
       </div>
 
+      {/* Bookmark to play later (private; the profile lists them). Always shown once bookmarked,
+          otherwise with the rest of the card's buttons. Signed out, it opens the sign-in window. */}
+      {isAvailable && (
+        <button
+          type="button"
+          className={`${styles.bookmarkButton} ${bookmarked ? styles.bookmarked : ''}`}
+          onClick={() => toggleBookmark(game.id)}
+          aria-pressed={bookmarked}
+          aria-label={`${game.title}: Bookmark`}
+          title={bookmarked ? 'Bookmarked to play later (only you see it)' : 'Bookmark to play later'}
+          inert={showInfo || undefined}
+        >
+          {bookmarked ? <PiBookmarkSimpleFill aria-hidden="true" /> : <PiBookmarkSimple aria-hidden="true" />}
+        </button>
+      )}
+
       {/* Hidden under the info panel while it's open, so it's taken out of the tab order then */}
       <div className={styles.gameOverlay} inert={showInfo || undefined}>
         <div className={styles.gameHeader}>
-          <h3>{game.title}</h3>
+          {/* The title opens the game's page, like Play in Hub (or Details) */}
+          <h3>
+            <Link to={gamePage} className={styles.titleLink}>
+              {game.iconUrl && <img src={game.iconUrl} alt="" className={styles.titleIcon} />}
+              {game.title}
+            </Link>
+          </h3>
           <div className={styles.gameTags}>
             {game.tags.map((value) => tag(value))}
           </div>
@@ -159,8 +187,8 @@ const GameCard = ({ game, index = 0, onTagClick, selectedTags = [] }) => {
         </div>
       </div>
 
-      {/* No close button: a click closes it (except on its tags, which filter), and so do Escape,
-          the pointer leaving the card, and focus moving out */}
+      {/* No close button: a click closes it (except on its tags, which filter, and its title, which
+          opens the game's page), and so do Escape, the pointer leaving the card, and focus moving out */}
       <div
         ref={infoPanelRef}
         className={`${styles.gameInfo} ${showInfo ? styles.show : ''}`}
@@ -168,7 +196,7 @@ const GameCard = ({ game, index = 0, onTagClick, selectedTags = [] }) => {
         aria-label={`About ${game.title}`}
         tabIndex={-1}
         onClick={(e) => {
-          if (e.target.closest('button') || window.getSelection()?.toString()) return; // a tag, or selecting text
+          if (e.target.closest('button, a') || window.getSelection()?.toString()) return; // a tag, the title, or selecting text
           closeInfo(false);
         }}
         onKeyDown={(e) => {
@@ -179,13 +207,18 @@ const GameCard = ({ game, index = 0, onTagClick, selectedTags = [] }) => {
         }}
       >
         <div className={styles.gameInfoContent}>
-          <h3>{game.title}</h3>
+          <h3><Link to={gamePage} className={styles.titleLink}>{game.title}</Link></h3>
           <div className={styles.gameMetaTags}>
             {game.difficulty && tag(game.difficulty, 'Difficulty', styles[game.difficulty])}
             {game.genre.map((genre) => tag(genre, 'Genre', styles.genre))}
             {getPlatformTypes(game).map((platform) => tag(platform, 'Platform', styles.platform))}
           </div>
           <p className={styles.gameDescription}>{game.description}</p>
+          {game.released && (
+            <p className={styles.gameReleased}>
+              Released <time dateTime={game.released}>{calendarDate(game.released)}</time>
+            </p>
+          )}
         </div>
       </div>
     </div>

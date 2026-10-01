@@ -28,6 +28,9 @@ $color-warning: #f1c40f;
 $color-error: #e74c3c;
 $color-info: #3498db;
 
+// Ratings: the average's star, the rating slider
+$color-gold: #f5c518;
+
 // Game chips (card info panel and game page)
 $color-easy: color-mix(in srgb, $color-success 40%, transparent);
 $color-medium: color-mix(in srgb, $color-warning 40%, transparent);

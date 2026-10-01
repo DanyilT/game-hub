@@ -1,0 +1,67 @@
+@use '../../../../styles/abstracts/variables' as *;
+
+.reactions {
+  display: flex;
+  gap: $spacing-sm;
+}
+
+// Pills like the game page's chips, that light up when pressed
+.reaction {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  min-height: 36px;
+  padding: $spacing-xs $spacing-md;
+  border: 1px solid transparent;
+  border-radius: $radius-full;
+  background: $color-surface;
+  color: $color-text-primary;
+  font-family: $font-secondary;
+  font-size: 0.9rem;
+  font-weight: $font-weight-semibold;
+  transition: background $transition-fast ease, border-color $transition-fast ease, transform $transition-fast ease;
+
+  svg {
+    font-size: 1.25rem;
+  }
+
+  &:hover {
+    background: color-mix(in srgb, $color-white 18%, transparent);
+    transform: translateY(-1px);
+  }
+
+  &.favorite.on {
+    border-color: color-mix(in srgb, $color-secondary 60%, transparent);
+    color: $color-secondary;
+
+    svg {
+      animation: beat 400ms $ease-drop;
+    }
+  }
+
+  &.bookmark.on {
+    border-color: color-mix(in srgb, $color-accent-light 60%, transparent);
+    color: $color-accent-light;
+
+    svg {
+      animation: beat 400ms $ease-drop;
+    }
+  }
+}
+
+.count {
+  color: $color-text-primary;
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes beat {
+  40% {
+    transform: scale(1.35);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reaction.on svg {
+    animation: none;
+  }
+}

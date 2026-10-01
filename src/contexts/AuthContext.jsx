@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { rememberReturnPath } from '../lib/account';
+import { flushSaves } from '../lib/gameBridge';
 
 // ==========================================
 // Auth context
@@ -115,10 +116,12 @@ export const AuthProvider = ({ children }) => {
 
   /**
    * Signs out on this device, or everywhere (every browser and device the player used).
-   * This device is always signed out, even when the server can't be reached.
+   * This device is always signed out, even when the server can't be reached. A game's save that's
+   * still waiting to go to the account goes first (for up to 3 seconds).
    */
   const signOut = useCallback(async ({ everywhere = false } = {}) => {
     requireSupabase();
+    await Promise.race([flushSaves(), new Promise((resolve) => { setTimeout(resolve, 3000); })]);
     const { error } = await supabase.auth.signOut({ scope: everywhere ? 'global' : 'local' });
     if (error && everywhere) throw error;
   }, []);
@@ -161,7 +164,11 @@ export const AuthProvider = ({ children }) => {
     isAvailable: Boolean(supabase),
     // true until we know whether someone is signed in (and have their profile)
     loading: !sessionLoaded || !profileLoaded,
+    // true once we know whether someone is signed in (the profile may still be on its way)
+    sessionReady: sessionLoaded,
     isAuthenticated: Boolean(user),
+    // The game bridge writes saves with its access token (lib/gameBridge.js)
+    session,
     user,
     profile,
     profileError,
@@ -176,7 +183,7 @@ export const AuthProvider = ({ children }) => {
     updateProfile,
     deleteAccount,
     isUsernameAvailable,
-  }), [sessionLoaded, profileLoaded, user, profile, profileError, refreshProfile, signInOpen, openSignIn,
+  }), [sessionLoaded, profileLoaded, session, user, profile, profileError, refreshProfile, signInOpen, openSignIn,
     closeSignIn, signInWith, sendSignInLink, signOut, updateProfile, deleteAccount, isUsernameAvailable]);
 
   return (

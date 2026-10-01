@@ -28,8 +28,8 @@ export const isEmbedOrigin = (origin) => EMBED_ORIGINS.some((allowed) => {
 });
 
 // Known keys, so leftovers and typos (`imagePath`) don't slip through
-const ENTRY_KEYS = ['id', 'kind', 'title', 'description', 'style', 'genre', 'tags', 'features', 'difficulty',
-  'controls', 'thumb', 'sourceCode', 'website', 'dimensions', 'platforms'];
+const ENTRY_KEYS = ['id', 'kind', 'title', 'description', 'released', 'style', 'genre', 'tags', 'features', 'difficulty',
+  'controls', 'iconUrl', 'thumb', 'sourceCode', 'website', 'dimensions', 'platforms'];
 const PLATFORM_KEYS = ['type', 'url', 'embed', 'storeId', 'icon'];
 const DIMENSION_KEYS = ['w', 'h', 'center'];
 const CONTROLS_KEYS = ['keys', 'mobile', 'touch'];
@@ -38,8 +38,8 @@ const GESTURE_NAMES = GESTURES.map((gesture) => gesture.name);
 // A game frame's width and height, in px (200 is also the smallest a drag can make it)
 const FRAME_SIZE = { min: 200, max: 4000 };
 const LINK_KEYS = ['label', 'url', 'icon'];
-const DEVELOPER_KEYS = ['name', 'url', 'projects', 'repos', 'socials'];
-const DEVELOPER_LISTS = ['projects', 'repos', 'socials'];
+const DEVELOPER_KEYS = ['name', 'url', 'repo', 'projects', 'socials'];
+const DEVELOPER_LISTS = ['projects', 'socials'];
 // Keys from earlier versions of the format, and what took their place
 const RETIRED_KEYS = {
   playLink: 'replaced by `platforms`',
@@ -67,6 +67,12 @@ const isHttpsUrl = (value) => {
 };
 const isText = (value) => typeof value === 'string' && value.trim() !== '';
 const isStringList = (value) => Array.isArray(value) && value.every(isText);
+// A real calendar date written YYYY-MM-DD ("2025-04-24"; not "2025-02-30", not "24/04/2025")
+const isCalendarDate = (value) => {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().startsWith(value);
+};
 const unknownKeys = (object, known) => Object.keys(object).filter((key) => !known.includes(key));
 const unknownKey = (key) => `unknown key \`${key}\`${RETIRED_KEYS[key] ? ` (${RETIRED_KEYS[key]})` : ''}`;
 
@@ -193,9 +199,10 @@ export function validateCatalog(catalog) {
     }
     if (game.features !== undefined && !isStringList(game.features)) problem('`features` must be a list of strings');
     if (game.difficulty !== undefined && !DIFFICULTIES.includes(game.difficulty)) problem(`\`difficulty\` must be one of ${DIFFICULTIES.join(', ')}`);
-    for (const field of ['thumb', 'website']) {
+    for (const field of ['iconUrl', 'thumb', 'website']) {
       if (game[field] !== undefined && !isHttpsUrl(game[field])) problem(`\`${field}\` must be an https URL`);
     }
+    if (game.released !== undefined && !isCalendarDate(game.released)) problem('`released` must be a date like "2025-04-24"');
 
     // One link, or a list of links (each with a label then, so they can be told apart)
     if (game.sourceCode !== undefined) {
@@ -300,7 +307,7 @@ const iconUses = (catalog) => {
  * Finds the react-icons pack of every icon the catalogue names (vite.config.js imports them from there).
  * @return {Promise<{icons: Map<string, string>, problems: string[]}>} - icons: name → pack, e.g. CiGlobe → ci
  */
-async function findIcons(catalog) {
+export async function findIcons(catalog) {
   const icons = new Map();
   const problems = [];
   for (const [name, users] of iconUses(catalog)) {

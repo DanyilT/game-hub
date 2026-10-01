@@ -1,0 +1,289 @@
+@use '../../../styles/abstracts/variables' as *;
+
+// Sizes: the main button, the ring buttons, and how far out each ring is (centre to centre)
+$main: 60px;
+$item: 60px;
+$inner-radius: 92px;
+$outer-radius: 172px;
+$edge: 20px; // from the screen's edges
+
+.floatingNav {
+  --item: #{$item};
+  --inner-radius: #{$inner-radius};
+  --outer-radius: #{$outer-radius};
+  position: fixed;
+  z-index: $z-fixed;
+  bottom: max($edge, env(safe-area-inset-bottom));
+  width: $main;
+  height: $main;
+
+  &.right {
+    right: max($edge, env(safe-area-inset-right));
+  }
+
+  &.left {
+    left: max($edge, env(safe-area-inset-left));
+  }
+
+  @media (width <= $breakpoint-small) {
+    --item: 54px;
+    --inner-radius: 84px;
+    --outer-radius: 156px;
+  }
+}
+
+// The round button itself: "GH" in the header's font and gradient, inside a turning neon ring
+.mainButton {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  border-radius: $radius-full;
+  background: $color-black-light;
+  box-shadow: 0 6px 20px rgba($color-black, 0.6), 0 0 14px rgba($color-primary-light, 0.35);
+  transition: transform $transition-base $ease-drop, box-shadow $transition-fast ease;
+
+  // The ring: a gradient border, turning slowly
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    z-index: -1;
+    border-radius: inherit;
+    background: conic-gradient(from var(--turn, 0deg), $color-primary, $color-secondary, $color-accent-light,
+      $color-primary-light, $color-primary);
+    animation: turn 6s linear infinite;
+  }
+
+  // …with the button's own background inside it
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: $color-black-light;
+  }
+
+  &:hover {
+    transform: scale(1.06);
+    box-shadow: 0 6px 20px rgba($color-black, 0.6), 0 0 22px rgba($color-primary-light, 0.6);
+  }
+
+  &:focus-visible {
+    outline: 2px solid $color-primary-light;
+    outline-offset: 5px;
+  }
+}
+
+.logo,
+.close {
+  grid-area: 1 / 1;
+  transition: opacity $transition-base ease, transform $transition-base $ease-drop;
+}
+
+.logo {
+  padding-left: 0.1em; // Doto draws letters 0.05em left of the middle of their box
+  font-family: $font-primary;
+  font-size: 1.5rem;
+  font-weight: 800;
+  background: $gradient-neon;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 400%;
+  animation: global(gradient-shift) $neon-cycle;
+}
+
+.close {
+  display: flex;
+  color: $color-text-primary;
+  font-size: 1.75rem; // the icon's size
+  opacity: 0;
+  transform: rotate(-90deg) scale(0.5);
+}
+
+.open {
+  .logo {
+    opacity: 0;
+    transform: rotate(90deg) scale(0.5);
+  }
+
+  .close {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+// Friend requests waiting (on the closed button)
+.mainDot {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 14px;
+  height: 14px;
+  border: 2px solid $color-black-light;
+  border-radius: $radius-full;
+  background: $color-secondary;
+}
+
+// The rings: every button starts tucked behind the main one and flies out to its place
+.ring {
+  position: absolute;
+  inset: 0;
+}
+
+.item {
+  --radius: var(--inner-radius);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: var(--item);
+  height: var(--item);
+  margin: calc(var(--item) / -2) 0 0 calc(var(--item) / -2);
+  border: 1.5px solid $color-primary;
+  border-radius: $radius-full;
+  background: rgba($color-black-light, 0.96);
+  box-shadow: 0 4px 14px rgba($color-black, 0.5);
+  color: $color-text-secondary;
+  text-decoration: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: translate(0, 0) scale(0.3);
+  // Closing: all together, then hidden once they're back
+  transition: transform $transition-base ease, opacity $transition-fast ease, visibility 0s linear $transition-base,
+    border-color $transition-fast ease, background $transition-fast ease;
+
+  &.outer {
+    --radius: var(--outer-radius);
+  }
+
+  .open & {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(calc(var(--dx) * var(--radius)), calc(var(--dy) * var(--radius))) scale(1);
+    // Opening: one after another, with a little bounce
+    transition: transform 380ms $ease-drop calc(var(--i) * 35ms), opacity $transition-fast ease calc(var(--i) * 35ms),
+      visibility 0s, border-color $transition-fast ease, background $transition-fast ease;
+  }
+
+  &:hover,
+  &:focus-visible {
+    border-color: $color-primary-light;
+    background: rgba($color-primary, 0.9);
+    color: $color-text-primary;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $color-primary-light;
+    outline-offset: 3px;
+  }
+
+  &.active {
+    border-color: $color-secondary;
+    background: linear-gradient(135deg, rgba($color-primary, 0.95), rgba($color-secondary, 0.55));
+    color: $color-text-primary;
+  }
+
+  &.danger {
+    $logout-red: color-mix(in srgb, $color-error 80%, $color-white);
+    border-color: color-mix(in srgb, $color-error 60%, transparent);
+    color: $logout-red;
+
+    &:hover,
+    &:focus-visible {
+      background: rgba($color-error, 0.35);
+      color: $color-text-primary;
+    }
+  }
+
+  &.soon {
+    cursor: default;
+    opacity: 0.5;
+  }
+}
+
+.icon {
+  font-size: 1.5rem;
+}
+
+.label {
+  max-width: calc(var(--item) - 8px);
+  overflow: hidden;
+  font-family: $font-secondary;
+  font-size: 0.625rem; // 10px: it fits inside the circle
+  font-weight: $font-weight-semibold;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 20px;
+  padding: 0 4px;
+  border-radius: $radius-full;
+  background: $color-secondary;
+  color: $color-black;
+  font-family: $font-secondary;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-bold;
+  line-height: 20px;
+  text-align: center;
+}
+
+// The page dims towards the corner the menu opens from
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: $z-fixed - 1;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity $transition-base ease, visibility 0s linear $transition-base;
+
+  &.right {
+    background: radial-gradient(circle at 100% 100%, rgba($color-black, 0.85), rgba($color-black, 0.4) 55%, rgba($color-black, 0.2));
+  }
+
+  &.left {
+    background: radial-gradient(circle at 0 100%, rgba($color-black, 0.85), rgba($color-black, 0.4) 55%, rgba($color-black, 0.2));
+  }
+
+  &.shown {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity $transition-base ease, visibility 0s;
+  }
+}
+
+@property --turn {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes turn {
+  to {
+    --turn: 360deg;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mainButton::before,
+  .logo {
+    animation: none;
+  }
+
+  .item,
+  .open .item {
+    transition: opacity $transition-fast ease, visibility 0s;
+  }
+}

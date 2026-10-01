@@ -1,0 +1,753 @@
+-- The game list: one row per game. The site's build reads the published rows and bakes them into
+-- the site (scripts/catalog-source.mjs). A site that isn't connected to Supabase builds from
+-- src/data/games.json instead, and `npm run catalog:pull` copies this table into that file.
+--
+-- Edit games in the dashboard's table editor (Table Editor → games). New rows start unpublished, so a
+-- game can be filled in before it goes live. The format of every field is in the README ("Adding a
+-- game"): the build checks each published row, and a problem stops the build, leaving the live site
+-- as it is. The nested fields are `json`, not `jsonb`, so their keys keep the order they're written in.
+--
+-- Changes rebuild the site: they mark it for a rebuild, and a cron job calls Cloudflare's deploy hook
+-- once the edits have stopped for 30 seconds, so a burst of edits makes one build. The hook's URL is
+-- a secret: it goes in Vault (`deploy_hook_url`), never in a migration.
+--
+-- Apply with: npx supabase db push
+
+create extension if not exists pg_net with schema extensions;
+create extension if not exists pg_cron with schema pg_catalog;
+
+-- ---------------------------------------------------------------------------
+-- Games
+-- ---------------------------------------------------------------------------
+create table public.games (
+  id text primary key
+    constraint game_id_format check (id ~ '^[a-z0-9][a-z0-9-]{1,39}$'),
+  position integer not null default 0,        -- order on the site, lowest first
+  published boolean not null default false,  -- only published games are on the site
+  kind text not null
+    constraint game_kind check (kind in ('game', 'portal')),
+  title text not null,
+  description text not null,
+  released date,                             -- when the game came out
+  style text,
+  genre text[] not null default '{}',
+  tags text[] not null default '{}',
+  features text[] not null default '{}',
+  difficulty text
+    constraint game_difficulty check (difficulty in ('easy', 'medium', 'hard')),
+  controls json,
+  icon_url text,                             -- iconUrl in the catalogue: the game's own icon
+  thumb text,
+  website text,
+  dimensions json,
+  platforms json not null default '[]',
+  source_code json,                          -- sourceCode in the catalogue
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.games enable row level security;
+create policy "Published games are public"
+  on public.games for select to anon, authenticated
+  using (published);
+revoke all on public.games from anon, authenticated;
+grant select on public.games to anon, authenticated;
+
+create function private.touch_updated_at()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  new.updated_at := now();
+  return new;
+end;
+$$;
+
+create trigger touch_updated_at
+  before update on public.games
+  for each row execute function private.touch_updated_at();
+
+-- The games of src/data/games.json when this was written, in its order (positions 10, 20, …, so
+-- a new game can go between two)
+insert into public.games (id, position, published, kind, title, description, released, style, genre, tags, features,
+  difficulty, controls, icon_url, thumb, website, dimensions, platforms, source_code)
+select
+  entry ->> 'id',
+  n * 10,
+  true,
+  entry ->> 'kind',
+  entry ->> 'title',
+  entry ->> 'description',
+  (entry ->> 'released')::date,
+  entry ->> 'style',
+  array(select value from json_array_elements_text(entry -> 'genre') with ordinality as e(value, i) order by i),
+  array(select value from json_array_elements_text(entry -> 'tags') with ordinality as e(value, i) order by i),
+  array(select value from json_array_elements_text(entry -> 'features') with ordinality as e(value, i) order by i),
+  entry ->> 'difficulty',
+  entry -> 'controls',
+  entry ->> 'iconUrl',
+  entry ->> 'thumb',
+  entry ->> 'website',
+  entry -> 'dimensions',
+  entry -> 'platforms',
+  entry -> 'sourceCode'
+from json_array_elements($catalog$
+[
+  {
+    "id": "snake",
+    "kind": "game",
+    "title": "Snake Game",
+    "description": "Classic Snake game where you control a snake to eat food and grow longer. Avoid hitting the walls or yourself!",
+    "released": "2025-04-24",
+    "style": "Minimalistic design with a clean interface. Simple contrast colored b&w and sharp edged graphics. Old fashion retro style.",
+    "genre": [
+      "action",
+      "arcade"
+    ],
+    "tags": [
+      "classic",
+      "arcade",
+      "snake",
+      "retro"
+    ],
+    "features": [
+      "Responsive controls",
+      "Score tracking",
+      "High score system",
+      "Mobile-friendly",
+      "Easter Egg"
+    ],
+    "difficulty": "easy",
+    "controls": {
+      "keys": [
+        {
+          "keys": [
+            "w",
+            "up"
+          ],
+          "action": "Go up"
+        },
+        {
+          "keys": [
+            "a",
+            "left"
+          ],
+          "action": "Go left"
+        },
+        {
+          "keys": [
+            "s",
+            "down"
+          ],
+          "action": "Go down"
+        },
+        {
+          "keys": [
+            "d",
+            "right"
+          ],
+          "action": "Go right"
+        },
+        {
+          "keys": [
+            "space"
+          ],
+          "action": "Pause or resume"
+        },
+        {
+          "keys": [
+            "r"
+          ],
+          "action": "Restart"
+        },
+        {
+          "keys": [
+            "i"
+          ],
+          "action": "Show or hide the instructions"
+        }
+      ],
+      "mobile": true,
+      "touch": [
+        {
+          "gesture": "swipe",
+          "action": "Turn the snake"
+        },
+        {
+          "gesture": "tap",
+          "action": "The buttons under the board restart, pause and show the instructions"
+        }
+      ]
+    },
+    "iconUrl": "https://snake.dt-games.pages.dev/img/snake.png",
+    "thumb": "https://snake.dt-games.pages.dev/img/desktop-screenshot.png",
+    "dimensions": {
+      "w": 460,
+      "h": 740,
+      "center": true
+    },
+    "platforms": [
+      {
+        "type": "web",
+        "url": "https://snake.dt-games.pages.dev/",
+        "embed": true
+      }
+    ],
+    "sourceCode": {
+      "url": "https://github.com/DanyilT/dt-games/tree/snake"
+    }
+  },
+  {
+    "id": "tetris",
+    "kind": "game",
+    "title": "TETRIS Game",
+    "description": "The classic block-stacking puzzle game. Rotate and move falling blocks to create complete lines.",
+    "released": "2025-04-25",
+    "style": "Vibrant retro-inspired design with animated, colorful borders that cycle through classic Tetris piece colors. Modern UI elements with a nostalgic feel.",
+    "genre": [
+      "puzzle"
+    ],
+    "tags": [
+      "classic",
+      "puzzle",
+      "tetris",
+      "blocks"
+    ],
+    "features": [
+      "Classic Tetris gameplay",
+      "Next piece preview",
+      "Score system",
+      "Level progression",
+      "Hold piece",
+      "Mobile-friendly",
+      "Easter Egg"
+    ],
+    "difficulty": "medium",
+    "controls": {
+      "keys": [
+        {
+          "keys": [
+            "w",
+            "up"
+          ],
+          "action": "Rotate"
+        },
+        {
+          "keys": [
+            "a",
+            "left"
+          ],
+          "action": "Move left"
+        },
+        {
+          "keys": [
+            "s",
+            "down"
+          ],
+          "action": "Move down"
+        },
+        {
+          "keys": [
+            "d",
+            "right"
+          ],
+          "action": "Move right"
+        },
+        {
+          "keys": [
+            "space"
+          ],
+          "action": "Drop"
+        },
+        {
+          "keys": [
+            "p"
+          ],
+          "action": "Pause"
+        },
+        {
+          "keys": [
+            "r"
+          ],
+          "action": "Reset the game"
+        },
+        {
+          "keys": [
+            "i"
+          ],
+          "action": "Show or hide the instructions"
+        }
+      ],
+      "mobile": true,
+      "touch": [
+        {
+          "gesture": "swipe",
+          "action": "Left or right to move, up to rotate, down to move down"
+        },
+        {
+          "gesture": "tap",
+          "action": "The on-screen buttons move, rotate and drop the piece"
+        }
+      ]
+    },
+    "iconUrl": "https://tetris.dt-games.pages.dev/img/block.png",
+    "thumb": "https://tetris.dt-games.pages.dev/img/desktop-screenshot.png",
+    "dimensions": {
+      "w": 800,
+      "h": 765,
+      "center": true
+    },
+    "platforms": [
+      {
+        "type": "web",
+        "url": "https://tetris.dt-games.pages.dev/",
+        "embed": true
+      }
+    ],
+    "sourceCode": {
+      "url": "https://github.com/DanyilT/dt-games/tree/tetris"
+    }
+  },
+  {
+    "id": "minesweeper",
+    "kind": "game",
+    "title": "Minesweeper Game",
+    "description": "Test your logic and luck in this classic minesweeper game. Clear the board without hitting any mines.",
+    "released": "2025-05-01",
+    "style": "Authentic Windows 95/98 aesthetic with the classic teal background and gray UI elements featuring 3D beveled effects. Includes the iconic blue title bar, digital-style counter displays, and traditional cell styling with classic number colors - a perfect recreation of the nostalgic Windows experience. Windows 9x style.",
+    "genre": [
+      "logical puzzle",
+      "strategy"
+    ],
+    "tags": [
+      "classic",
+      "puzzle",
+      "strategy",
+      "minesweeper",
+      "old windows"
+    ],
+    "features": [
+      "Multiple difficulty levels",
+      "Timer and mine counter",
+      "First-click safety",
+      "Flag system",
+      "Classic Windows 9x style",
+      "Mobile-friendly",
+      "Easter Egg"
+    ],
+    "difficulty": "medium",
+    "controls": {
+      "keys": [
+        {
+          "keys": [
+            "click"
+          ],
+          "action": "Reveal a cell. On a number, reveal the cells around it (when the mines there are flagged)"
+        },
+        {
+          "keys": [
+            "right-click"
+          ],
+          "action": "Place or remove a flag"
+        },
+        {
+          "keys": [
+            "up",
+            "down",
+            "left",
+            "right"
+          ],
+          "action": "Move the selection"
+        },
+        {
+          "keys": [
+            "space"
+          ],
+          "action": "Reveal the selected cell"
+        },
+        {
+          "keys": [
+            "shift+space"
+          ],
+          "action": "Flag the selected cell"
+        },
+        {
+          "keys": [
+            "m"
+          ],
+          "action": "Switch between reveal and flag mode"
+        },
+        {
+          "keys": [
+            "1"
+          ],
+          "action": "Difficulty: beginner"
+        },
+        {
+          "keys": [
+            "2"
+          ],
+          "action": "Difficulty: intermediate"
+        },
+        {
+          "keys": [
+            "3"
+          ],
+          "action": "Difficulty: expert"
+        },
+        {
+          "keys": [
+            "r"
+          ],
+          "action": "Restart"
+        },
+        {
+          "keys": [
+            "i"
+          ],
+          "action": "Show or hide the instructions"
+        },
+        {
+          "keys": [
+            "esc"
+          ],
+          "action": "Close dialogs"
+        }
+      ],
+      "mobile": true,
+      "touch": [
+        {
+          "gesture": "tap",
+          "action": "Reveal a cell (or flag it in flag mode, switched with the 🔍/🚩 button)"
+        },
+        {
+          "gesture": "long-press",
+          "action": "Place or remove a flag"
+        }
+      ]
+    },
+    "iconUrl": "https://minesweeper.dt-games.pages.dev/img/mine.png",
+    "thumb": "https://minesweeper.dt-games.pages.dev/img/desktop-screenshot.png",
+    "dimensions": {
+      "w": 400,
+      "h": 520,
+      "center": true
+    },
+    "platforms": [
+      {
+        "type": "web",
+        "url": "https://minesweeper.dt-games.pages.dev/",
+        "embed": true
+      }
+    ],
+    "sourceCode": {
+      "url": "https://github.com/DanyilT/dt-games/tree/minesweeper"
+    }
+  },
+  {
+    "id": "sudoku",
+    "kind": "game",
+    "title": "Sudoku Game",
+    "description": "Challenge your mind with this classic japanese number puzzle game. Fill the grid following Sudoku rules.",
+    "released": "2025-05-05",
+    "style": "Modern Neomorphic design featuring soft shadows and subtle gradients on a light background. Uses purple accent colors, elegant rounded corners, and sophisticated shadow effects to create a clean, tactile interface. Includes visual feedback for valid/invalid entries and smooth transitions for a premium puzzle experience. Neomorphic/Neumorphism style.",
+    "genre": [
+      "logic-based puzzle"
+    ],
+    "tags": [
+      "classic",
+      "puzzle",
+      "logic",
+      "sudoku",
+      "numbers"
+    ],
+    "features": [
+      "Multiple difficulty levels",
+      "Auto-save progress",
+      "Validation",
+      "Number highlighting",
+      "Achievement tracking",
+      "Mobile-friendly",
+      "Easter Egg"
+    ],
+    "difficulty": "hard",
+    "controls": {
+      "keys": [
+        {
+          "keys": [
+            "click"
+          ],
+          "action": "Select a cell"
+        },
+        {
+          "keys": [
+            "up",
+            "down",
+            "left",
+            "right",
+            "w",
+            "a",
+            "s",
+            "d"
+          ],
+          "action": "Move around the grid"
+        },
+        {
+          "keys": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9"
+          ],
+          "action": "Fill in the number"
+        },
+        {
+          "keys": [
+            "delete",
+            "backspace"
+          ],
+          "action": "Clear the cell"
+        },
+        {
+          "keys": [
+            "enter"
+          ],
+          "action": "Check the solution (when no cell is selected)"
+        },
+        {
+          "keys": [
+            "shift+enter"
+          ],
+          "action": "Check the solution"
+        },
+        {
+          "keys": [
+            "shift+1"
+          ],
+          "action": "Difficulty: For a Bread"
+        },
+        {
+          "keys": [
+            "shift+2"
+          ],
+          "action": "Difficulty: easy"
+        },
+        {
+          "keys": [
+            "shift+3"
+          ],
+          "action": "Difficulty: medium"
+        },
+        {
+          "keys": [
+            "shift+4"
+          ],
+          "action": "Difficulty: hard"
+        },
+        {
+          "keys": [
+            "shift+5"
+          ],
+          "action": "Difficulty: expert"
+        },
+        {
+          "keys": [
+            "r"
+          ],
+          "action": "New game"
+        },
+        {
+          "keys": [
+            "i"
+          ],
+          "action": "Show or hide the info"
+        }
+      ],
+      "mobile": true,
+      "touch": [
+        {
+          "gesture": "tap",
+          "action": "Tap a cell, then a number on the pad"
+        }
+      ]
+    },
+    "iconUrl": "https://sudoku.dt-games.pages.dev/img/sudoku.png",
+    "thumb": "https://sudoku.dt-games.pages.dev/img/desktop-screenshot.png",
+    "dimensions": {
+      "w": 480,
+      "h": 860,
+      "center": true
+    },
+    "platforms": [
+      {
+        "type": "web",
+        "url": "https://sudoku.dt-games.pages.dev/",
+        "embed": true
+      }
+    ],
+    "sourceCode": {
+      "url": "https://github.com/DanyilT/dt-games/tree/sudoku"
+    }
+  },
+  {
+    "id": "chillzone",
+    "kind": "game",
+    "title": "ChillZone",
+    "description": "A free augmented-reality throwing game for Android. Place a bin in your room, flick the ball in and beat your best score.",
+    "genre": [
+      "casual",
+      "sports"
+    ],
+    "tags": [
+      "ar",
+      "unity",
+      "physics",
+      "open source"
+    ],
+    "features": [
+      "Real physics throws",
+      "Plays in your room (AR)",
+      "Unlockable balls & baskets",
+      "Three throw modes",
+      "Beat your best",
+      "Free & open source"
+    ],
+    "difficulty": "easy",
+    "controls": {
+      "mobile": true,
+      "touch": [
+        {
+          "gesture": "move",
+          "action": "Move your phone to find a flat surface"
+        },
+        {
+          "gesture": "tap",
+          "action": "Place the bin"
+        },
+        {
+          "gesture": "swipe",
+          "action": "Throw the ball: the speed sets the power, swiping up the arc, and a curved swipe adds spin"
+        }
+      ]
+    },
+    "thumb": "https://danyilt.github.io/ChillZone/assets/og-image.jpg",
+    "website": "https://danyilt.github.io/ChillZone/",
+    "platforms": [
+      {
+        "type": "android",
+        "storeId": "com.DanyT.ChillZone",
+        "url": "https://play.google.com/store/apps/details?id=com.DanyT.ChillZone"
+      }
+    ],
+    "sourceCode": {
+      "url": "https://github.com/DanyilT/ChillZone"
+    }
+  },
+  {
+    "id": "flashback-arcade",
+    "kind": "portal",
+    "title": "Flashback Arcade",
+    "description": "A wall of classic Flash games, played in your browser with Ruffle. No plugins, no downloads.",
+    "genre": [
+      "collection"
+    ],
+    "tags": [
+      "flash",
+      "retro",
+      "classic",
+      "ruffle"
+    ],
+    "features": [
+      "60+ classic Flash games",
+      "Runs in the browser with Ruffle",
+      "No plugins, no downloads",
+      "Games open right on the wall"
+    ],
+    "platforms": [
+      {
+        "type": "web",
+        "url": "https://danyilt.github.io/flashback-arcade/",
+        "embed": false
+      }
+    ],
+    "sourceCode": {
+      "url": "https://github.com/DanyilT/flashback-arcade"
+    }
+  }
+]
+$catalog$::json) with ordinality as t(entry, n);
+
+-- ---------------------------------------------------------------------------
+-- Rebuilding the site after an edit
+-- ---------------------------------------------------------------------------
+-- One row: when the games last changed, and when the deploy hook was last called
+create table private.site_rebuild (
+  id boolean primary key default true
+    constraint one_row check (id),
+  requested_at timestamptz,
+  sent_at timestamptz
+);
+insert into private.site_rebuild default values;
+
+create function private.request_site_rebuild()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  update private.site_rebuild set requested_at = now();
+  return null;
+end;
+$$;
+
+create trigger request_site_rebuild
+  after insert or update or delete or truncate on public.games
+  for each statement execute function private.request_site_rebuild();
+
+-- Run every minute (below): calls the deploy hook once the games have been quiet for 30 seconds.
+-- Without the Vault secret `deploy_hook_url` (the local database, or before it's set) nothing is
+-- sent, and the request waits until there is one.
+create function private.send_site_rebuild()
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  hook text;
+begin
+  if not exists (
+    select from private.site_rebuild
+    where requested_at is not null
+      and (sent_at is null or sent_at < requested_at)
+      and requested_at < now() - interval '30 seconds'
+  ) then
+    return;
+  end if;
+  select decrypted_secret into hook from vault.decrypted_secrets where name = 'deploy_hook_url';
+  if coalesce(hook, '') = '' then
+    return;
+  end if;
+  perform net.http_post(url := hook, body := '{}'::jsonb);
+  update private.site_rebuild set sent_at = now();
+end;
+$$;
+
+-- Nothing is executable by default; these only run as triggers and from pg_cron
+revoke execute on function
+  private.touch_updated_at(),
+  private.request_site_rebuild(),
+  private.send_site_rebuild()
+from public, anon, authenticated;
+
+select cron.schedule('gamehub-site-rebuild', '* * * * *', 'select private.send_site_rebuild()');
+-- pg_cron keeps a row per run; a week of them is plenty
+select cron.schedule('gamehub-cron-cleanup', '23 4 * * *',
+  $$delete from cron.job_run_details where end_time < now() - interval '7 days'$$);

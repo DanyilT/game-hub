@@ -1,14 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router';
-import { CiGlobe, CiMaximize2 } from 'react-icons/ci';
+import { CiCircleQuestion, CiGlobe, CiMaximize2 } from 'react-icons/ci';
 import { LuChevronsLeftRight, LuChevronsRightLeft } from 'react-icons/lu';
-import { PiResizeDuotone } from 'react-icons/pi';
+import { PiResizeDuotone, PiStarFill } from 'react-icons/pi';
 import {
   games, getEmbedUrl, getPlatformIcon, getPlatformTypes, getSourceLinks, getStorePlatforms, getWebPlatform,
 } from '../../data/games.js';
 import GooglePlayBadge, { GOOGLE_PLAY_TRADEMARK } from '../../components/common/GooglePlayBadge/GooglePlayBadge.jsx';
+import { useAuth } from '../../contexts/AuthContext';
+import { useGameStats } from '../../contexts/LibraryContext';
+import { calendarDate } from '../../lib/dates';
+import { useGameBridge } from '../../lib/gameBridge';
 import { noteGameOpened } from '../../lib/install';
 import GameControls from '../../components/layout/game/GameControls/GameControls.jsx';
+import GameHelp from '../../components/layout/game/GameHelp/GameHelp.jsx';
+import GameReactions from '../../components/layout/game/GameReactions/GameReactions.jsx';
+import RateGame from '../../components/layout/game/RateGame/RateGame.jsx';
 import ErrorPage from '../ErrorPage/ErrorPage.jsx';
 import styles from './GamePage.module.scss';
 
@@ -18,12 +25,50 @@ const RESIZE_EDGES = ['bottom', 'right', 'corner'];
 // its column (px); otherwise it would change nothing you'd see (on phones, or a wide game)
 const MIN_WIDTH_CHANGE = 16;
 
+// Whether the controls were left expanded (under the game), remembered on this device. Storage can
+// be unavailable (private mode, blocked site data), so it's best-effort.
+const CONTROLS_KEY = 'gamehub:controls-expanded';
+const readControlsExpanded = () => {
+  try {
+    return localStorage.getItem(CONTROLS_KEY) === 'true';
+  } catch {
+    return false;
+  }
+};
+
 /**
  * Asks an embedded game to put its play area in the middle of the frame (games.json
  * `dimensions.center`). The hub can't scroll another site's page, so the game does it when it
  * gets this message (the few lines it needs are in the README).
  */
 const askToCenter = (frame) => frame?.contentWindow?.postMessage({ type: 'gamehub:center' }, new URL(frame.src).origin);
+
+/** The players' average rating, beside the favorite and bookmark buttons: a gold star and the average (how many rated is in its tooltip) */
+const RatingChip = ({ stats }) => {
+  const average = Number(stats.rating_average).toFixed(1);
+  const ratings = `${stats.rating_count} ${stats.rating_count === 1 ? 'rating' : 'ratings'}`;
+  return (
+    <span className={styles.ratingChip} title={`Average rating: ${average} out of 5, from ${ratings}`}>
+      <PiStarFill aria-hidden="true" />
+      <span className="visually-hidden">Rated </span>
+      {average}
+      <span className="visually-hidden"> out of 5, from {ratings}</span>
+    </span>
+  );
+};
+
+/** The game's genre, difficulty and platforms, in the Tags card above the tags */
+const MetaChips = ({ game }) => (
+  <div className={styles.gameMeta}>
+    <span className={`${styles.metaChip} ${styles.genre}`} title="Genre">{game.genre.join(', ')}</span>
+    {game.difficulty && (
+      <span className={`${styles.metaChip} ${styles[game.difficulty]}`} title="Difficulty">{game.difficulty}</span>
+    )}
+    {getPlatformTypes(game).map((platform) => (
+      <span key={platform} className={`${styles.metaChip} ${styles.platform}`} title="Platform">{platform}</span>
+    ))}
+  </div>
+);
 
 // Screen-reader note for links that open a new tab (the ↗ arrow itself is hidden from them)
 const NewTabNote = () => (
@@ -33,12 +78,32 @@ const NewTabNote = () => (
   </>
 );
 
+/**
+ * Where the game's progress is going, under the game: the account (signed in, once the game has
+ * connected) or this browser
+ */
+const SaveStatus = ({ bridge, signedIn, accountsAvailable }) => {
+  // Games only connect a moment after they load; until then (or if they never do) nothing is claimed
+  if (!accountsAvailable || !bridge.connected) return null;
+  if (!signedIn) {
+    return <p className={styles.saveStatus}>Your progress is saved in this browser. Sign in to keep it in your account.</p>;
+  }
+  let text = 'Your progress is saved to your account.';
+  if (bridge.saving) text = 'Saving to your account…';
+  else if (bridge.saveFailed) text = "Couldn't reach your account. Your progress is safe in this browser, and it'll try again.";
+  else if (bridge.savedAt) text = `Saved to your account at ${bridge.savedAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}.`;
+  return <p className={`${styles.saveStatus} ${bridge.saveFailed ? styles.saveProblem : ''}`}>{text}</p>;
+};
+
 const GamePageContent = ({ gameId }) => {
   const game = games.find((g) => g.id === gameId);
+  const { isAvailable: accountsAvailable, sessionReady, session, user } = useAuth();
+  const stats = useGameStats(gameId);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   // The controls: under the game (expanded), or small in the info column. Full Width has a choice of
   // its own, expanded whenever it's entered, so leaving it brings back the one from before.
-  const [controlsExpanded, setControlsExpanded] = useState(false);
+  const [controlsExpanded, setControlsExpanded] = useState(readControlsExpanded);
   const [controlsExpandedInFullWidth, setControlsExpandedInFullWidth] = useState(true);
   const focusControlsRef = useRef(false); // their own button moved them, so focus goes with them
   const [showStyle, setShowStyle] = useState(false);
@@ -53,6 +118,27 @@ const GamePageContent = ({ gameId }) => {
   const [columnWidth, setColumnWidth] = useState(null); // the game's column, for Expand / Collapse Width
   const dragRef = useRef(null); // the drag in progress: which edge, where it started
   const dimensions = game?.dimensions; // the game's own frame size (games.json), if it has one
+
+  // Games that run in the hub get the iframe player; the rest (other sites, store apps) get a picture
+  // with links out. The game in the frame talks to the hub through the bridge (cloud saves).
+  const embedUrl = game ? getEmbedUrl(game) : null;
+  const bridge = useGameBridge({
+    frameRef: iframeRef,
+    gameId,
+    origin: embedUrl ? new URL(embedUrl).origin : null,
+    session,
+  });
+  // The game starts again when the player signs in or out (so it loads their save), and after a
+  // reset. It waits until we know who's signed in, so it doesn't load twice.
+  const frameId = sessionReady ? `${user?.id ?? 'guest'}:${bridge.frameKey}` : null;
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(CONTROLS_KEY, String(controlsExpanded));
+    } catch {
+      // storage unavailable: the choice just isn't remembered
+    }
+  }, [controlsExpanded]);
 
   // Counts toward the install suggestion on the games page, which waits for a game or two
   useEffect(() => {
@@ -104,7 +190,7 @@ const GamePageContent = ({ gameId }) => {
       observer.disconnect();
       clearTimeout(timer);
     };
-  }, [dimensions]);
+  }, [dimensions, frameId]);
 
   // While the game has keyboard focus, the page stays where it is:
   // - keys that scroll (arrows, space, Page Up/Down) scroll the game's own page, and once that can't
@@ -160,7 +246,7 @@ const GamePageContent = ({ gameId }) => {
       clearTimeout(wheelTimer);
       root.classList.remove('game-focused');
     };
-  }, []);
+  }, [frameId]);
 
   // Dragging the frame's bottom edge, right edge or corner. Pointer capture keeps the drag
   // going while the pointer is over the game's iframe.
@@ -229,15 +315,18 @@ const GamePageContent = ({ gameId }) => {
     return <ErrorPage status={404} title="Game not found" text="There's no game at this address. Maybe it has a new name?" />;
   }
 
-  // Games that run in the hub get the iframe player; the rest (other sites, store apps)
-  // get a picture with links out
-  const embedUrl = getEmbedUrl(game);
   const webPlatform = getWebPlatform(game);
   const WebIcon = webPlatform && getPlatformIcon(webPlatform);
   const storePlatforms = getStorePlatforms(game);
   const sourceLinks = getSourceLinks(game);
   // The keys, mouse buttons and gestures the game uses: small in the info column at first, or
   // every device under the game (or its picture)
+  // When it came out: with the features (or under the description, for entries without any)
+  const released = game.released && (
+    <p className={styles.released}>
+      Released <time dateTime={game.released}>{calendarDate(game.released)}</time>
+    </p>
+  );
   const fullWidth = sizeMode === 'full-width';
   const showControlsExpanded = fullWidth ? controlsExpandedInFullWidth : controlsExpanded;
   const controls = game.controls && (
@@ -255,17 +344,34 @@ const GamePageContent = ({ gameId }) => {
   return (
     <div className={`${styles.gamePage} ${fullWidth ? styles.fullWidth : ''}`}>
       <div className={styles.gameHeader}>
-        <h1>{game.title}</h1>
-        <div className={styles.gameMeta}>
-          <span className={`${styles.metaChip} ${styles.genre}`} title="Genre">{game.genre.join(', ')}</span>
-          {game.difficulty && (
-            <span className={`${styles.metaChip} ${styles[game.difficulty]}`} title="Difficulty">{game.difficulty}</span>
-          )}
-          {getPlatformTypes(game).map((platform) => (
-            <span key={platform} className={`${styles.metaChip} ${styles.platform}`} title="Platform">{platform}</span>
-          ))}
+        <h1>
+          {/* The title says the same, so the icon is decoration for screen readers */}
+          {game.iconUrl && <img src={game.iconUrl} alt="" className={styles.gameIcon} />}
+          {game.title}
+        </h1>
+        <div className={styles.gameReactions}>
+          {stats?.rating_count > 0 && <RatingChip stats={stats} />}
+          <GameReactions game={game} stats={stats} />
+          <button
+            type="button"
+            className={styles.helpButton}
+            onClick={() => setHelpOpen(true)}
+            title="Help: report a bug, reset progress"
+            aria-label="Help"
+            aria-haspopup="dialog"
+          >
+            <CiCircleQuestion aria-hidden="true" />
+          </button>
         </div>
       </div>
+      {helpOpen && (
+        <GameHelp
+          game={game}
+          onReset={embedUrl ? bridge.resetProgress : null}
+          connected={bridge.connected}
+          onClose={() => setHelpOpen(false)}
+        />
+      )}
 
       <div className={styles.gameContent}>
         {embedUrl ? (
@@ -274,14 +380,17 @@ const GamePageContent = ({ gameId }) => {
               ref={frameContainerRef}
               className={`${styles.gameFrameContainer} ${resizeEnabled ? styles.resizable : ''}`}
             >
-              <iframe
-                ref={iframeRef}
-                src={embedUrl}
-                title={game.title}
-                className={styles.gameFrame}
-                allowFullScreen
-                onLoad={dimensions?.center ? (e) => askToCenter(e.currentTarget) : undefined}
-              />
+              {frameId && (
+                <iframe
+                  key={frameId}
+                  ref={iframeRef}
+                  src={embedUrl}
+                  title={game.title}
+                  className={styles.gameFrame}
+                  allowFullScreen
+                  onLoad={dimensions?.center ? (e) => askToCenter(e.currentTarget) : undefined}
+                />
+              )}
 
               {/* Full width keeps the row's width, so only the bottom edge can be dragged then */}
               {resizeEnabled && RESIZE_EDGES.filter((edge) => sizeMode !== 'full-width' || edge === 'bottom').map((edge) => (
@@ -354,6 +463,7 @@ const GamePageContent = ({ gameId }) => {
                 </button>
               </div>
             </div>
+            <SaveStatus bridge={bridge} signedIn={Boolean(user)} accountsAvailable={accountsAvailable} />
             {showControlsExpanded && controls}
           </section>
         ) : (
@@ -412,15 +522,19 @@ const GamePageContent = ({ gameId }) => {
                       <li key={feature}>{feature}</li>
                     ))}
                   </ul>
+                  {released}
                 </div>
               </>
               ) : (
               <>
                 <h2>Description</h2>
                 <p>{game.description}</p>
+                {released}
               </>
             )}
           </section>
+
+          <RateGame game={game} stats={stats} />
 
           {!showControlsExpanded && controls}
 
@@ -451,6 +565,7 @@ const GamePageContent = ({ gameId }) => {
 
           <section>
             <h2>Tags</h2>
+            <MetaChips game={game} />
             <div className={styles.tagsContainer}>
               {game.tags.map((tag) => (
                 <span key={tag} className={styles.tag}>{tag}</span>

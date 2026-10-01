@@ -46,6 +46,20 @@
   }
 }
 
+// The small round ▼/▲ button that expands a card on the game page (Details, Rate this game)
+@mixin round-toggle {
+  width: 30px;
+  height: 30px;
+  border-radius: $radius-full;
+  color: $color-primary-light;
+  font-size: 0.9rem;
+  transition: background $transition-fast ease;
+
+  &:hover {
+    background: color-mix(in srgb, $color-primary 20%, transparent);
+  }
+}
+
 // A note floating under the button that shows it (ⓘ notes, the game page's style details)
 @mixin popup {
   position: absolute;

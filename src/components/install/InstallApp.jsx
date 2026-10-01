@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from 'react';
 import { CiMenuKebab } from 'react-icons/ci';
 import { IoShareOutline } from 'react-icons/io5';
+import { PiX } from 'react-icons/pi';
 import {
   bannerDue, canInstall, closeInstallSteps, getInstallState, install, installLater, subscribe,
 } from '../../lib/install';
@@ -41,7 +42,7 @@ export const InstallSteps = () => {
 
   return (
     <section className={styles.panel} role="dialog" aria-labelledby={titleId}>
-      <button type="button" className={styles.close} onClick={closeInstallSteps} aria-label="Close">×</button>
+      <button type="button" className={styles.close} onClick={closeInstallSteps} aria-label="Close"><PiX aria-hidden="true" /></button>
       <h2 id={titleId} className={styles.title}>Install GameHub</h2>
       <p className={styles.text}>Add GameHub to your home screen, and it opens full screen, like an app:</p>
       {platform === 'ios' ? (

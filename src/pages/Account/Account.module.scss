@@ -289,3 +289,320 @@
   font-size: $font-size-xs;
   text-transform: uppercase;
 }
+
+// Settings → Preferences: radio buttons as cards, each with a little picture
+.choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: $spacing-sm;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: none; // browsers draw one round a fieldset
+
+  legend {
+    margin-bottom: $spacing-sm;
+    padding: 0;
+  }
+}
+
+.choice {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-md;
+  border: 1px solid color-mix(in srgb, $color-primary 60%, transparent);
+  cursor: pointer;
+  transition: border-color $transition-fast, background $transition-fast;
+
+  &:hover {
+    border-color: $color-primary-light;
+  }
+
+  // The radio itself is hidden, so its focus shows on the card
+  &:has(input:focus-visible) {
+    outline: 2px solid $color-primary-light;
+    outline-offset: 2px;
+  }
+
+  &.chosen {
+    border-color: $color-secondary;
+    background: color-mix(in srgb, $color-primary 25%, transparent);
+  }
+}
+
+.choiceText {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  min-width: 0;
+}
+
+// A tiny page: a bar down its side (sidebar) or a dot in a bottom corner (floating button)
+.navPreview {
+  position: relative;
+  flex-shrink: 0;
+  width: 64px;
+  height: 44px;
+  border: 1px solid $color-text-secondary;
+  opacity: 0.8;
+
+  span {
+    position: absolute;
+    background: $color-primary-light;
+  }
+
+  &.sidebar span {
+    inset: 0 auto 0 0;
+    width: 12px;
+  }
+
+  &.floating span {
+    bottom: 4px;
+    right: 4px;
+    width: 12px;
+    height: 12px;
+    border-radius: $radius-full;
+    box-shadow: 0 0 6px $color-primary-light;
+  }
+
+  &.floating.left span {
+    right: auto;
+    left: 4px;
+  }
+
+  .chosen & {
+    border-color: $color-text-primary;
+    opacity: 1;
+  }
+}
+
+// Profile: the friend buttons, then tabs (Favorites, Friends, and your own Bookmarks, Ratings, Requests)
+.profileFriend {
+  padding-bottom: $spacing-md;
+  border-bottom: 1px solid color-mix(in srgb, $color-primary 60%, transparent);
+}
+
+.friendButton {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.friendsBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-sm $spacing-md;
+  border: 1px solid $color-accent-light;
+  color: $color-accent-light;
+  font-weight: $font-weight-semibold;
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: $spacing-xs;
+  border-bottom: 1px solid color-mix(in srgb, $color-primary 60%, transparent);
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  margin-bottom: -1px; // the active tab's line sits on the row's
+  padding: $spacing-sm;
+  border-bottom: 2px solid transparent;
+  color: $color-text-secondary;
+  font-size: $font-size-sm;
+  text-transform: uppercase;
+  transition: color $transition-fast, border-color $transition-fast;
+
+  &:hover {
+    color: $color-text-primary;
+  }
+
+  &.active {
+    border-color: $color-secondary;
+    color: $color-text-primary;
+  }
+}
+
+.tabCount {
+  min-width: 1.6em;
+  padding: 0 $spacing-xs;
+  border-radius: $radius-full;
+  background: $color-surface;
+  font-family: $font-secondary;
+  font-size: $font-size-xs;
+  line-height: 1.6;
+  text-align: center;
+
+  &.alert {
+    background: $color-secondary;
+    color: $color-black;
+    font-weight: $font-weight-bold;
+  }
+}
+
+.tabPanel {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.privateNote {
+  align-self: flex-start;
+  padding: 0 $spacing-sm;
+  border: 1px dashed $color-text-secondary;
+  color: $color-text-secondary;
+  font-family: $font-secondary;
+  font-size: $font-size-xs;
+}
+
+.subTitle {
+  font-size: $font-size-base;
+  color: $color-primary-light;
+}
+
+// Favorites and bookmarks: the games as small picture tiles
+.gameTiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+  gap: $spacing-md;
+}
+
+.gameTile {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid $color-primary;
+  color: $color-text-primary;
+  text-decoration: none;
+  transition: border-color $transition-fast, box-shadow $transition-fast, transform $transition-fast;
+
+  &:hover {
+    border-color: $color-primary-light;
+    box-shadow: 0 0 10px rgba($color-primary-light, 0.3);
+    transform: translateY(-2px);
+  }
+}
+
+.gameTileImage {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+}
+
+.gameTileFallback {
+  display: block;
+  background:
+    radial-gradient(circle at 30% 20%, color-mix(in srgb, $color-primary 55%, transparent), transparent 60%),
+    radial-gradient(circle at 75% 85%, color-mix(in srgb, $color-secondary 35%, transparent), transparent 55%),
+    $color-black-light;
+}
+
+.gameTileTitle {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-sm;
+  font-family: $font-secondary;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+}
+
+.gameTileIcon {
+  flex-shrink: 0;
+  width: 1.4em;
+  height: 1.4em;
+  object-fit: contain;
+}
+
+// Friends and requests: player cards, with their buttons beside them
+.playerList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  gap: $spacing-md;
+}
+
+.playerRow {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  height: 100%;
+
+  .playerCard {
+    flex: 1;
+  }
+}
+
+.playerActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+}
+
+// Your ratings, each with a small slider
+.ratingList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.ratingRow {
+  display: grid;
+  grid-template-columns: minmax(8rem, 1fr) minmax(10rem, 2fr) 6rem auto;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-sm $spacing-md;
+  border: 1px solid color-mix(in srgb, $color-primary 60%, transparent);
+
+  @media (width <= $breakpoint-small) {
+    grid-template-columns: 1fr auto;
+
+    .ratingSlider {
+      grid-column: 1 / -1;
+      grid-row: 2;
+    }
+  }
+}
+
+.ratingGame {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  min-width: 0;
+  color: $color-text-primary;
+  font-family: $font-secondary;
+  font-weight: $font-weight-semibold;
+  text-decoration: none;
+
+  &:hover {
+    color: $color-primary-light;
+  }
+}
+
+.ratingSlider {
+  min-width: 0;
+}
+
+.ratingState {
+  color: $color-text-secondary;
+  font-family: $font-secondary;
+  font-size: $font-size-sm;
+  font-variant-numeric: tabular-nums;
+}
+
+.textButton {
+  color: $color-text-secondary;
+  font-family: $font-secondary;
+  font-size: $font-size-sm;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+
+  &:hover {
+    color: $color-secondary;
+  }
+}

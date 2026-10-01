@@ -70,7 +70,8 @@
 
 // Links in the text
 .intro a,
-.section a {
+.section a,
+.updated a {
   color: $color-primary-light;
   text-decoration: underline;
   text-underline-offset: 2px;

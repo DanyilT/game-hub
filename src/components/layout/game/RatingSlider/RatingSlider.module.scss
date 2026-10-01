@@ -1,0 +1,266 @@
+@use '../../../../styles/abstracts/variables' as *;
+
+$handle: 44px;
+$handle-compact: 32px;
+$rail: 16px;
+$rail-compact: 12px;
+$sad: #8fb4ff; // the falling faces at 1
+
+// Little four-pointed stars, scattered over a tile that repeats along the rail: pale gold on the
+// rail, dark on the gold bar (so the stars show through it)
+$stars-pale: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='44' height='16' viewBox='0 0 44 16'><g fill='%23f5c518'><path fill-opacity='.45' d='M7 3.5l.9 2.1 2.1.9-2.1.9L7 9.5l-.9-2.1-2.1-.9 2.1-.9z'/><path fill-opacity='.3' d='M24 8.5l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6z'/><path fill-opacity='.4' d='M37 2.5l.5 1.2 1.2.5-1.2.5-.5 1.2-.5-1.2-1.2-.5 1.2-.5z'/><path fill-opacity='.25' d='M15 11.5l.4 1 1 .4-1 .4-.4 1-.4-1-1-.4 1-.4z'/></g></svg>");
+$stars-dark: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='44' height='16' viewBox='0 0 44 16'><g fill='%23151414'><path fill-opacity='.4' d='M7 3.5l.9 2.1 2.1.9-2.1.9L7 9.5l-.9-2.1-2.1-.9 2.1-.9z'/><path fill-opacity='.3' d='M24 8.5l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6z'/><path fill-opacity='.35' d='M37 2.5l.5 1.2 1.2.5-1.2.5-.5 1.2-.5-1.2-1.2-.5 1.2-.5z'/><path fill-opacity='.25' d='M15 11.5l.4 1 1 .4-1 .4-.4 1-.4-1-1-.4 1-.4z'/></g></svg>");
+
+// --position (1–5, set by RatingSlider.jsx) drives the handle and the bar
+.slider {
+  --handle: #{$handle};
+  --rail: #{$rail};
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  width: 100%;
+
+  &.compact {
+    --handle: #{$handle-compact};
+    --rail: #{$rail-compact};
+  }
+}
+
+.track {
+  position: relative;
+  height: var(--handle);
+  cursor: grab;
+  touch-action: pan-y; // sideways drags move the handle, up and down still scroll the page
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  // The focus ring goes round the handle
+  &:focus-visible {
+    outline: none;
+
+    .handle {
+      outline: 2px solid $color-primary-light;
+      outline-offset: 3px;
+    }
+  }
+
+  .disabled & {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+}
+
+// The rail, the bar, the notches and the handle sit at 0–100% of the track less half a handle each
+// side, where the handle's centre can go
+%on-rail {
+  position: absolute;
+  top: 50%;
+}
+
+// The rail: a dark strip full of faint stars, square-edged like the site's windows
+.rail {
+  @extend %on-rail;
+  inset-inline: calc(var(--handle) / 2);
+  height: var(--rail);
+  border: 1px solid color-mix(in srgb, $color-gold 35%, transparent);
+  background: $stars-pale repeat-x left center, $color-black-light;
+  transform: translateY(-50%);
+}
+
+// A notch at each score, above and below the rail (the bar covers their middle)
+.stop {
+  @extend %on-rail;
+  left: calc(var(--handle) / 2 + (var(--stop) - 1) / 4 * (100% - var(--handle)));
+  width: 2px;
+  height: calc(var(--rail) + 10px);
+  background: color-mix(in srgb, $color-gold 45%, transparent);
+  transform: translate(-50%, -50%);
+}
+
+// The bar: gold, up to the handle, with the stars showing through
+.fill {
+  @extend %on-rail;
+  left: calc(var(--handle) / 2);
+  width: calc((var(--position) - 1) / 4 * (100% - var(--handle)));
+  height: var(--rail);
+  background: $stars-dark repeat-x left center, $color-gold;
+  box-shadow: 0 0 12px color-mix(in srgb, $color-gold 45%, transparent);
+  transform: translateY(-50%);
+  transition: width $transition-base $ease-drop;
+
+  .unset & {
+    opacity: 0;
+  }
+
+  // Following the pointer exactly while dragged
+  .track:active & {
+    transition: none;
+  }
+}
+
+// The handle: a square with the face, gold-edged like the bar
+.handle {
+  @extend %on-rail;
+  z-index: 1;
+  left: calc(var(--handle) / 2 + (var(--position) - 1) / 4 * (100% - var(--handle)));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--handle);
+  height: var(--handle);
+  border: 2px solid $color-gold;
+  background: $color-black-light;
+  box-shadow: 0 0 14px color-mix(in srgb, $color-gold 45%, transparent);
+  color: $color-gold;
+  font-size: calc(var(--handle) * 0.72);
+  transform: translate(-50%, -50%);
+  // Settles on a score with a little bounce; follows the pointer exactly while dragged
+  transition: left $transition-base $ease-drop, scale $transition-fast ease;
+
+  &.dragging {
+    scale: 1.1;
+    transition: scale $transition-fast ease;
+  }
+
+  // Not rated yet: a grey face in the middle, waiting
+  .unset & {
+    border-color: color-mix(in srgb, $color-white 45%, transparent);
+    box-shadow: none;
+    color: $color-text-secondary;
+  }
+
+  // Love it: a glow that breathes
+  &.love {
+    animation: love 1.6s ease-in-out infinite;
+  }
+
+  // Not for me: a little shake when it lands there
+  &.grumpy .face {
+    animation: grumpy 400ms ease;
+  }
+}
+
+.face {
+  animation: pop 320ms $ease-drop;
+}
+
+// Faces flying out of the handle when it reaches 1 or 5 (RatingSlider.jsx sets each one's path)
+.burst {
+  @extend %on-rail;
+  z-index: 2;
+  left: calc(var(--handle) / 2 + (var(--at) - 1) / 4 * (100% - var(--handle)));
+  pointer-events: none;
+}
+
+.burstFace {
+  position: absolute;
+  top: 0;
+  left: 0;
+  // The reset caps images at their container's width, and a burst's container has none
+  max-width: none;
+  font-size: calc(var(--handle) * 0.5);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.3);
+  // The name comes from .happy or .sad (CSS modules rename keyframes, so it can't be a variable)
+  animation: 900ms cubic-bezier(0.2, 0.7, 0.3, 1) var(--delay) forwards;
+
+  // Happy: up and out
+  &.happy {
+    animation-name: fly-up;
+    color: $color-gold;
+    filter: drop-shadow(0 0 4px color-mix(in srgb, $color-gold 70%, transparent));
+  }
+
+  // Sad: a small hop out, then they drop below the rail
+  &.sad {
+    animation-name: drop;
+    color: $sad;
+  }
+}
+
+.caption {
+  color: $color-text-secondary;
+  font-family: $font-secondary;
+  text-align: center;
+
+  strong {
+    color: $color-gold;
+    font-size: $font-size-xl;
+  }
+}
+
+@keyframes pop {
+  from {
+    transform: scale(0.5) rotate(-12deg);
+  }
+
+  to {
+    transform: scale(1) rotate(0);
+  }
+}
+
+@keyframes love {
+  50% {
+    box-shadow: 0 0 26px color-mix(in srgb, $color-gold 80%, transparent), 0 0 50px color-mix(in srgb, $color-gold 35%, transparent);
+  }
+}
+
+@keyframes grumpy {
+  25% {
+    transform: rotate(-12deg);
+  }
+
+  75% {
+    transform: rotate(12deg);
+  }
+}
+
+@keyframes fly-up {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.3) rotate(0);
+  }
+
+  70% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(var(--scale)) rotate(var(--rotate));
+  }
+}
+
+@keyframes drop {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.3) rotate(0);
+  }
+
+  35% {
+    opacity: 1;
+    transform: translate(calc(-50% + var(--dx) * 0.6), calc(-50% + var(--dy) * 0.5)) scale(var(--scale)) rotate(calc(var(--rotate) * 0.5));
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--fall))) scale(var(--scale)) rotate(var(--rotate));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .handle,
+  .fill {
+    transition: none;
+  }
+
+  .face,
+  .handle.love,
+  .handle.grumpy .face {
+    animation: none;
+  }
+}

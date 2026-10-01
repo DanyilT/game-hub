@@ -1,65 +1,104 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { CATALOG_PATH, EMBED_ORIGINS, checkCatalogFile } from './scripts/check-catalog.mjs';
+import { CATALOG_PATH, EMBED_ORIGINS } from './scripts/check-catalog.mjs';
+import { loadCatalog } from './scripts/catalog-source.mjs';
 import { gamePage, siteFiles } from './scripts/site-files.mjs';
 
+// The game list, as `import gamesData from 'virtual:catalog'` (src/data/games.js)
+const CATALOG_MODULE = 'virtual:catalog';
+const RESOLVED_CATALOG_MODULE = `\0${CATALOG_MODULE}`;
 // The react-icons the catalogue names (`"icon": "FaGithub"`), as `import icons from 'virtual:catalog-icons'`
 const ICONS_MODULE = 'virtual:catalog-icons';
 const RESOLVED_ICONS_MODULE = `\0${ICONS_MODULE}`;
 
 /**
- * Checks src/data/games.json when the dev server starts and on every build (a broken
- * entry stops the build), and publishes it as /catalog.json so other apps (the planned
- * mobile app) can read the same list. Also builds the icons module: only the icons the
- * catalogue names get bundled, not whole icon packs.
+ * The game list every plugin here uses (scripts/catalog-source.mjs): the Supabase `games` table when
+ * the project is connected, else src/data/games.json. The table is read once per build or dev server
+ * start (restart the dev server to see edits made there); games.json is read afresh each time, so
+ * the dev server picks up edits to it.
+ */
+const catalogSource = {
+  env: {},
+  serve: false,
+  cached: null,
+  async get() {
+    if (this.cached) return this.cached;
+    const result = await loadCatalog(this.env, { fallbackOnError: this.serve });
+    if (result.connected) this.cached = result;
+    return result;
+  },
+};
+
+/**
+ * Loads and checks the game list when the dev server starts and on every build (a broken entry
+ * stops the build), gives it to the app as `virtual:catalog`, and publishes it as /catalog.json so
+ * other apps can read the same list. Also builds the icons module: only the icons the catalogue
+ * names get bundled, not whole icon packs.
  */
 function gamesCatalog() {
-  const loadCatalog = async () => {
-    const { catalog, problems, icons } = await checkCatalogFile();
-    if (problems.length) throw new Error(`games.json has ${problems.length} problem(s):\n- ${problems.join('\n- ')}`);
-    return { catalog, icons };
-  };
+  let logger;
 
   return {
     name: 'gamehub-catalog',
+    configResolved(config) {
+      catalogSource.env = config.env;
+      catalogSource.serve = config.command === 'serve';
+      logger = config.logger;
+    },
     async buildStart() {
       this.addWatchFile(CATALOG_PATH);
-      await loadCatalog();
+      const { catalog, source, warning } = await catalogSource.get();
+      if (warning) logger.warn(warning);
+      logger.info(`Game list: ${catalog.games.length} entries from ${source}`);
     },
     resolveId(id) {
-      return id === ICONS_MODULE ? RESOLVED_ICONS_MODULE : null;
+      if (id === CATALOG_MODULE) return RESOLVED_CATALOG_MODULE;
+      if (id === ICONS_MODULE) return RESOLVED_ICONS_MODULE;
+      return null;
     },
     async load(id) {
-      if (id !== RESOLVED_ICONS_MODULE) return null;
+      if (id !== RESOLVED_CATALOG_MODULE && id !== RESOLVED_ICONS_MODULE) return null;
       this.addWatchFile(CATALOG_PATH); // built again when games.json changes
-      const { icons } = await loadCatalog(); // name → pack, e.g. CiGlobe → ci
-      const namesByPack = Map.groupBy(icons.keys(), (name) => icons.get(name));
+      const { catalog, icons } = await catalogSource.get();
+      if (id === RESOLVED_CATALOG_MODULE) return `export default ${JSON.stringify(catalog)};`;
+      const namesByPack = Map.groupBy(icons.keys(), (name) => icons.get(name)); // e.g. CiGlobe → ci
       return [
         ...[...namesByPack].map(([pack, names]) => `import { ${names.join(', ')} } from 'react-icons/${pack}';`),
         `export default { ${[...icons.keys()].join(', ')} };`,
       ].join('\n');
     },
     async generateBundle() {
-      const { catalog } = await loadCatalog();
+      const { catalog } = await catalogSource.get();
       this.emitFile({ type: 'asset', fileName: 'catalog.json', source: JSON.stringify(catalog) });
     },
     configureServer(server) {
-      // Re-check on edit during development (the page itself reloads on its own)
+      // Re-check games.json on edit during development (the page itself reloads on its own). It's
+      // also where `version` and `developer` come from, so a connected server reloads the table too.
       server.watcher.add(CATALOG_PATH);
       server.watcher.on('change', async (file) => {
         if (file !== CATALOG_PATH) return;
-        const { problems } = await checkCatalogFile();
-        if (problems.length) server.config.logger.error(`games.json has ${problems.length} problem(s):\n- ${problems.join('\n- ')}`);
+        catalogSource.cached = null;
+        try {
+          await catalogSource.get();
+        } catch (error) {
+          server.config.logger.error(error.message);
+        }
       });
       // Serve /catalog.json like the build does: only that exact path (under `base`), only
-      // GET/HEAD, and an error status (with the problems) when the file is invalid
+      // GET/HEAD, and an error status (with the problems) when the list is invalid
       server.middlewares.use(async (req, res, next) => {
         const path = req.url?.split('?')[0];
         if (path !== `${server.config.base}catalog.json` || !['GET', 'HEAD'].includes(req.method)) return next();
-        const { catalog, problems } = await checkCatalogFile();
-        res.statusCode = problems.length ? 500 : 200;
+        let body;
+        try {
+          body = JSON.stringify((await catalogSource.get()).catalog);
+          res.statusCode = 200;
+        } catch (error) {
+          body = JSON.stringify({ problems: error.message.split('\n') });
+          res.statusCode = 500;
+        }
         res.setHeader('Content-Type', 'application/json');
-        res.end(req.method === 'HEAD' ? undefined : JSON.stringify(problems.length ? { problems } : catalog));
+        res.end(req.method === 'HEAD' ? undefined : body);
       });
     },
   };
@@ -67,7 +106,7 @@ function gamesCatalog() {
 
 // The app's pages besides the home page (index.html, the games list) and the games' own pages
 // (g/<id>, from the catalogue). Keep in step with the routes in App.jsx.
-const PAGES = ['players', 'terms', 'privacy'];
+const PAGES = ['players', 'about', 'terms', 'privacy'];
 // Account pages get a file of their own too, but stay out of sitemap.xml (robots.txt keeps crawlers out)
 const ACCOUNT_PAGES = ['settings', 'auth/callback', 'me'];
 // Profiles (/u/<username>) can't have a file per player, so _redirects answers all of them with the app
@@ -103,7 +142,7 @@ function appPages() {
     generateBundle: {
       order: 'post', // after Vite has written index.html
       async handler(_options, bundle) {
-        const { catalog } = await checkCatalogFile();
+        const { catalog } = await catalogSource.get();
         const app = bundle['index.html'].source;
         for (const page of [...PAGES, ...ACCOUNT_PAGES, ...catalog.games.map(gamePage), '404']) {
           this.emitFile({ type: 'asset', fileName: `${page}.html`, source: app });
@@ -129,7 +168,7 @@ function rootFiles() {
     name: 'gamehub-root-files',
     apply: 'build',
     async generateBundle() {
-      const { catalog } = await checkCatalogFile();
+      const { catalog } = await catalogSource.get();
       if (!SITE_URL) this.warn('no sitemap.xml: set SITE_URL in vite.config.js once the site has an address');
       const files = siteFiles({ catalog, pages: PAGES, accountPages: ACCOUNT_PAGES, siteUrl: SITE_URL });
       for (const [fileName, source] of Object.entries(files)) {
@@ -144,7 +183,7 @@ function rootFiles() {
  * this file). The Content-Security-Policy allows only the sites the pages really use, and is
  * built from the catalogue and the Supabase URL at build time, so it can't drift from them:
  * - frame-src: EMBED_ORIGINS (the only site games are embedded from)
- * - img-src: the catalogue's picture hosts, the Google Play badge, http.cat (error pages), and
+ * - img-src: the catalogue's picture hosts (thumbnails and icons), the Google Play badge, http.cat (error pages), and
  *   profile pictures from Google (and Discord's, ready for when its sign-in is switched on)
  * - connect-src: this project's Supabase URL (none when accounts aren't configured)
  * The dev server doesn't send these; try them with `npm run cf:preview`.
@@ -154,7 +193,7 @@ function securityHeaders() {
 
   const contentSecurityPolicy = (catalog) => {
     const origins = (urls) => [...new Set(urls.map((url) => new URL(url).origin))];
-    const pictures = origins(catalog.games.filter((game) => game.thumb).map((game) => game.thumb));
+    const pictures = origins(catalog.games.flatMap((game) => [game.thumb, game.iconUrl]).filter(Boolean));
     const hasStoreBadge = catalog.games.some((game) => game.platforms.some((p) => p.type === 'android'));
     const supabase = supabaseUrl ? new URL(supabaseUrl) : null;
 
@@ -185,7 +224,7 @@ function securityHeaders() {
       supabaseUrl = url && key ? url : undefined;
     },
     async generateBundle() {
-      const { catalog } = await checkCatalogFile();
+      const { catalog } = await catalogSource.get();
       const source = [
         '/*',
         `  Content-Security-Policy: ${contentSecurityPolicy(catalog)}`,

@@ -12,6 +12,7 @@ import {
   nextUsernameChange,
 } from '../../lib/account';
 import { fullDate } from '../../lib/dates';
+import { setPreference, usePreferences } from '../../lib/preferences';
 import Avatar from '../../components/common/Avatar/Avatar';
 import Button from '../../components/common/Button/Button';
 import UsernameField, { useUsernameCheck } from '../../components/account/UsernameField/UsernameField';
@@ -226,6 +227,83 @@ const AccountSection = ({ user, onSignOutProblem }) => {
   );
 };
 
+const NAV_STYLES = [
+  { value: 'sidebar', label: 'Sidebar', text: 'A bar down the side of the page (behind a menu button on phones).' },
+  { value: 'floating', label: 'Floating button', text: 'A round button in a corner that opens into a ring of buttons.' },
+];
+const CORNERS = [
+  { value: 'left', label: 'Bottom left' },
+  { value: 'right', label: 'Bottom right' },
+];
+
+/**
+ * A set of radio buttons as cards, each with a little picture of the choice
+ * @param {string} legend
+ * @param {string} name - the radio group's name
+ * @param {object[]} options - { value, label, text? }
+ * @param {string} value - the chosen one
+ * @param {function} onChange - gets the new value
+ * @param {function} preview - draws the picture for a value
+ */
+const ChoiceGroup = ({ legend, name, options, value, onChange, preview }) => (
+  <fieldset className={styles.choices}>
+    <legend className={styles.label}>{legend}</legend>
+    {options.map((option) => (
+      <label key={option.value} className={`${styles.choice} ${value === option.value ? styles.chosen : ''}`}>
+        <input
+          type="radio"
+          className="visually-hidden"
+          name={name}
+          value={option.value}
+          checked={value === option.value}
+          onChange={() => onChange(option.value)}
+        />
+        {preview(option.value)}
+        <span className={styles.choiceText}>
+          <strong>{option.label}</strong>
+          {option.text && <span className={styles.muted}>{option.text}</span>}
+        </span>
+      </label>
+    ))}
+  </fieldset>
+);
+
+// A tiny page with the navigation drawn in: a bar down the side, or a dot in a corner
+const NavPreview = ({ style, corner }) => (
+  <span className={`${styles.navPreview} ${styles[style]} ${styles[corner] ?? ''}`} aria-hidden="true">
+    <span />
+  </span>
+);
+
+/** Choices about this device's screen (src/lib/preferences.js): for everyone, signed in or not */
+const PreferencesSection = () => {
+  const { navStyle, navCorner } = usePreferences();
+  return (
+    <section className={styles.card} aria-labelledby="settings-preferences">
+      <h2 id="settings-preferences" className={styles.cardTitle}>Preferences</h2>
+      <ChoiceGroup
+        legend="Navigation"
+        name="nav-style"
+        options={NAV_STYLES}
+        value={navStyle}
+        onChange={(value) => setPreference('navStyle', value)}
+        preview={(value) => <NavPreview style={value} corner={value === 'floating' ? navCorner : null} />}
+      />
+      {navStyle === 'floating' && (
+        <ChoiceGroup
+          legend="Floating button corner"
+          name="nav-corner"
+          options={CORNERS}
+          value={navCorner}
+          onChange={(value) => setPreference('navCorner', value)}
+          preview={(value) => <NavPreview style="floating" corner={value} />}
+        />
+      )}
+      <p className={styles.muted}>These are kept on this device only, so each of your devices can have its own.</p>
+    </section>
+  );
+};
+
 const DeleteSection = ({ profile, onDelete }) => {
   const [typed, setTyped] = useState('');
   const [state, setState] = useState({ busy: false, error: null });
@@ -304,30 +382,41 @@ const Settings = () => {
     );
   }
   if (!isAvailable) {
-    return page(<section className={styles.card}><p>Accounts are coming soon.</p></section>);
+    return page(
+      <>
+        <PreferencesSection />
+        <section className={styles.card}><p>Accounts are coming soon.</p></section>
+      </>,
+    );
   }
   if (loading) {
     return page(<p className={styles.muted} aria-live="polite">Loading…</p>);
   }
   if (!user) {
     return page(
-      <section className={styles.card}>
-        {signOutProblem && <p className={styles.error} role="alert">{signOutProblem}</p>}
-        <p>Sign in to change your profile and account settings.</p>
-        <div className={styles.actions}>
-          <Button onClick={openSignIn}>Sign in</Button>
-        </div>
-      </section>,
+      <>
+        <PreferencesSection />
+        <section className={styles.card}>
+          {signOutProblem && <p className={styles.error} role="alert">{signOutProblem}</p>}
+          <p>Sign in to change your profile and account settings.</p>
+          <div className={styles.actions}>
+            <Button onClick={openSignIn}>Sign in</Button>
+          </div>
+        </section>
+      </>,
     );
   }
   if (!profile) {
     return page(
-      <section className={styles.card}>
-        <p className={styles.error} role="alert">
-          {profileError ? "Couldn't load your profile. Check your connection and try again." : 'Loading…'}
-        </p>
-        {profileError && <div className={styles.actions}><Button onClick={refreshProfile}>Try again</Button></div>}
-      </section>,
+      <>
+        <section className={styles.card}>
+          <p className={styles.error} role="alert">
+            {profileError ? "Couldn't load your profile. Check your connection and try again." : 'Loading…'}
+          </p>
+          {profileError && <div className={styles.actions}><Button onClick={refreshProfile}>Try again</Button></div>}
+        </section>
+        <PreferencesSection />
+      </>,
     );
   }
 
@@ -335,6 +424,7 @@ const Settings = () => {
     <>
       <ProfileSection profile={profile} user={user} />
       <UsernameSection profile={profile} />
+      <PreferencesSection />
       <AccountSection user={user} onSignOutProblem={setSignOutProblem} />
       <DeleteSection profile={profile} onDelete={removeAccount} />
     </>,

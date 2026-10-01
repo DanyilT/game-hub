@@ -11,19 +11,60 @@ $shadow: 0 4px 20px rgba($color-black, 0.2);
 }
 
 .gameHeader {
-  display: flex;
-  flex-wrap: wrap;
-  flex-direction: row;
-  justify-content: space-between;
+  // The title, with the rating, the favorite and bookmark buttons and help beside it
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: 'title actions';
+  align-items: center;
   gap: $spacing-md;
   max-width: 1200px;
   margin: 0 auto $spacing-xl;
   padding: $spacing-md;
 
   h1 {
+    grid-area: title;
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
     color: $color-primary-light;
     font-size: 2.5rem;
   }
+}
+
+.gameReactions {
+  grid-area: actions;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: $spacing-sm;
+}
+
+// The ? button: help, bug reports, resetting progress
+.helpButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: $radius-full;
+  background: $color-surface;
+  color: $color-text-primary;
+  font-size: 1.6rem;
+  transition: background $transition-fast ease, color $transition-fast ease, transform $transition-fast ease;
+
+  &:hover {
+    background: color-mix(in srgb, $color-primary-light 30%, transparent);
+    transform: translateY(-1px);
+  }
+}
+
+// The game's own icon, before its title (in em, so it follows the title's size on phones)
+.gameIcon {
+  flex-shrink: 0;
+  width: 1.2em;
+  height: 1.2em;
+  object-fit: contain;
 }
 
 .gameMeta {
@@ -37,7 +78,6 @@ $shadow: 0 4px 20px rgba($color-black, 0.2);
   padding: $spacing-sm $spacing-md;
   border-radius: $radius-full;
   background: $color-surface;
-  font-family: $font-secondary;
   font-size: 0.9rem;
   font-weight: $font-weight-semibold;
   cursor: help;
@@ -47,6 +87,37 @@ $shadow: 0 4px 20px rgba($color-black, 0.2);
   &.medium { background: $color-medium; }
   &.hard { background: $color-hard; }
   &.platform { background: $color-platform; }
+}
+
+// The players' average rating, a pill like the favorite and bookmark buttons beside it
+.ratingChip {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  min-height: 36px;
+  padding: $spacing-xs $spacing-md;
+  border-radius: $radius-full;
+  background: $color-surface;
+  color: $color-gold;
+  font-family: $font-secondary;
+  font-size: 0.9rem;
+  font-weight: $font-weight-semibold;
+  cursor: help;
+
+  svg {
+    font-size: 1.25rem;
+  }
+}
+
+// When the game came out, with its features
+.released {
+  color: $color-text-secondary;
+  font-family: $font-secondary;
+  font-size: $font-size-sm;
+
+  .gameFeatures & {
+    margin-top: $spacing-md;
+  }
 }
 
 .gameContent {
@@ -89,6 +160,17 @@ $shadow: 0 4px 20px rgba($color-black, 0.2);
   width: 100%;
   height: 100%;
   border: none;
+}
+
+// Where the game's progress is saved (the account, or this browser)
+.saveStatus {
+  color: $color-text-secondary;
+  font-family: $font-secondary;
+  font-size: $font-size-sm;
+}
+
+.saveProblem {
+  color: $color-warning;
 }
 
 .gameFrameActions {
@@ -294,16 +376,7 @@ $shadow: 0 4px 20px rgba($color-black, 0.2);
 }
 
 .toggleFeaturesBtn {
-  width: 30px;
-  height: 30px;
-  border-radius: $radius-full;
-  color: $color-primary-light;
-  font-size: 0.9rem;
-  transition: background $transition-fast ease;
-
-  &:hover {
-    background: color-mix(in srgb, $color-primary 20%, transparent);
-  }
+  @include mixins.round-toggle;
 }
 
 .gameFeatures {
@@ -377,5 +450,15 @@ $shadow: 0 4px 20px rgba($color-black, 0.2);
 
   .gameHeader h1 {
     font-size: 2rem;
+  }
+}
+
+// Small phones: the buttons go under the title
+@media (width <= $breakpoint-small) {
+  .gameHeader {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'title'
+      'actions';
   }
 }

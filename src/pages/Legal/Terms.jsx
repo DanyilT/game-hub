@@ -1,8 +1,11 @@
 import { Link } from 'react-router';
+import { HUB_ISSUES_URL, hubBugReportUrl } from '../../lib/support';
 import styles from './Legal.module.scss';
 
 // Change this whenever the terms text changes
-const LAST_UPDATED = '28 September 2026';
+const LAST_UPDATED = '30 September 2026';
+
+const GAMES_ISSUES_URL = 'https://github.com/DanyilT/dt-games/issues';
 
 const Terms = () => (
   <div className={styles.page}>
@@ -27,17 +30,29 @@ const Terms = () => (
       <section className={styles.section}>
         <h2>4. Accounts</h2>
         <p>You don't need an account to play. If you create one, you sign in with Google, and you need to be at least 13 (or older, if the law where you live says so).</p>
-        <p>Your username, display name and picture are public. Don't use them to pretend to be someone else, to harass anyone, or for anything offensive or illegal. Names and profiles that break these rules may be changed or removed, and accounts that keep breaking them may be deleted.</p>
+        <p>Your username, display name and picture are public, and so are your favorite games and your friends list. Your ratings, bookmarks and game progress are private. Don't use your profile to pretend to be someone else, to harass anyone, or for anything offensive or illegal. Names and profiles that break these rules may be changed or removed, and accounts that keep breaking them may be deleted.</p>
+        <p>Only add friends you want on your public friends list, and don't send friend requests to pester people.</p>
         <p>You can delete your account at any time in Settings. What we store about you is explained in the <Link to="/privacy">Privacy Policy</Link>.</p>
       </section>
 
       <section className={styles.section}>
-        <h2>5. Limitation of Liability</h2>
+        <h2>5. Reporting bugs and problems</h2>
+        <p>Found a bug, or something that doesn't work the way it should? Please tell us, it's how GameHub gets better:</p>
+        <ul>
+          <li>a problem with a game: <a href={GAMES_ISSUES_URL} target="_blank" rel="noopener noreferrer">report it on GitHub<span className="visually-hidden"> (opens in a new tab)</span></a>, in the games' repo</li>
+          <li>a problem with the site itself (accounts, saving, pages): <a href={hubBugReportUrl()} target="_blank" rel="noopener noreferrer">report it on GitHub<span className="visually-hidden"> (opens in a new tab)</span></a> (and see <a href={HUB_ISSUES_URL} target="_blank" rel="noopener noreferrer">what's already reported<span className="visually-hidden"> (opens in a new tab)</span></a>)</li>
+          <li>no GitHub account? Sign in, and use the <strong>?</strong> button on the game's page to send a message</li>
+        </ul>
+        <p>Issues on GitHub are public, so don't put personal details in them. Messages sent from the site are private: only the developer reads them. For anything about your personal data, see the <Link to="/privacy">Privacy Policy</Link>.</p>
+      </section>
+
+      <section className={styles.section}>
+        <h2>6. Limitation of Liability</h2>
         <p>GameHub shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of or inability to use the service.</p>
       </section>
 
       <section className={styles.section}>
-        <h2>6. Changes to Terms</h2>
+        <h2>7. Changes to Terms</h2>
         <p>We reserve the right to modify these terms at any time. We will notify users of any changes by updating the date at the bottom of these terms.</p>
       </section>
 

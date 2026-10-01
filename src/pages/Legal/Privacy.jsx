@@ -4,7 +4,7 @@ import styles from './Legal.module.scss';
 
 // Change this whenever the policy changes. Keep it in step with what the site really does:
 // sign-in providers, where data is stored, and which other sites pages load from (the CSP in vite.config.js lists them).
-const LAST_UPDATED = '29 September 2026';
+const LAST_UPDATED = '30 September 2026';
 
 const Privacy = () => (
   <div className={styles.page}>
@@ -19,7 +19,7 @@ const Privacy = () => (
 
       <section className={styles.section}>
         <h2>1. Playing without an account</h2>
-        <p>You can browse and play every game without an account. GameHub then keeps nothing about you on a server. Your browser remembers a few small things on your device: whether the sidebar is expanded and, for the suggestion to install GameHub as an app, how many games you've opened, when you last chose "Not now", and whether you've installed it.</p>
+        <p>You can browse and play every game without an account. GameHub then keeps nothing about you on a server. Your browser remembers a few small things on your device: whether the sidebar is expanded, whether you chose the sidebar or the floating button to get around (and its corner), whether you've seen the note that favorites are public, whether a game's controls were left expanded and, for the suggestion to install GameHub as an app, how many games you've opened, when you last chose "Not now", and whether you've installed it.</p>
       </section>
 
       <section className={styles.section}>
@@ -37,12 +37,25 @@ const Privacy = () => (
       </section>
 
       <section className={styles.section}>
-        <h2>3. Where it's stored</h2>
+        <h2>3. What your account keeps as you play</h2>
+        <ul>
+          <li><strong>Your progress in each game</strong> (scores, levels, a puzzle in progress: whatever the game saves), so you can carry on from any device. Private: only you can read it. A game's <strong>?</strong> button can reset it.</li>
+          <li><strong>Your ratings.</strong> Private: others only see each game's average and how many rated it.</li>
+          <li><strong>Your favorites.</strong> Public: they're on your profile.</li>
+          <li><strong>Your bookmarks.</strong> Private: others only see how many players bookmarked each game.</li>
+          <li><strong>Your friends.</strong> Your friends list is public, on your profile. A friend request is only seen by the two of you until it's accepted.</li>
+          <li><strong>Messages you send us</strong>, after rating a game or from its help: what you wrote, the game, the rating you gave, and, if you tick the box, your browser's name and version. Only the developer reads them.</li>
+        </ul>
+        <p>You can take back any rating, favorite, bookmark or friend at any time, and a message goes when your account does.</p>
+      </section>
+
+      <section className={styles.section}>
+        <h2>4. Where it's stored</h2>
         <p>Accounts and profiles are stored with <a href="https://supabase.com/privacy" target="_blank" rel="noopener noreferrer">Supabase</a>, in its data centre in the EU. The site itself is served by <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener noreferrer">Cloudflare</a>, which handles technical data such as your IP address to deliver pages and protect the site from abuse.</p>
       </section>
 
       <section className={styles.section}>
-        <h2>4. Other sites the pages load from</h2>
+        <h2>5. Other sites the pages load from</h2>
         <p>Some parts of the pages come from other sites, which see your IP address when your browser fetches them:</p>
         <ul>
           <li>the games, each from its own address on dt-games.pages.dev, such as snake.dt-games.pages.dev (also run by {developer.name}, hosted on Cloudflare)</li>
@@ -56,28 +69,28 @@ const Privacy = () => (
       </section>
 
       <section className={styles.section}>
-        <h2>5. Cookies and storage on your device</h2>
-        <p>GameHub has no ads, no analytics and no tracking cookies. Besides those settings, some games save things like your high score or progress in your browser, each under its own address. That stays on your device.</p>
+        <h2>6. Cookies and storage on your device</h2>
+        <p>GameHub has no ads, no analytics and no tracking cookies. Besides those settings, games save things like your high score or progress in your browser, each under its own address. When you play in GameHub signed in, that progress is also saved to your account (section 3).</p>
         <p>When you sign in, your browser keeps a sign-in token in its local storage, so you stay signed in. Signing out removes it.</p>
       </section>
 
       <section className={styles.section}>
-        <h2>6. Deleting your data</h2>
-        <p>Your data is kept for as long as you have an account. <strong>Settings → Delete account</strong> deletes your account, your profile and your list of usernames straight away. If a backup of the database was made before that, your data stays in that backup until the backup is deleted.</p>
+        <h2>7. Deleting your data</h2>
+        <p>Your data is kept for as long as you have an account. <strong>Settings → Delete account</strong> deletes your account, your profile, your list of usernames, your game progress, ratings, favorites, bookmarks, friends and the messages you sent, straight away. If a backup of the database was made before that, your data stays in that backup until the backup is deleted.</p>
       </section>
 
       <section className={styles.section}>
-        <h2>7. Your rights</h2>
+        <h2>8. Your rights</h2>
         <p>You can see and change your profile in Settings at any time, and delete your account there. If you live in the EU or UK, the GDPR also lets you ask for a copy of your data, or ask questions about how it's used. To do that, or for anything else about your privacy, contact {developer.name} through <a href={developer.url} target="_blank" rel="noopener noreferrer">GitHub</a>.</p>
       </section>
 
       <section className={styles.section}>
-        <h2>8. Children</h2>
+        <h2>9. Children</h2>
         <p>Accounts are for people aged 13 and over (or older, if the law where you live says so). See the <Link to="/terms">Terms</Link>.</p>
       </section>
 
       <section className={styles.section}>
-        <h2>9. Changes</h2>
+        <h2>10. Changes</h2>
         <p>If this policy changes, the date at the bottom changes too. Bigger changes will be announced on the site.</p>
       </section>
 

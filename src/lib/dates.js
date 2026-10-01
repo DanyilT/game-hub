@@ -18,3 +18,14 @@ export const monthYear = (date, month = 'long') =>
  * @return {string}
  */
 export const fullDate = (date) => new Intl.DateTimeFormat(LOCALE, { dateStyle: 'long' }).format(new Date(date));
+
+/**
+ * A calendar date with no time, like a game's release ("2025-04-24"): "24 April 2025", or "24 Apr 2025"
+ * with month 'short'. Read as UTC and shown as UTC, so it's the same day in every time zone.
+ * @param {string} date - YYYY-MM-DD
+ * @param {'long'|'short'} month
+ * @return {string}
+ */
+export const calendarDate = (date, month = 'long') =>
+  new Intl.DateTimeFormat(LOCALE, { day: 'numeric', month, year: 'numeric', timeZone: 'UTC' })
+    .format(new Date(`${date}T00:00:00Z`));

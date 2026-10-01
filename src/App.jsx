@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useParam
 import MainLayout from './components/layout/MainLayout/MainLayout';
 import Games from './pages/Games/Games';
 import GamePage from './pages/GamePage/GamePage.jsx';
+import About from './pages/Legal/About.jsx';
 import Terms from './pages/Legal/Terms';
 import Privacy from './pages/Legal/Privacy';
 import ErrorPage from './pages/ErrorPage/ErrorPage';
@@ -42,6 +43,7 @@ function App() {
           <Route path="u/me" element={<Me />} />
           <Route path="settings" element={<Settings />} />
           <Route path="auth/callback" element={<AuthCallback />} />
+          <Route path="about" element={<About />} />
           <Route path="terms" element={<Terms />} />
           <Route path="privacy" element={<Privacy />} />
           {/* Old addresses */}

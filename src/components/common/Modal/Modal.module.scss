@@ -38,8 +38,7 @@
   height: 32px;
   border: 1px solid $color-primary-light;
   color: $color-primary-light;
-  font-size: 24px;
-  line-height: 1;
+  font-size: 20px; // the icon's size
   transition: color 0.2s, border-color 0.2s, box-shadow 0.2s;
 
   &:hover {
