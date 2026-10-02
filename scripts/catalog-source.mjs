@@ -17,6 +17,7 @@ const COLUMNS = {
   kind: 'kind',
   title: 'title',
   description: 'description',
+  developer: 'developer',
   released: 'released',
   style: 'style',
   genre: 'genre',
@@ -68,8 +69,10 @@ export const readCatalogFile = async () => JSON.parse(await readFile(CATALOG_PAT
  * @param {object} env - VITE_* variables
  * @param {object} [options]
  * @param {boolean} [options.fallbackOnError] - the dev server uses games.json (with a warning) when
- *   Supabase can't be reached. Builds fail instead: a silent fallback could ship an old list over
- *   edits made in the table, and a failed build leaves the live site as it is.
+ *   Supabase can't be reached, or its list doesn't pass the check (an edit half done in the
+ *   dashboard, or a migration that hasn't reached the project yet). Builds fail instead: a silent
+ *   fallback could ship an old list over edits made in the table, and a failed build leaves the
+ *   live site as it is.
  * @return {Promise<{catalog: object, icons: Map<string, string>, source: string, connected: boolean, warning?: string}>}
  */
 export async function loadCatalog(env, { fallbackOnError = false } = {}) {
@@ -91,7 +94,14 @@ export async function loadCatalog(env, { fallbackOnError = false } = {}) {
       warning = `${problem}\nUsing ${FILE_SOURCE} for now.`;
     }
   }
-  const problems = validateCatalog(catalog);
+  let problems = validateCatalog(catalog);
+  if (problems.length && fallbackOnError && source === TABLE_SOURCE && validateCatalog(file).length === 0) {
+    warning = `The game list in ${TABLE_SOURCE} has ${problems.length} problem(s):\n- ${problems.join('\n- ')}\n`
+      + `Using ${FILE_SOURCE} for now. A build would stop here.`;
+    catalog = file;
+    source = FILE_SOURCE;
+    problems = [];
+  }
   const found = problems.length ? { icons: new Map(), problems: [] } : await findIcons(catalog);
   problems.push(...found.problems);
   if (problems.length) {

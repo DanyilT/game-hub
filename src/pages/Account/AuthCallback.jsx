@@ -60,8 +60,8 @@ const AuthCallback = () => {
       <>
         <p className={styles.error} role="alert">{problem}</p>
         <div className={styles.actions}>
-          <Button onClick={openSignIn}>Try again</Button>
           <Button as={Link} to="/" variant="outline">Back to the games</Button>
+          <Button onClick={openSignIn}>Try again</Button>
         </div>
       </>
     );

@@ -62,7 +62,7 @@ export function siteFiles({ catalog, pages, accountPages = [], siteUrl, date = n
       '',
       '## Catalogue',
       '',
-      `- [catalog.json](${url('catalog.json')}): every game as JSON, with its description, genre, difficulty, tags, controls, where to play it, and its source code`,
+      `- [catalog.json](${url('catalog.json')}): every game as JSON, with its description, who made it, genre, difficulty, tags, controls, where to play it, and its source code`,
       '',
       '## Games',
       '',

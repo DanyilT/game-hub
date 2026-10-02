@@ -4,6 +4,7 @@ import { useAuth } from '../../../../contexts/AuthContext';
 import { useLibrary } from '../../../../contexts/LibraryContext';
 import { gameBugReportUrl } from '../../../../lib/support';
 import Button from '../../../common/Button/Button';
+import InfoTip from '../../../common/InfoTip/InfoTip';
 import RatingSlider, { SCORES } from '../RatingSlider/RatingSlider';
 import styles from './RateGame.module.scss';
 
@@ -50,8 +51,9 @@ const RatingSummary = ({ stats }) => {
 
 /**
  * The game page's "Rate this game" card: the rating slider, then a short "tell us more" box that
- * sends private feedback (only the developer reads it). Signed out, the button signs in first.
- * Expanded (the arrow, like Details'), it also shows how the players rated the game.
+ * sends private feedback (only the developer reads it). Its button (Rate, or Sign in to rate when
+ * signed out) shows once the slider has moved. Expanded (the arrow, like Details'), it also shows
+ * how the players rated the game.
  * @param {object} game - the catalogue entry
  * @param {object|null} stats - the game's totals (useGameStats)
  */
@@ -123,8 +125,8 @@ const RateGame = ({ game, stats }) => {
           , or use the <strong>?</strong> button at the top.
         </p>
         <div className={styles.actions}>
-          <Button type="submit" disabled={!message.trim() || state.busy}>{state.busy ? 'Sending…' : 'Send'}</Button>
           <Button variant="outline" onClick={() => setStep('rate')} disabled={state.busy}>No thanks</Button>
+          <Button type="submit" disabled={!message.trim() || state.busy}>{state.busy ? 'Sending…' : 'Send'}</Button>
         </div>
       </form>
     );
@@ -138,6 +140,8 @@ const RateGame = ({ game, stats }) => {
       </>
     );
   } else {
+    // The buttons come once the slider has moved (and Remove rating once rated)
+    const showActions = user ? changed || saved !== null : draft !== null;
     content = (
       <>
         <RatingSlider
@@ -146,26 +150,24 @@ const RateGame = ({ game, stats }) => {
           label={`Your rating for ${game.title}`}
           disabled={Boolean(user) && !loaded}
         />
-        <div className={styles.actions}>
-          {user ? (
-            <>
-              {/* Once rated, the button only shows when the slider has moved */}
-              {(saved === null || changed) && (
-                <Button onClick={submitRating} disabled={!changed || state.busy}>
-                  {state.busy ? 'Saving…' : saved === null ? 'Rate' : 'Update rating'}
-                </Button>
-              )}
-              {changed && <Button variant="outline" onClick={() => setDraft(null)} disabled={state.busy}>Cancel</Button>}
-              {!changed && saved !== null && (
-                <Button variant="outline" onClick={removeRating} disabled={state.busy}>Remove rating</Button>
-              )}
-            </>
-          ) : (
-            <Button onClick={openSignIn}>Sign in to rate</Button>
-          )}
-        </div>
-        {saved !== null && !changed && (
-          <p className={styles.muted}>You rated it {saved} out of 5. Slide to change it. Only you see your rating.</p>
+        {showActions && (
+          <div className={styles.actions}>
+            {user ? (
+              <>
+                {changed && <Button variant="outline" onClick={() => setDraft(null)} disabled={state.busy}>Cancel</Button>}
+                {changed && (
+                  <Button onClick={submitRating} disabled={state.busy}>
+                    {state.busy ? 'Saving…' : saved === null ? 'Rate' : 'Update rating'}
+                  </Button>
+                )}
+                {!changed && (
+                  <Button variant="outline" onClick={removeRating} disabled={state.busy}>Remove rating</Button>
+                )}
+              </>
+            ) : (
+              <Button onClick={openSignIn}>Sign in to rate</Button>
+            )}
+          </div>
         )}
       </>
     );
@@ -178,6 +180,7 @@ const RateGame = ({ game, stats }) => {
           <PiStarFill className={styles.titleStar} aria-hidden="true" />
           {saved === null ? 'Rate this game' : 'Your rating'}
         </h2>
+        {saved !== null && <InfoTip label="About your rating">Slide to change it. Only you see your rating.</InfoTip>}
         <button
           type="button"
           className={styles.toggle}
@@ -187,13 +190,13 @@ const RateGame = ({ game, stats }) => {
           aria-label={expanded ? "Hide the players' ratings" : "Show the players' ratings"}
           title={expanded ? "Hide the players' ratings" : "Show the players' ratings"}
         >
-          <span aria-hidden="true">{expanded ? '▲' : '▼'}</span>
+          <span aria-hidden="true">▼</span>
         </button>
       </div>
       {content}
       {state.error && <p className={styles.error} role="alert">{state.error}</p>}
-      <div id={summaryId} hidden={!expanded}>
-        {expanded && <RatingSummary stats={stats} />}
+      <div id={summaryId} className={`${styles.players} ${expanded ? styles.open : ''}`}>
+        <div><RatingSummary stats={stats} /></div>
       </div>
     </section>
   );

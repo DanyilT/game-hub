@@ -227,9 +227,10 @@ const GameCard = ({ game, index = 0, onTagClick, selectedTags = [] }) => {
             {getPlatformTypes(game).map((platform) => tag(platform, 'Platform', styles.platform))}
           </div>
           <p className={styles.gameDescription}>{game.description}</p>
-          {game.released && (
-            <p className={styles.gameReleased}>
-              Released <time dateTime={game.released}>{calendarDate(game.released)}</time>
+          {(game.released || game.developer) && (
+            <p className={styles.gameCredits}>
+              {game.released && <>Released <time dateTime={game.released}>{calendarDate(game.released)}</time></>}
+              {game.developer && `${game.released ? ' by ' : 'By '}${game.developer.name}`}
             </p>
           )}
         </div>

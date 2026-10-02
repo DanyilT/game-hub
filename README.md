@@ -114,6 +114,7 @@ The build checks the list (`npm run check:catalog` checks `games.json` on its ow
   "kind": "game",                   // "game", or "portal" for a collection like Flashback Arcade
   "title": "My Game",
   "description": "One or two sentences.",
+  "developer": { "name": "Dany", "url": "https://github.com/DanyilT" },  // who made it (the url is optional)
   "released": "2025-04-24",                              // optional: the release date (YYYY-MM-DD)
   "style": "What it looks like.",                        // optional
   "genre": ["puzzle"],
@@ -124,7 +125,7 @@ The build checks the list (`npm run check:catalog` checks `games.json` on its ow
   "iconUrl": "https://…/img/icon.png",                   // optional: the game's own icon, before its title
   "thumb": "https://…/screenshot.png",                   // optional: without one the card shows a title tile
   "website": "https://…",                                // optional: a homepage that isn't a way to play
-  "dimensions": { "w": 460, "h": 740, "center": true },  // optional, embedded games: the frame's size (below)
+  "dimensions": { "sizes": [{ "w": 320, "h": 710 }, { "w": 601, "h": 730 }], "center": true },  // optional, embedded games (below)
   "platforms": [                                         // where it can be played; one entry per type
     { "type": "web", "url": "https://<game>.dt-games.pages.dev/", "embed": true, "icon": "CiShare1" }  // plays inside the hub
     // { "type": "web", "url": "https://…", "embed": false }  // plays on its own site, opened in a new tab
@@ -140,7 +141,8 @@ The build checks the list (`npm run check:catalog` checks `games.json` on its ow
 - **Platform chips and the Platform filter** come from `platforms`, so a `website` doesn't make an Android game count as "web".
 - **Icons** (`icon` on platforms and links) are [react-icons](https://react-icons.github.io/react-icons) names, like `CiGlobe` or `FaGithub`. The build bundles only the icons the catalogue names, and the check rejects a name react-icons doesn't have. Without an `icon`, a web platform shows `CiShare1`, Android shows `CiMobile3` and source code shows a floppy disk (`CiFloppyDisk`).
 - **`sourceCode`** is one link or a list of links, each `{ "url": "…", "label": "…", "icon": "…" }`. `label` and `icon` are optional for a single link; a list needs a `label` on each link, so they can be told apart ("View Code" otherwise).
-- **`dimensions`** (embedded games only): `h` is the game frame's height and `w` the game's own width, in pixels. The frame starts stretched across its column (the Expand Width button, on by default). Turned off, the frame takes the game's own width (never wider than the column), in the middle. Without `dimensions` the frame is 16:9 across the column. With `"center": true`, the hub asks the game to scroll its play area to the middle of the frame, when it loads and after the frame changes size. The hub can't scroll another site's page, so the game does it. It needs these lines, e.g. in a script every game loads:
+- **`developer`**: who made the game, `{ "name": "…", "url": "https://…" }` (`url` is optional). The game page shows it with the release date ("Released 24 April 2025 by Dany"), linking to `url`, and so does the card's info panel. It isn't the developer section below, which is about the site's owner.
+- **`dimensions`** (embedded games only): `sizes` says how tall the game is (`h`) when its frame is `w` pixels wide, for one or more widths, narrowest first: a game lays out differently at different widths (Tetris is almost twice as tall on a phone). The frame takes the height of the widest size that fits it (the narrowest one's when none does), so a size covers the widths from its `w` up to the next one's: add one where the game's layout changes (its CSS breakpoints). Measure with the game's instructions closed: open, they may make the game scroll in its frame, and that's fine. To measure, open the game on its own at each width with the window shorter than the game, and run `document.documentElement.scrollHeight` in the console. The frame starts stretched across its column. On wide screens (above 1024px), Enable Resize offers Collapse Width (the size's own width, never wider than the column, in the middle; Expand Width brings back the default, after a drag too) and Maximize (the whole row, with the info below). Dragging its width on its own gives it the game's height for that width. Narrower screens already give the game the whole row, so they keep the default frame. Without `dimensions` the frame is 16:9 across the column. With `"center": true`, the hub asks the game to scroll its play area to the middle of the frame, when it loads and after the frame changes size. The hub can't scroll another site's page, so the game does it. It needs these lines, e.g. in a script every game loads:
   ```js
   // GameHub sends { type: 'gamehub:center' } to put the play area in the middle of its frame
   window.addEventListener('message', (event) => {

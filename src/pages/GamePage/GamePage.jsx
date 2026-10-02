@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router';
-import { CiCircleQuestion, CiGlobe, CiMaximize2 } from 'react-icons/ci';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router';
+import { CiCircleQuestion, CiGlobe, CiMaximize1, CiMaximize2, CiMinimize1, CiSquareChevLeft } from 'react-icons/ci';
 import { LuChevronsLeftRight, LuChevronsRightLeft } from 'react-icons/lu';
 import { PiResizeDuotone, PiStarFill } from 'react-icons/pi';
 import {
@@ -27,6 +27,81 @@ const RESIZE_EDGES = ['bottom', 'right', 'corner'];
 // its column (px); otherwise it would change nothing you'd see (on phones, or a wide game)
 const MIN_WIDTH_CHANGE = 16;
 
+// Wide screens have the info beside the game; narrower ones have it below, where the game already
+// has the whole row, so there's nothing to maximize or resize. Must match the 1024px breakpoint in
+// GamePage.module.scss.
+const WIDE_QUERY = '(width > 1024px)';
+const subscribeToWideScreen = (onChange) => {
+  const query = window.matchMedia(WIDE_QUERY);
+  query.addEventListener('change', onChange);
+  return () => query.removeEventListener('change', onChange);
+};
+const isWideScreen = () => window.matchMedia(WIDE_QUERY).matches;
+
+// The info cards under the game (narrower screens, maximized) are at least this wide (px), in as
+// many columns as fit
+const MIN_CARD_WIDTH = 340;
+
+/**
+ * Packs the info cards under the game like bricks: columns that each stack their cards with no gaps.
+ * The cards take the columns in turn (first, second, …, then first again), so they read across, and
+ * a card that grows (Details opening) only pushes down the ones under it. The grid there
+ * (GamePage.module.scss) has 1px rows: each card spans as many as it's tall, plus the gap under it.
+ * Beside the game the cards are a plain column, and this leaves them alone.
+ * @param {object} ref - the cards' container
+ * @param {boolean} underGame - whether they're under the game: laid out at once when that changes
+ */
+const useCardColumns = (ref, underGame) => {
+  useLayoutEffect(() => {
+    const grid = ref.current;
+    if (!grid) return undefined;
+    const layout = () => {
+      const style = getComputedStyle(grid);
+      if (style.display !== 'grid') return;
+      const gap = parseFloat(style.columnGap) || 0;
+      const columns = Math.max(1, Math.floor((grid.clientWidth + gap) / (MIN_CARD_WIDTH + gap)));
+      const cards = [...grid.children];
+      grid.style.gridTemplateColumns = `repeat(${columns}, minmax(0, 1fr))`;
+      cards.forEach((card, i) => {
+        card.style.gridColumn = String((i % columns) + 1);
+      });
+      const heights = cards.map((card) => card.getBoundingClientRect().height);
+      cards.forEach((card, i) => {
+        const last = i + columns >= cards.length; // nothing under it
+        card.style.gridRowEnd = `span ${Math.max(1, Math.ceil(heights[i] + (last ? 0 : gap)))}`;
+      });
+    };
+    // A card growing, or the column getting wider: laid out again on the next frame, after the
+    // ResizeObserver round (doing it inside one would resize what it's still observing)
+    let frame = null;
+    const relayout = () => {
+      if (frame === null) frame = requestAnimationFrame(() => {
+        frame = null;
+        layout();
+      });
+    };
+    const resizes = new ResizeObserver(relayout);
+    const watch = () => {
+      resizes.disconnect();
+      resizes.observe(grid);
+      [...grid.children].forEach((card) => resizes.observe(card));
+    };
+    // Cards come and go (the controls move under the game, and back)
+    const changes = new MutationObserver(() => {
+      watch();
+      relayout();
+    });
+    changes.observe(grid, { childList: true });
+    watch();
+    layout();
+    return () => {
+      resizes.disconnect();
+      changes.disconnect();
+      if (frame !== null) cancelAnimationFrame(frame);
+    };
+  }, [ref, underGame]);
+};
+
 // Whether the controls were left expanded (under the game), remembered on this device. Storage can
 // be unavailable (private mode, blocked site data), so it's best-effort.
 const CONTROLS_KEY = 'gamehub:controls-expanded';
@@ -44,6 +119,13 @@ const readControlsExpanded = () => {
  * gets this message (the few lines it needs are in the README).
  */
 const askToCenter = (frame) => frame?.contentWindow?.postMessage({ type: 'gamehub:center' }, new URL(frame.src).origin);
+
+/**
+ * The game's size for a frame `width` pixels wide, from its `dimensions.sizes` (narrowest first): the widest
+ * that fits, or the narrowest when none does. A part of a pixel doesn't count.
+ * @return {{w: number, h: number}}
+ */
+const sizeFor = (sizes, width) => sizes.findLast((size) => size.w <= Math.floor(width)) ?? sizes[0];
 
 /** The players' average rating, beside the favorite and bookmark buttons: a gold star and the average (how many rated is in its tooltip) */
 const RatingChip = ({ stats }) => {
@@ -80,6 +162,11 @@ const NewTabNote = () => (
   </>
 );
 
+/** Who made the game: their name, linking to their page when the catalogue has one */
+const DeveloperName = ({ developer }) => (developer.url ? (
+  <a href={developer.url} target="_blank" rel="noopener noreferrer">{developer.name}<NewTabNote /></a>
+) : developer.name);
+
 /**
  * Where the game's progress is going, under the game: the account (signed in, once the game has
  * connected) or this browser; offline, this device
@@ -111,23 +198,41 @@ const GamePageContent = ({ gameId }) => {
   const stats = useGameStats(gameId);
   const [helpOpen, setHelpOpen] = useState(false);
 
-  // The controls: under the game (expanded), or small in the info column. Full Width has a choice of
+  // Back to where the player came from, or to the games when this page was the first of the visit (a
+  // link from somewhere else): React Router keys that first page "default"
+  const navigate = useNavigate();
+  const location = useLocation();
+  const goBack = () => (location.key === 'default' ? navigate('/') : navigate(-1));
+  // Touch screens: the title goes back too (they have no pointer to bring up the back arrow with)
+  const backOnTouch = () => {
+    if (window.matchMedia('(hover: none)').matches) goBack();
+  };
+
+  // The controls: under the game (expanded), or small in the info column. Maximized has a choice of
   // its own, expanded whenever it's entered, so leaving it brings back the one from before.
   const [controlsExpanded, setControlsExpanded] = useState(readControlsExpanded);
-  const [controlsExpandedInFullWidth, setControlsExpandedInFullWidth] = useState(true);
+  const [controlsExpandedMaximized, setControlsExpandedMaximized] = useState(true);
   const focusControlsRef = useRef(false); // their own button moved them, so focus goes with them
   const [showStyle, setShowStyle] = useState(false);
   const [showFeatures, setShowFeatures] = useState(false);
-  const [sizeMode, setSizeMode] = useState('expanded'); // expanded (the default), game, full-width or custom (dragged)
+  // The frame (Enable Resize): Maximize puts the game across the whole row, with the info below;
+  // Collapse Width gives it the game's own width instead of its column's; dragging an edge gives it
+  // a width or height of its own
+  const [maximized, setMaximized] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const [resizeEnabled, setResizeEnabled] = useState(false);
   const [customHeight, setCustomHeight] = useState(null);
   const [customWidth, setCustomWidth] = useState(null);
   const iframeRef = useRef(null);
   const frameContainerRef = useRef(null);
   const frameSectionRef = useRef(null);
+  const infoRef = useRef(null); // the info cards
   const [columnWidth, setColumnWidth] = useState(null); // the game's column, for Expand / Collapse Width
   const dragRef = useRef(null); // the drag in progress: which edge, where it started
-  const dimensions = game?.dimensions; // the game's own frame size (games.json), if it has one
+  const dimensions = game?.dimensions; // the game frame's sizes and centring (the catalogue), if it has them
+  const sizes = dimensions?.sizes ?? null;
+  // The game's size for its column (none until the column is measured, and none for games without sizes)
+  const frameSize = sizes && columnWidth !== null ? sizeFor(sizes, columnWidth) : null;
 
   // Games that run in the hub get the iframe player; the rest (other sites, store apps) get a picture
   // with links out. The game in the frame talks to the hub through the bridge (cloud saves).
@@ -189,36 +294,36 @@ const GamePageContent = ({ gameId }) => {
     if (game) noteGameOpened();
   }, [game]);
 
-  // Size the game frame for the chosen mode ("full-width" is also a class on the page, see render).
-  // The height is the game's own (dimensions.h), or 16:9 for games without dimensions.
-  // - expanded (the default): as wide as the column, with the info beside it
-  // - game: the game's own width (dimensions.w, no wider than the column), in the middle of the column
-  // - full-width: the whole row, with the info below (its height can still be dragged)
-  // - custom: what the edges were dragged to
-  useEffect(() => {
+  // Size the game frame, before it's painted (maximized is a class on the page, see render).
+  // - Its width: the column's (the whole row's when maximized), by default. With Collapse Width, the
+  //   game's own (its size's, never wider than the column), in the middle. Or a dragged width.
+  // - Its height: the game's at that width (dimensions.sizes: the game lays out differently at
+  //   different widths), or a dragged height, or 16:9 for games without sizes.
+  useLayoutEffect(() => {
     const container = frameContainerRef.current;
     if (!container) return;
 
-    container.style.width = dimensions && sizeMode === 'game' ? `min(100%, ${dimensions.w}px)` : '100%';
-    container.style.height = dimensions ? `${dimensions.h}px` : '';
-    container.style.aspectRatio = dimensions ? 'auto' : '16/9'; // 'auto', as '' would bring back the stylesheet's 16/9
+    const size = customWidth && sizes ? sizeFor(sizes, Math.min(customWidth, columnWidth ?? customWidth)) : frameSize;
+    let width = '100%';
+    if (customWidth) width = `${customWidth}px`;
+    else if (collapsed && size) width = `min(100%, ${size.w}px)`;
+    let height = size ? `${size.h}px` : '';
+    if (customHeight) height = `${customHeight}px`;
+    container.style.width = width;
+    container.style.height = height;
+    container.style.aspectRatio = height ? 'auto' : '16/9'; // 'auto', as '' would bring back the stylesheet's 16/9
+  }, [sizes, frameSize, columnWidth, collapsed, customHeight, customWidth]);
 
-    // Dragged sizes: both in custom mode; in full-width only the height (the width is the row's)
-    const draggedHeight = sizeMode === 'custom' || sizeMode === 'full-width' ? customHeight : null;
-    const draggedWidth = sizeMode === 'custom' ? customWidth : null;
-    if (draggedHeight || draggedWidth) container.style.aspectRatio = 'auto';
-    if (draggedHeight) container.style.height = `${draggedHeight}px`;
-    if (draggedWidth) container.style.width = `${draggedWidth}px`;
-  }, [dimensions, sizeMode, customHeight, customWidth]);
-
-  // How wide the game's column is (it changes with the window, the sidebar and Full Width)
-  useEffect(() => {
+  // How wide the game's column is (it changes with the window, the sidebar and Maximize). Measured
+  // before the frame is first painted, so the frame starts at the right size.
+  useLayoutEffect(() => {
     const section = frameSectionRef.current;
-    if (!section || !dimensions) return undefined;
+    if (!section || !sizes) return undefined;
+    setColumnWidth(section.getBoundingClientRect().width);
     const observer = new ResizeObserver(([entry]) => setColumnWidth(entry.contentRect.width));
     observer.observe(section);
     return () => observer.disconnect();
-  }, [dimensions]);
+  }, [sizes]);
 
   // Games with `center` get centred again whenever the frame changes size (once it stops)
   useEffect(() => {
@@ -305,8 +410,8 @@ const GamePageContent = ({ gameId }) => {
       width: container.offsetWidth,
       height: container.offsetHeight,
     };
-    // Width-only drags keep today's height
-    if (edge === 'right') setCustomHeight((height) => height ?? container.offsetHeight);
+    // Width-only drags keep today's height, unless the game has sizes (then it gets its height for the width)
+    if (edge === 'right' && !sizes) setCustomHeight((height) => height ?? container.offsetHeight);
   };
 
   const moveResize = (e) => {
@@ -316,33 +421,81 @@ const GamePageContent = ({ gameId }) => {
     // changes: the width changes twice as much as the pointer moves, keeping the edge under it
     const width = drag.width + 2 * (e.clientX - drag.x);
     const height = drag.height + (e.clientY - drag.y);
-    let resized = false;
-    if (drag.edge !== 'bottom' && width > MIN_FRAME_SIZE) {
-      setCustomWidth(width);
-      resized = true;
-    }
-    if (drag.edge !== 'right' && height > MIN_FRAME_SIZE) {
-      setCustomHeight(height);
-      resized = true;
-    }
-    // Full width stays full width (only its height changes); other drags make a custom size
-    if (resized && sizeMode !== 'full-width') setSizeMode('custom');
+    if (drag.edge !== 'bottom' && width > MIN_FRAME_SIZE) setCustomWidth(width);
+    if (drag.edge !== 'right' && height > MIN_FRAME_SIZE) setCustomHeight(height);
   };
 
   const endResize = () => {
     dragRef.current = null;
   };
 
-  // Preset size modes drop any earlier drag sizes. Entering Full Width expands the controls.
-  const selectSizeMode = (mode) => {
+  // Expanded is the default: the frame across its column, at the game's height. Collapse Width and
+  // Expand Width each drop a dragged size, so after a drag, Expand Width brings back the default.
+  const dragged = Boolean(customWidth || customHeight);
+  const expanded = !collapsed && !dragged;
+  const toggleWidth = () => {
     setCustomWidth(null);
     setCustomHeight(null);
-    if (mode === 'full-width' && sizeMode !== 'full-width') setControlsExpandedInFullWidth(true);
-    setSizeMode(mode);
+    setCollapsed(expanded);
   };
 
+  // Maximize and Minimize drop a dragged size too. Maximizing expands the controls.
+  const toggleMaximized = () => {
+    setCustomWidth(null);
+    setCustomHeight(null);
+    if (!maximized) setControlsExpandedMaximized(true);
+    setMaximized(!maximized);
+  };
+
+  // Resizing is for wide screens, where the game shares the row with the info. Narrower screens
+  // already give the game the whole row: no resizing there (the frame goes back to its default),
+  // and Fullscreen moves onto the frame. Collapse Width also needs the game's own width to be
+  // narrower than its column.
+  const wideScreen = useSyncExternalStore(subscribeToWideScreen, isWideScreen);
+  const [wasWideScreen, setWasWideScreen] = useState(wideScreen);
+  if (wasWideScreen !== wideScreen) {
+    setWasWideScreen(wideScreen);
+    if (!wideScreen) {
+      setResizeEnabled(false);
+      setMaximized(false);
+      setCollapsed(false);
+      setCustomWidth(null);
+      setCustomHeight(null);
+    }
+  }
+  const canCollapse = Boolean(frameSize) && columnWidth - frameSize.w >= MIN_WIDTH_CHANGE;
+  useCardColumns(infoRef, maximized || !wideScreen);
+
+  // Whether the game has the focus (the player is in it): the fullscreen button on the frame steps
+  // aside then. Focus goes into the game a moment after this page loses it. A tap anywhere on this
+  // page is outside the game (iOS doesn't move the focus for a tap on nothing in particular).
+  const [gameFocused, setGameFocused] = useState(false);
+  useEffect(() => {
+    const frame = iframeRef.current;
+    if (!frame) return undefined;
+    let timer;
+    const update = () => setGameFocused(document.activeElement === frame);
+    const onBlur = () => {
+      clearTimeout(timer);
+      timer = setTimeout(update);
+    };
+    const onPagePointer = () => setGameFocused(false);
+    window.addEventListener('blur', onBlur);
+    window.addEventListener('focus', update);
+    document.addEventListener('focusin', update);
+    document.addEventListener('pointerdown', onPagePointer);
+    update();
+    return () => {
+      window.removeEventListener('blur', onBlur);
+      window.removeEventListener('focus', update);
+      document.removeEventListener('focusin', update);
+      document.removeEventListener('pointerdown', onPagePointer);
+      clearTimeout(timer);
+    };
+  }, [frameId, blockedOffline]);
+
   // Focus follows the controls to their new place only when their own button moved them
-  // (not when Full Width did), once
+  // (not when Maximize did), once
   const takeControlsFocus = useCallback(() => {
     const take = focusControlsRef.current;
     focusControlsRef.current = false;
@@ -365,34 +518,39 @@ const GamePageContent = ({ gameId }) => {
   const sourceLinks = getSourceLinks(game);
   // The keys, mouse buttons and gestures the game uses: small in the info column at first, or
   // every device under the game (or its picture)
-  // When it came out: with the features (or under the description, for entries without any)
-  const released = game.released && (
-    <p className={styles.released}>
-      Released <time dateTime={game.released}>{calendarDate(game.released)}</time>
+  // When it came out, and who made it: with the features (or under the description, for entries without any)
+  const credits = (game.released || game.developer) && (
+    <p className={styles.credits}>
+      {game.released && <>Released <time dateTime={game.released}>{calendarDate(game.released)}</time></>}
+      {game.developer && <>{game.released ? ' by ' : 'By '}<DeveloperName developer={game.developer} /></>}
     </p>
   );
-  const fullWidth = sizeMode === 'full-width';
-  const showControlsExpanded = fullWidth ? controlsExpandedInFullWidth : controlsExpanded;
+  const showControlsExpanded = maximized ? controlsExpandedMaximized : controlsExpanded;
   const controls = game.controls && (
     <GameControls
       controls={game.controls}
       expanded={showControlsExpanded}
       onToggleExpanded={() => {
         focusControlsRef.current = true;
-        (fullWidth ? setControlsExpandedInFullWidth : setControlsExpanded)((expanded) => !expanded);
+        (maximized ? setControlsExpandedMaximized : setControlsExpanded)((open) => !open);
       }}
       takeFocus={takeControlsFocus}
     />
   );
 
   return (
-    <div className={`${styles.gamePage} ${fullWidth ? styles.fullWidth : ''}`}>
+    <div className={`${styles.gamePage} ${maximized ? styles.maximized : ''}`}>
       <div className={styles.gameHeader}>
-        <h1>
-          {/* The title says the same, so the icon is decoration for screen readers */}
-          {game.iconUrl && <img src={game.iconUrl} alt="" className={styles.gameIcon} />}
-          {game.title}
-        </h1>
+        {/* The title, after the game's icon, which is also the way back: pointing at it (or tabbing to
+            it) slides a back arrow in before it. Touch screens get no arrow: tapping the icon or the
+            title goes back. A game without an icon shows the arrow when its title is pointed at. */}
+        <div className={`${styles.gameTitle} ${game.iconUrl ? '' : styles.noIcon}`}>
+          <button type="button" className={styles.back} onClick={goBack} title="Back" aria-label="Back">
+            <span className={styles.backArrow}><CiSquareChevLeft aria-hidden="true" /></span>
+            {game.iconUrl && <img src={game.iconUrl} alt="" className={styles.gameIcon} />}
+          </button>
+          <h1 onClick={backOnTouch}>{game.title}</h1>
+        </div>
         <div className={styles.gameReactions}>
           {stats?.rating_count > 0 && <RatingChip stats={stats} />}
           <GameReactions game={game} stats={stats} />
@@ -449,8 +607,21 @@ const GamePageContent = ({ gameId }) => {
                 />
               )}
 
-              {/* Full width keeps the row's width, so only the bottom edge can be dragged then */}
-              {resizeEnabled && RESIZE_EDGES.filter((edge) => sizeMode !== 'full-width' || edge === 'bottom').map((edge) => (
+              {/* Narrower screens (nothing to resize): Fullscreen sits on the frame instead of under
+                  it, out of the way while the game has the focus */}
+              {!wideScreen && frameId && !blockedOffline && (
+                <button
+                  type="button"
+                  className={`${styles.frameFullscreen} ${gameFocused ? styles.hidden : ''}`}
+                  onClick={enterFullscreen}
+                  title="Fullscreen"
+                  aria-label="Fullscreen"
+                >
+                  <CiMaximize2 aria-hidden="true" />
+                </button>
+              )}
+
+              {resizeEnabled && RESIZE_EDGES.map((edge) => (
                 <div
                   key={edge}
                   className={`${styles.resizeHandle} ${styles[edge]}`}
@@ -464,51 +635,47 @@ const GamePageContent = ({ gameId }) => {
               ))}
             </div>
 
-            <div className={styles.gameFrameActions}>
-              <div className={styles.resizeControls}>
-                <button
-                  type="button"
-                  className={`${styles.resizeToggle} ${resizeEnabled ? styles.active : ''}`}
-                  onClick={() => setResizeEnabled((enabled) => !enabled)}
-                  aria-pressed={resizeEnabled}
-                >
-                  <PiResizeDuotone aria-hidden="true" />
-                  {resizeEnabled ? 'Disable Resize' : 'Enable Resize'}
-                </button>
-
-                {resizeEnabled && (
-                  <div className={styles.sizeControls}>
-                    {[['expanded', 'Default'], ['full-width', 'Full Width']].map(([mode, label]) => (
-                      <button
-                        key={mode}
-                        type="button"
-                        className={`${styles.sizeButton} ${sizeMode === mode ? styles.active : ''}`}
-                        onClick={() => selectSizeMode(mode)}
-                        aria-pressed={sizeMode === mode}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              {/* Always shown */}
-              <div className={styles.frameButtons}>
-                {/* On by default: the frame fills its column. Off: the game's own width. Only when that's
-                    narrower than the column, and not in Full Width, where it would change nothing. */}
-                {dimensions && !fullWidth && columnWidth - dimensions.w >= MIN_WIDTH_CHANGE && (
+            {wideScreen && (
+              <div className={styles.gameFrameActions}>
+                <div className={styles.resizeControls}>
                   <button
                     type="button"
-                    className={`${styles.sizeButton} ${sizeMode === 'expanded' ? styles.active : ''}`}
-                    onClick={() => selectSizeMode(sizeMode === 'expanded' ? 'game' : 'expanded')}
-                    aria-pressed={sizeMode === 'expanded'}
+                    className={`${styles.resizeToggle} ${resizeEnabled ? styles.active : ''}`}
+                    onClick={() => setResizeEnabled((enabled) => !enabled)}
                   >
-                    {sizeMode === 'expanded'
-                      ? <LuChevronsRightLeft aria-hidden="true" />
-                      : <LuChevronsLeftRight aria-hidden="true" />}
-                    {sizeMode === 'expanded' ? 'Collapse Width' : 'Expand Width'}
+                    <PiResizeDuotone aria-hidden="true" />
+                    {resizeEnabled ? 'Disable Resize' : 'Enable Resize'}
                   </button>
-                )}
+
+                  {resizeEnabled && (
+                    <div className={styles.sizeControls}>
+                      {/* Collapse Width: the game's own width. Expand Width: back to the default (the
+                          column's width, at the game's height), also after a drag. Only when it would
+                          change something. */}
+                      {(canCollapse || dragged) && (
+                        <button
+                          type="button"
+                          className={`${styles.sizeButton} ${expanded ? styles.active : ''}`}
+                          onClick={toggleWidth}
+                        >
+                          {expanded
+                            ? <LuChevronsRightLeft aria-hidden="true" />
+                            : <LuChevronsLeftRight aria-hidden="true" />}
+                          {expanded ? 'Collapse Width' : 'Expand Width'}
+                        </button>
+                      )}
+                      {/* Maximize: the game across the whole row, the info below */}
+                      <button
+                        type="button"
+                        className={`${styles.sizeButton} ${maximized ? styles.active : ''}`}
+                        onClick={toggleMaximized}
+                      >
+                        {maximized ? <CiMinimize1 aria-hidden="true" /> : <CiMaximize1 aria-hidden="true" />}
+                        {maximized ? 'Minimize' : 'Maximize'}
+                      </button>
+                    </div>
+                  )}
+                </div>
                 <button
                   type="button"
                   className={styles.fullscreenButton}
@@ -519,7 +686,7 @@ const GamePageContent = ({ gameId }) => {
                   <CiMaximize2 aria-hidden="true" />
                 </button>
               </div>
-            </div>
+            )}
             {!blockedOffline && (
               <SaveStatus bridge={bridge} signedIn={Boolean(user)} accountsAvailable={accountsAvailable} online={online} />
             )}
@@ -562,7 +729,7 @@ const GamePageContent = ({ gameId }) => {
           </section>
         )}
 
-        <aside className={styles.gameInfoAside}>
+        <aside ref={infoRef} className={styles.gameInfoAside}>
           <section>
             {game.features?.length > 0 ? (
               <>
@@ -576,25 +743,27 @@ const GamePageContent = ({ gameId }) => {
                     aria-label={showFeatures ? "Hide features" : "Show features"}
                     title={showFeatures ? "Hide features" : "Show features"}
                   >
-                    <span aria-hidden="true">{showFeatures ? '▲' : '▼'}</span>
+                    <span aria-hidden="true">▼</span>
                   </button>
                 </div>
                 <p>{game.description}</p>
                 <div className={`${styles.gameFeatures} ${showFeatures ? styles.expanded : ''}`}>
-                  <h2>Features</h2>
-                  <ul>
-                    {game.features.map((feature) => (
-                      <li key={feature}>{feature}</li>
-                    ))}
-                  </ul>
-                  {released}
+                  <div>
+                    <h2>Features</h2>
+                    <ul>
+                      {game.features.map((feature) => (
+                        <li key={feature}>{feature}</li>
+                      ))}
+                    </ul>
+                    {credits}
+                  </div>
                 </div>
               </>
               ) : (
               <>
                 <h2>Description</h2>
                 <p>{game.description}</p>
-                {released}
+                {credits}
               </>
             )}
           </section>

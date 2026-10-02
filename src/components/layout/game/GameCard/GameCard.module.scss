@@ -314,7 +314,7 @@ $drop-delay: min(0.1s * (var(--card-index, 0) + 1), 1.5s);
   text-align: center;
 }
 
-.gameReleased {
+.gameCredits {
   margin-top: $spacing-md;
   color: $color-text-secondary;
   font-family: $font-secondary;

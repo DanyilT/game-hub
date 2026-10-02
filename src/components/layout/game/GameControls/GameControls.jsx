@@ -102,7 +102,7 @@ const Control = ({ as: Tag = 'kbd', spoken, lines, active, linked, events, class
  * @param {boolean} expanded - which of the two
  * @param {Function} onToggleExpanded - the maximize / minimize button
  * @param {Function} takeFocus - asked when this appears: true if that button just moved it here, so
- *   the button takes the focus again (not when the page moved it, e.g. for Full Width)
+ *   the button takes the focus again (not when the page moved it, e.g. on Maximize)
  */
 const GameControls = ({ controls, expanded, onToggleExpanded, takeFocus }) => {
   const [hovered, setHovered] = useState(null);

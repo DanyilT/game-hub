@@ -58,6 +58,43 @@
   &:hover {
     background: color-mix(in srgb, $color-primary 20%, transparent);
   }
+
+  // Its arrow (▼) turns to point up while what it opens is open
+  > span {
+    display: inline-block;
+    transition: transform $transition-slow ease;
+  }
+
+  &[aria-expanded='true'] > span {
+    transform: rotate(180deg);
+  }
+}
+
+// A part of a card that its round toggle opens (Details' features, the players' ratings): it grows
+// to its own height as it fades in, and back. Its one child is what it shows. Closed, it takes no
+// room (the negative margin undoes the card's gap above it), and once it has closed, screen readers
+// and the keyboard skip it too. Open it with collapsible-open.
+@mixin collapsible($gap: $spacing-md) {
+  display: grid;
+  grid-template-rows: 0fr;
+  margin-top: -$gap;
+  opacity: 0;
+  visibility: hidden;
+  transition: grid-template-rows $transition-slow ease, margin-top $transition-slow ease,
+    opacity $transition-slow ease, visibility 0s $transition-slow;
+
+  > * {
+    min-height: 0;
+    overflow: hidden;
+  }
+}
+
+@mixin collapsible-open {
+  grid-template-rows: 1fr;
+  margin-top: 0;
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
 }
 
 // A note floating under the button that shows it (ⓘ notes, the game page's style details)

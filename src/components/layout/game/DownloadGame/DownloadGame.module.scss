@@ -91,9 +91,9 @@
   @include offer-remove;
 }
 
-// The game page's header in one column (the same breakpoint as in GamePage.module.scss): only the icon, in a
-// circle like the help button beside it
-@media (width <= $breakpoint-small) {
+// Phones and tablets, where the game page's header is short of room: only the icon, in a circle like the help
+// button beside it
+@media (width <= $breakpoint-mobile) {
   .download {
     width: 36px;
     height: 36px;

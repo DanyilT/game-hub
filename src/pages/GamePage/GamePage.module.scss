@@ -18,17 +18,65 @@ $shadow: 0 4px 20px rgba($color-black, 0.2);
   align-items: center;
   gap: $spacing-md;
   max-width: 1200px;
-  margin: 0 auto $spacing-xl;
+  margin: 0 auto $spacing-lg;
   padding: $spacing-md;
+}
+
+// The title, after the game's icon (the back button, below). The icon and the arrow are sized in em,
+// so they follow the title's size on phones.
+.gameTitle {
+  grid-area: title;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  color: $color-primary-light;
+  font-size: 2.5rem;
 
   h1 {
-    grid-area: title;
-    display: flex;
-    align-items: center;
-    gap: $spacing-md;
-    color: $color-primary-light;
-    font-size: 2.5rem;
+    min-width: 0;
+    font-size: inherit;
   }
+}
+
+// The way back: the game's icon, with an arrow that slides in before it, pushing the icon and the
+// title along. Only with a pointer (hover) or the keyboard: touch screens get no arrow.
+.back {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  border-radius: $radius-md; // for the focus ring
+}
+
+.backArrow {
+  display: inline-flex;
+  width: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: width $transition-base ease, margin-right $transition-base ease, opacity $transition-base ease;
+
+  svg {
+    flex-shrink: 0;
+    width: 1.2em;
+    height: 1.2em;
+  }
+}
+
+@mixin show-back-arrow {
+  width: 1.2em;
+  margin-right: $spacing-sm;
+  opacity: 1;
+}
+
+// Pointing at the icon, or at the title of a game without one
+@media (hover: hover) {
+  .back:hover .backArrow,
+  .noIcon:hover .backArrow {
+    @include show-back-arrow;
+  }
+}
+
+.back:focus-visible .backArrow {
+  @include show-back-arrow;
 }
 
 .gameReactions {
@@ -59,11 +107,12 @@ $shadow: 0 4px 20px rgba($color-black, 0.2);
   }
 }
 
-// The game's own icon, before its title (in em, so it follows the title's size on phones)
+// The game's own icon, before its title
 .gameIcon {
   flex-shrink: 0;
   width: 1.2em;
   height: 1.2em;
+  margin-right: $spacing-md;
   object-fit: contain;
 }
 
@@ -109,14 +158,24 @@ $shadow: 0 4px 20px rgba($color-black, 0.2);
   }
 }
 
-// When the game came out, with its features
-.released {
+// When the game came out and who made it, with its features
+.credits {
   color: $color-text-secondary;
   font-family: $font-secondary;
   font-size: $font-size-sm;
 
   .gameFeatures & {
     margin-top: $spacing-md;
+  }
+
+  a {
+    color: $color-primary-light;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+
+    &:hover {
+      color: $color-secondary;
+    }
   }
 }
 
@@ -128,8 +187,8 @@ $shadow: 0 4px 20px rgba($color-black, 0.2);
   margin: 0 auto;
 }
 
-// "Full Width" size mode: the game takes the whole row, info goes below
-.fullWidth .gameContent {
+// Maximized: the game takes the whole row, the info goes below
+.maximized .gameContent {
   grid-template-columns: minmax(0, 1fr);
 }
 
@@ -142,6 +201,7 @@ $shadow: 0 4px 20px rgba($color-black, 0.2);
 }
 
 .gameFrameContainer {
+  position: relative;
   max-width: 100%; // a dragged width can't grow past its column
   margin-inline: auto; // a game narrower than the column sits in the middle
   aspect-ratio: 16/9;
@@ -149,10 +209,19 @@ $shadow: 0 4px 20px rgba($color-black, 0.2);
   border-radius: $radius-lg;
   box-shadow: $shadow;
 
+  // The dashed line is drawn over the game's edges: as a border it would take room from the game, which would
+  // then lay out narrower than its size
   &.resizable {
-    position: relative;
     min-height: 200px;
-    border: 2px dashed $color-secondary;
+
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border: 2px dashed $color-secondary;
+      border-radius: inherit;
+      pointer-events: none;
+    }
   }
 }
 
@@ -212,9 +281,9 @@ $shadow: 0 4px 20px rgba($color-black, 0.2);
 }
 
 .resizeControls,
-.sizeControls,
-.frameButtons {
+.sizeControls {
   display: flex;
+  flex-wrap: wrap;
   gap: $spacing-sm;
 }
 
@@ -229,9 +298,32 @@ $shadow: 0 4px 20px rgba($color-black, 0.2);
 
 // Just an icon (its name is in title and aria-label)
 .fullscreenButton {
-  @extend %button-filled;
+  @extend %button-outline;
+  align-self: flex-start;
+  margin-left: auto; // on the right, also when the buttons before it wrap
   padding: $spacing-sm;
   font-size: $font-size-xl; // the icon's size
+}
+
+// Narrower screens (nothing to resize): the same button on the frame's top-right corner, gone
+// while the game has the focus
+.frameFullscreen {
+  @extend %button-filled;
+  position: absolute;
+  top: $spacing-sm;
+  right: $spacing-sm;
+  z-index: 5;
+  padding: $spacing-sm;
+  font-size: $font-size-xl;
+  box-shadow: $shadow;
+  transition: background $transition-base ease, transform $transition-base ease, opacity $transition-fast ease,
+    visibility $transition-fast;
+
+  // Hidden, it can't be tapped or tabbed to either
+  &.hidden {
+    opacity: 0;
+    visibility: hidden;
+  }
 }
 
 .resizeToggle.active {
@@ -273,11 +365,6 @@ $shadow: 0 4px 20px rgba($color-black, 0.2);
     bottom: 0;
     height: $handle-size;
     cursor: $pinch-cursor, ns-resize;
-
-    // The only handle (full width): nothing in the corner, so it runs the whole width
-    &:last-child {
-      right: 0;
-    }
   }
 
   &.right {
@@ -379,6 +466,21 @@ $shadow: 0 4px 20px rgba($color-black, 0.2);
   }
 }
 
+// Under the game (narrower screens, and maximized), the cards share the width, two or three side by
+// side, packed like bricks with no gaps: GamePage.jsx's useCardColumns gives the grid its columns, and
+// each card its column and how many of the 1px rows it spans (its height, plus the gap under it).
+@mixin info-cards-side-by-side {
+  display: grid;
+  grid-auto-rows: 1px;
+  grid-auto-flow: dense; // each card goes straight under the last one in its column
+  align-items: start;
+  row-gap: 0;
+}
+
+.maximized .gameInfoAside {
+  @include info-cards-side-by-side;
+}
+
 .styleToggle {
   position: relative;
 }
@@ -410,13 +512,12 @@ $shadow: 0 4px 20px rgba($color-black, 0.2);
   @include mixins.round-toggle;
 }
 
+// The features (and when the game came out), opened by Details' arrow
 .gameFeatures {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height $transition-slow ease;
+  @include mixins.collapsible;
 
   &.expanded {
-    max-height: 500px;
+    @include mixins.collapsible-open;
   }
 
   h2 {
@@ -459,18 +560,14 @@ $shadow: 0 4px 20px rgba($color-black, 0.2);
   padding: 0.75rem $spacing-lg;
 }
 
+// Narrower screens: the info goes under the game (GamePage.jsx's WIDE_QUERY must match)
 @media (width <= 1024px) {
   .gameContent {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .gameFrameActions {
-    justify-content: flex-end;
-  }
-
-  // Resizing is for wide screens; the frame already fills the width here
-  .resizeControls {
-    display: none;
+  .gameInfoAside {
+    @include info-cards-side-by-side;
   }
 }
 
@@ -479,14 +576,15 @@ $shadow: 0 4px 20px rgba($color-black, 0.2);
     padding: $spacing-xl $spacing-xl $spacing-xl*2;
   }
 
-  .gameHeader h1 {
+  .gameTitle {
     font-size: 2rem;
   }
 }
 
-// Small phones: the buttons go under the title (and Download shows only its icon, in DownloadGame.module.scss)
+// Small phones: the buttons go under the title
 @media (width <= $breakpoint-small) {
   .gameHeader {
+    margin: 0 auto $spacing-md;
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
       'title'

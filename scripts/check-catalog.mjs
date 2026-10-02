@@ -28,10 +28,12 @@ export const isEmbedOrigin = (origin) => EMBED_ORIGINS.some((allowed) => {
 });
 
 // Known keys, so leftovers and typos (`imagePath`) don't slip through
-const ENTRY_KEYS = ['id', 'kind', 'title', 'description', 'released', 'style', 'genre', 'tags', 'features', 'difficulty',
-  'controls', 'iconUrl', 'thumb', 'sourceCode', 'website', 'dimensions', 'platforms'];
+const ENTRY_KEYS = ['id', 'kind', 'title', 'description', 'developer', 'released', 'style', 'genre', 'tags', 'features',
+  'difficulty', 'controls', 'iconUrl', 'thumb', 'sourceCode', 'website', 'dimensions', 'platforms'];
+const GAME_DEVELOPER_KEYS = ['name', 'url'];
 const PLATFORM_KEYS = ['type', 'url', 'embed', 'storeId', 'icon'];
-const DIMENSION_KEYS = ['w', 'h', 'center'];
+const DIMENSION_KEYS = ['sizes', 'center'];
+const SIZE_KEYS = ['w', 'h'];
 const CONTROLS_KEYS = ['keys', 'mobile', 'touch'];
 const KEY_NAMES = new Set([...KEYBOARD_KEYS, ...MOUSE_BUTTONS].map((key) => key.name));
 const GESTURE_NAMES = GESTURES.map((gesture) => gesture.name);
@@ -192,6 +194,14 @@ export function validateCatalog(catalog) {
     for (const field of ['title', 'description']) {
       if (!isText(game[field])) problem(`\`${field}\` is required`);
     }
+    // Who made it: { "name": "Dany", "url": "https://…" } (the url is optional)
+    if (!isObject(game.developer)) problem('`developer` must be an object with a `name`, like { "name": "Dany" }');
+    else {
+      const at = (message) => problem(`developer: ${message}`);
+      for (const key of unknownKeys(game.developer, GAME_DEVELOPER_KEYS)) at(`unknown key \`${key}\` (it has a \`name\` and a \`url\`)`);
+      if (!isText(game.developer.name)) at('`name` is required');
+      if (game.developer.url !== undefined && !isHttpsUrl(game.developer.url)) at('`url` must be an https URL');
+    }
     if (game.style !== undefined && !isText(game.style)) problem('`style` must be text');
     if (game.controls !== undefined) checkControls(game.controls, (message) => problem(`controls: ${message}`));
     for (const field of ['genre', 'tags']) {
@@ -214,18 +224,37 @@ export function validateCatalog(catalog) {
       });
     }
 
-    // The game frame's starting size, and whether to centre the game in it (embedded games only)
+    // The game frame: how tall the game is at a few frame widths, narrowest first, and whether to centre the game
+    // in it (embedded games only)
     if (game.dimensions !== undefined) {
       const { dimensions } = game;
       const at = (message) => problem(`dimensions: ${message}`);
-      if (!isObject(dimensions)) at('must be an object with `w` and `h`');
+      if (!isObject(dimensions)) at('must be an object with `sizes`');
       else {
-        for (const key of unknownKeys(dimensions, DIMENSION_KEYS)) at(unknownKey(key));
-        for (const side of ['w', 'h']) {
-          const size = dimensions[side];
-          if (!Number.isInteger(size) || size < FRAME_SIZE.min || size > FRAME_SIZE.max) {
-            at(`\`${side}\` must be a whole number of pixels from ${FRAME_SIZE.min} to ${FRAME_SIZE.max}`);
-          }
+        for (const key of unknownKeys(dimensions, DIMENSION_KEYS)) {
+          at(SIZE_KEYS.includes(key) ? `\`${key}\` moved into \`sizes\`: { "sizes": [{ "w": 460, "h": 740 }] }` : unknownKey(key));
+        }
+        const { sizes } = dimensions;
+        if (!Array.isArray(sizes) || sizes.length === 0) at('`sizes` must list one or more sizes, like [{ "w": 460, "h": 740 }]');
+        else {
+          sizes.forEach((size, i) => {
+            const where = (message) => at(`sizes[${i}]: ${message}`);
+            if (!isObject(size)) {
+              where('must be an object with `w` and `h`');
+              return;
+            }
+            for (const key of unknownKeys(size, SIZE_KEYS)) where(unknownKey(key));
+            for (const side of SIZE_KEYS) {
+              const value = size[side];
+              if (!Number.isInteger(value) || value < FRAME_SIZE.min || value > FRAME_SIZE.max) {
+                where(`\`${side}\` must be a whole number of pixels from ${FRAME_SIZE.min} to ${FRAME_SIZE.max}`);
+              }
+            }
+            const before = sizes[i - 1];
+            if (isObject(before) && Number.isInteger(before.w) && Number.isInteger(size.w) && size.w <= before.w) {
+              where('`w` must be wider than the size before (narrowest first)');
+            }
+          });
         }
         if (dimensions.center !== undefined && typeof dimensions.center !== 'boolean') at('`center` must be true or false');
         if (!(Array.isArray(game.platforms) && game.platforms.some((p) => isObject(p) && p.embed === true))) {

@@ -12,7 +12,7 @@ import styles from './DownloadGame.module.scss';
  * downloaded shows that straight away (offline, the game can't reach the hub to say so).
  * Downloaded, it's also how to remove the download: pointing at it (or tabbing to it) turns
  * "Downloaded" into "Remove", and that asks first. Not while the pointer is still on it from
- * downloading, though. In the game page's narrow header it's only the icon.
+ * downloading, though. On phones and tablets it's only the icon.
  * @param {object} game - the catalogue entry
  * @param {object} offline - { supported, downloaded, busy, error } from useGameBridge
  * @param {boolean} recorded - whether the hub remembers it as downloaded (src/lib/offline.js), shown

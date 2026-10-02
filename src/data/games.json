@@ -28,6 +28,10 @@
       "kind": "game",
       "title": "Snake Game",
       "description": "Classic Snake game where you control a snake to eat food and grow longer. Avoid hitting the walls or yourself!",
+      "developer": {
+        "name": "Dany",
+        "url": "https://github.com/DanyilT"
+      },
       "released": "2025-04-24",
       "style": "Minimalistic design with a clean interface. Simple contrast colored b&w and sharp edged graphics. Old fashion retro style.",
       "genre": [
@@ -112,8 +116,20 @@
       "iconUrl": "https://snake.dt-games.pages.dev/img/snake.png",
       "thumb": "https://snake.dt-games.pages.dev/img/desktop-screenshot.png",
       "dimensions": {
-        "w": 460,
-        "h": 740,
+        "sizes": [
+          {
+            "w": 320,
+            "h": 710
+          },
+          {
+            "w": 420,
+            "h": 720
+          },
+          {
+            "w": 600,
+            "h": 730
+          }
+        ],
         "center": true
       },
       "platforms": [
@@ -132,6 +148,10 @@
       "kind": "game",
       "title": "TETRIS Game",
       "description": "The classic block-stacking puzzle game. Rotate and move falling blocks to create complete lines.",
+      "developer": {
+        "name": "Dany",
+        "url": "https://github.com/DanyilT"
+      },
       "released": "2025-04-25",
       "style": "Vibrant retro-inspired design with animated, colorful borders that cycle through classic Tetris piece colors. Modern UI elements with a nostalgic feel.",
       "genre": [
@@ -223,8 +243,20 @@
       "iconUrl": "https://tetris.dt-games.pages.dev/img/block.png",
       "thumb": "https://tetris.dt-games.pages.dev/img/desktop-screenshot.png",
       "dimensions": {
-        "w": 800,
-        "h": 765,
+        "sizes": [
+          {
+            "w": 320,
+            "h": 1130
+          },
+          {
+            "w": 400,
+            "h": 1150
+          },
+          {
+            "w": 650,
+            "h": 770
+          }
+        ],
         "center": true
       },
       "platforms": [
@@ -243,6 +275,10 @@
       "kind": "game",
       "title": "Minesweeper Game",
       "description": "Test your logic and luck in this classic minesweeper game. Clear the board without hitting any mines.",
+      "developer": {
+        "name": "Dany",
+        "url": "https://github.com/DanyilT"
+      },
       "released": "2025-05-01",
       "style": "Authentic Windows 95/98 aesthetic with the classic teal background and gray UI elements featuring 3D beveled effects. Includes the iconic blue title bar, digital-style counter displays, and traditional cell styling with classic number colors - a perfect recreation of the nostalgic Windows experience. Windows 9x style.",
       "genre": [
@@ -359,8 +395,12 @@
       "iconUrl": "https://minesweeper.dt-games.pages.dev/img/mine.png",
       "thumb": "https://minesweeper.dt-games.pages.dev/img/desktop-screenshot.png",
       "dimensions": {
-        "w": 400,
-        "h": 520,
+        "sizes": [
+          {
+            "w": 400,
+            "h": 520
+          }
+        ],
         "center": true
       },
       "platforms": [
@@ -379,6 +419,10 @@
       "kind": "game",
       "title": "Sudoku Game",
       "description": "Challenge your mind with this classic japanese number puzzle game. Fill the grid following Sudoku rules.",
+      "developer": {
+        "name": "Dany",
+        "url": "https://github.com/DanyilT"
+      },
       "released": "2025-05-05",
       "style": "Modern Neomorphic design featuring soft shadows and subtle gradients on a light background. Uses purple accent colors, elegant rounded corners, and sophisticated shadow effects to create a clean, tactile interface. Includes visual feedback for valid/invalid entries and smooth transitions for a premium puzzle experience. Neomorphic/Neumorphism style.",
       "genre": [
@@ -509,8 +553,20 @@
       "iconUrl": "https://sudoku.dt-games.pages.dev/img/sudoku.png",
       "thumb": "https://sudoku.dt-games.pages.dev/img/desktop-screenshot.png",
       "dimensions": {
-        "w": 480,
-        "h": 860,
+        "sizes": [
+          {
+            "w": 320,
+            "h": 660
+          },
+          {
+            "w": 400,
+            "h": 830
+          },
+          {
+            "w": 600,
+            "h": 890
+          }
+        ],
         "center": true
       },
       "platforms": [
@@ -529,6 +585,10 @@
       "kind": "game",
       "title": "ChillZone",
       "description": "A free augmented-reality throwing game for Android. Place a bin in your room, flick the ball in and beat your best score.",
+      "developer": {
+        "name": "Dany",
+        "url": "https://github.com/DanyilT"
+      },
       "genre": [
         "casual",
         "sports"
@@ -583,6 +643,10 @@
       "kind": "portal",
       "title": "Flashback Arcade",
       "description": "A wall of classic Flash games, played in your browser with Ruffle. No plugins, no downloads.",
+      "developer": {
+        "name": "Dany",
+        "url": "https://github.com/DanyilT"
+      },
       "genre": [
         "collection"
       ],

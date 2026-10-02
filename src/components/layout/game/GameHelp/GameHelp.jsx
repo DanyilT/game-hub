@@ -58,8 +58,8 @@ const MessageForm = ({ game, onDone, onBack }) => {
       <p className={styles.muted}>Only the developer reads it, and it&rsquo;s deleted with your account.</p>
       {state.error && <p className={styles.error} role="alert">{state.error}</p>}
       <div className={styles.actions}>
-        <Button type="submit" disabled={!message.trim() || state.busy}>{state.busy ? 'Sending…' : 'Send'}</Button>
         <Button variant="outline" onClick={onBack} disabled={state.busy}>Back</Button>
+        <Button type="submit" disabled={!message.trim() || state.busy}>{state.busy ? 'Sending…' : 'Send'}</Button>
       </div>
     </form>
   );
@@ -91,10 +91,10 @@ const ResetConfirm = ({ game, signedIn, onReset, onBack }) => {
       </p>
       {state.error && <p className={styles.error} role="alert">{state.error}</p>}
       <div className={styles.actions}>
+        <Button variant="outline" onClick={onBack} disabled={state.busy}>Cancel</Button>
         <Button variant="danger" onClick={reset} disabled={state.busy}>
           {state.busy ? 'Resetting…' : 'Reset progress'}
         </Button>
-        <Button variant="outline" onClick={onBack} disabled={state.busy}>Cancel</Button>
       </div>
     </div>
   );

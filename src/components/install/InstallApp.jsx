@@ -92,6 +92,7 @@ export const InstallBanner = () => {
     <aside className={styles.panel} aria-label="Install the app">
       <p className={styles.bannerText}>Play from your home screen: install GameHub as an app.</p>
       <div className={styles.actions}>
+        <Button variant="outline" onClick={later}>Not now</Button>
         <Button
           onClick={() => {
             later();
@@ -100,7 +101,6 @@ export const InstallBanner = () => {
         >
           Install
         </Button>
-        <Button variant="outline" onClick={later}>Not now</Button>
       </div>
     </aside>
   );

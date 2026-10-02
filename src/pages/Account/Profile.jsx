@@ -160,8 +160,8 @@ const FriendButton = ({ player, onChange }) => {
     case 'incoming':
       buttons = (
         <>
-          <Button disabled={busy} onClick={() => run(acceptFriendRequest)}><PiUserCheck aria-hidden="true" />Accept request</Button>
           <Button variant="outline" disabled={busy} onClick={() => run(removeFriend)}>Decline</Button>
+          <Button disabled={busy} onClick={() => run(acceptFriendRequest)}><PiUserCheck aria-hidden="true" />Accept request</Button>
         </>
       );
       break;
@@ -304,8 +304,8 @@ const Requests = ({ onChange }) => {
             {incoming.map((player) => (
               <li key={player.id}>
                 <PlayerCard player={player} meta={`Asked ${monthYear(player.sent_at, 'short')}`}>
-                  <Button disabled={busy === player.id} onClick={() => run(acceptFriendRequest, player.id)}>Accept</Button>
                   <Button variant="outline" disabled={busy === player.id} onClick={() => run(removeFriend, player.id)}>Decline</Button>
+                  <Button disabled={busy === player.id} onClick={() => run(acceptFriendRequest, player.id)}>Accept</Button>
                 </PlayerCard>
               </li>
             ))}

@@ -7,11 +7,11 @@
   gap: $spacing-md;
 }
 
-// The title, with the arrow that shows the players' ratings (like Details')
+// The title (and once rated, an ℹ note), with the arrow that shows the players' ratings (like Details')
 .header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: $spacing-sm;
 
   h2 {
     display: flex;
@@ -26,13 +26,23 @@
 
 .toggle {
   @include mixins.round-toggle;
+  margin-left: auto;
 }
 
+// They come in when the slider first moves
 .actions {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: $spacing-sm;
+  animation: actions-in $transition-base ease;
+}
+
+@keyframes actions-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
 }
 
 .muted {
@@ -77,6 +87,15 @@
   min-height: 6rem;
   resize: vertical;
   font-family: $font-secondary;
+}
+
+// The players' ratings, opened by the arrow
+.players {
+  @include mixins.collapsible;
+
+  &.open {
+    @include mixins.collapsible-open;
+  }
 }
 
 // The players' ratings: the average, then a bar per score
