@@ -173,6 +173,37 @@ $shadow: 0 4px 20px rgba($color-black, 0.2);
   color: $color-warning;
 }
 
+.textButton {
+  color: $color-primary-light;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+
+  &:hover {
+    color: $color-secondary;
+  }
+}
+
+// In place of the game, offline when it isn't downloaded
+.offlineNotice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-md;
+  height: 100%;
+  min-height: 240px;
+  padding: $spacing-xl;
+  background: $color-black-light;
+  text-align: center;
+}
+
+.offlineHint {
+  max-width: 32rem;
+  color: $color-text-secondary;
+  font-family: $font-secondary;
+  font-size: $font-size-sm;
+}
+
 .gameFrameActions {
   display: flex;
   flex-wrap: wrap;
@@ -453,7 +484,7 @@ $shadow: 0 4px 20px rgba($color-black, 0.2);
   }
 }
 
-// Small phones: the buttons go under the title
+// Small phones: the buttons go under the title (and Download shows only its icon, in DownloadGame.module.scss)
 @media (width <= $breakpoint-small) {
   .gameHeader {
     grid-template-columns: minmax(0, 1fr);

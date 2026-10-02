@@ -32,13 +32,14 @@ const About = () => {
             <li>Pick a game on the <Link to="/">games list</Link> and play it in the page, or open it on its own.</li>
             <li>Each game runs from its own address (on dt-games.pages.dev), in a frame, so games can&rsquo;t reach your account or each other.</li>
             <li>The <strong>?</strong> button on a game&rsquo;s page has help: reporting a bug, and starting the game from scratch.</li>
+            <li>Download a game from its page to play it offline, in the browser or the installed app. GameHub itself opens without a network too.</li>
             <li>On a phone, you can install GameHub as an app on your home screen.</li>
           </ul>
         </section>
 
         <section className={styles.section}>
           <h2>Your progress</h2>
-          <p>Games keep your scores and progress in your browser. Sign in, and that&rsquo;s saved to your account too, so you can pick up where you left off on any device. The first time you sign in on a device, progress already saved there moves into your account, if your account doesn&rsquo;t have any for that game yet.</p>
+          <p>Games keep your scores and progress in your browser. Sign in, and that&rsquo;s saved to your account too, so you can pick up where you left off on any device. The first time you sign in on a device, progress already saved there moves into your account, if your account doesn&rsquo;t have any for that game yet. Progress made offline goes up to your account the next time you play that game online, unless you&rsquo;ve played it on another device in the meantime: then your account&rsquo;s progress wins.</p>
         </section>
 
         <section className={styles.section}>

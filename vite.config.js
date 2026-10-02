@@ -1,3 +1,6 @@
+import { createHash } from 'node:crypto';
+import { readdir, readFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { CATALOG_PATH, EMBED_ORIGINS } from './scripts/check-catalog.mjs';
@@ -178,23 +181,43 @@ function rootFiles() {
   };
 }
 
+// Google Fonts: the stylesheet, and the font files it loads (index.html links them)
+const FONT_SITES = ['https://fonts.googleapis.com', 'https://fonts.gstatic.com'];
+
+/**
+ * The other sites the pages show pictures from: the catalogue's picture hosts (thumbnails and icons),
+ * the Google Play badge, http.cat (error pages), and profile pictures from Google (and Discord's,
+ * ready for when its sign-in is switched on)
+ * @param {object} catalog
+ * @return {string[]} - origins, some with a wildcard
+ */
+const pictureSites = (catalog) => {
+  const origins = (urls) => [...new Set(urls.map((url) => new URL(url).origin))];
+  const hasStoreBadge = catalog.games.some((game) => game.platforms.some((p) => p.type === 'android'));
+  return [
+    ...origins(catalog.games.flatMap((game) => [game.thumb, game.iconUrl]).filter(Boolean)),
+    ...(hasStoreBadge ? ['https://play.google.com'] : []),
+    'https://http.cat',
+    'https://*.googleusercontent.com',
+    'https://cdn.discordapp.com',
+  ];
+};
+
 /**
  * Writes dist/_headers: headers Cloudflare adds to every response (Workers static assets read
  * this file). The Content-Security-Policy allows only the sites the pages really use, and is
  * built from the catalogue and the Supabase URL at build time, so it can't drift from them:
  * - frame-src: EMBED_ORIGINS (the only site games are embedded from)
- * - img-src: the catalogue's picture hosts (thumbnails and icons), the Google Play badge, http.cat (error pages), and
- *   profile pictures from Google (and Discord's, ready for when its sign-in is switched on)
+ * - img-src: pictureSites()
  * - connect-src: this project's Supabase URL (none when accounts aren't configured)
+ * The service worker (/sw.js) gets a policy of its own: it fetches the pictures and fonts it keeps
+ * for offline use itself, so its connect-src lists their sites, and nothing else applies to it.
  * The dev server doesn't send these; try them with `npm run cf:preview`.
  */
 function securityHeaders() {
   let supabaseUrl;
 
   const contentSecurityPolicy = (catalog) => {
-    const origins = (urls) => [...new Set(urls.map((url) => new URL(url).origin))];
-    const pictures = origins(catalog.games.flatMap((game) => [game.thumb, game.iconUrl]).filter(Boolean));
-    const hasStoreBadge = catalog.games.some((game) => game.platforms.some((p) => p.type === 'android'));
     const supabase = supabaseUrl ? new URL(supabaseUrl) : null;
 
     return [
@@ -202,8 +225,7 @@ function securityHeaders() {
       "script-src 'self'",
       "style-src 'self' https://fonts.googleapis.com",
       'font-src https://fonts.gstatic.com',
-      ["img-src 'self' data:", ...pictures, ...(hasStoreBadge ? ['https://play.google.com'] : []), 'https://http.cat',
-        'https://*.googleusercontent.com', 'https://cdn.discordapp.com'].join(' '),
+      ["img-src 'self' data:", ...pictureSites(catalog)].join(' '),
       ["connect-src 'self'",
         ...(supabase ? [supabase.origin, `${supabase.protocol === 'https:' ? 'wss' : 'ws'}://${supabase.host}`] : []),
       ].join(' '),
@@ -235,14 +257,72 @@ function securityHeaders() {
         '/assets/*',
         '  Cache-Control: public, max-age=31536000, immutable',
         '',
+        // "! " drops the pages' policy for this file, so only its own applies
+        '/sw.js',
+        '  ! Content-Security-Policy',
+        `  Content-Security-Policy: default-src 'none'; connect-src 'self' ${[...pictureSites(catalog), ...FONT_SITES].join(' ')}`,
+        '',
       ].join('\n');
       this.emitFile({ type: 'asset', fileName: '_headers', source });
     },
   };
 }
 
+// The site's service worker, built from this template (src/lib/offline.js registers it)
+const SERVICE_WORKER = fileURLToPath(new URL('./src/service-worker.js', import.meta.url));
+
+/**
+ * Builds /sw.js, the site's service worker (src/service-worker.js), with what it needs to know:
+ * - APP_FILES: the site's root (index.html), the built files (/assets/…), the manifest and the icons.
+ *   Every page of the app is the same index.html, so the worker answers them all with that one. It's
+ *   listed as the root: Cloudflare redirects /index.html there, and pages can't be answered with a redirect.
+ * - OTHER_SITES: where pictures and fonts come from (pictureSites() and Google Fonts)
+ * - VERSION: changes whenever any of those files does, so browsers install the new worker
+ */
+function serviceWorker() {
+  let config;
+
+  return {
+    name: 'gamehub-service-worker',
+    apply: 'build',
+    configResolved(resolved) {
+      config = resolved;
+    },
+    generateBundle: {
+      order: 'post',
+      async handler(_options, bundle) {
+        const { catalog } = await catalogSource.get();
+        const built = Object.keys(bundle).filter((file) => file === 'index.html' || file.startsWith('assets/')).sort();
+        const icons = (await readdir(`${config.publicDir}/icons`)).filter((file) => /\.(png|svg)$/.test(file)).sort();
+        const appFiles = [
+          ...built.map((file) => (file === 'index.html' ? '' : file)),
+          'manifest.json', 'favicon.ico', 'favicon.svg', 'apple-touch-icon.png',
+          ...icons.map((file) => `icons/${file}`),
+        ].map((file) => `${config.base}${file}`);
+
+        const template = await readFile(SERVICE_WORKER, 'utf8');
+        const hash = createHash('sha256').update(template).update(JSON.stringify(appFiles));
+        for (const file of built) hash.update(bundle[file].type === 'chunk' ? bundle[file].code : bundle[file].source);
+
+        const values = {
+          "'__VERSION__'": JSON.stringify(hash.digest('hex').slice(0, 12)),
+          "'__BASE__'": JSON.stringify(config.base),
+          __APP_FILES__: JSON.stringify(appFiles),
+          __OTHER_SITES__: JSON.stringify([...pictureSites(catalog), ...FONT_SITES]),
+        };
+        let source = template;
+        for (const [marker, value] of Object.entries(values)) {
+          if (!source.includes(marker)) this.error(`src/service-worker.js has no ${marker} to fill in`);
+          source = source.replace(marker, value);
+        }
+        this.emitFile({ type: 'asset', fileName: 'sw.js', source });
+      },
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), gamesCatalog(), appPages(), rootFiles(), securityHeaders()],
+  plugins: [react(), gamesCatalog(), appPages(), rootFiles(), securityHeaders(), serviceWorker()],
   build: {
     rolldownOptions: {
       output: {

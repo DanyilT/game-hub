@@ -4,7 +4,7 @@ import styles from './Legal.module.scss';
 
 // Change this whenever the policy changes. Keep it in step with what the site really does:
 // sign-in providers, where data is stored, and which other sites pages load from (the CSP in vite.config.js lists them).
-const LAST_UPDATED = '30 September 2026';
+const LAST_UPDATED = '1 October 2026';
 
 const Privacy = () => (
   <div className={styles.page}>
@@ -19,7 +19,8 @@ const Privacy = () => (
 
       <section className={styles.section}>
         <h2>1. Playing without an account</h2>
-        <p>You can browse and play every game without an account. GameHub then keeps nothing about you on a server. Your browser remembers a few small things on your device: whether the sidebar is expanded, whether you chose the sidebar or the floating button to get around (and its corner), whether you've seen the note that favorites are public, whether a game's controls were left expanded and, for the suggestion to install GameHub as an app, how many games you've opened, when you last chose "Not now", and whether you've installed it.</p>
+        <p>You can browse and play every game without an account. GameHub then keeps nothing about you on a server. Your browser remembers a few small things on your device: whether the sidebar is expanded, whether you chose the sidebar or the floating button to get around (and its corner), whether you've seen the note that favorites are public, whether a game's controls were left expanded, which games you've downloaded and, for the suggestion to install GameHub as an app, how many games you've opened, when you last chose "Not now", and whether you've installed it.</p>
+        <p>To open without a network, the site keeps a copy of itself in your browser, and of the pictures and fonts it shows. A game you download from its page is kept there too, with the game's own address, until you remove the download.</p>
       </section>
 
       <section className={styles.section}>

@@ -3,6 +3,7 @@ import {
 } from 'react-icons/ci';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLibrary } from '../../contexts/LibraryContext';
+import { askToConfirm } from '../../lib/confirm';
 import { canInstall, install } from '../../lib/install';
 import { useInstall } from '../install/InstallApp';
 
@@ -56,7 +57,13 @@ const useNavItems = (beforeAction = () => {}) => {
       icon: CiLogout,
       danger: true,
       onClick: action(async () => {
-        if (window.confirm('Sign out of GameHub?')) await signOut();
+        const yes = await askToConfirm({
+          title: 'Sign out?',
+          message: 'You’ll be signed out of GameHub on this device. Your progress stays in your account.',
+          confirmLabel: 'Sign out',
+          danger: true,
+        });
+        if (yes) await signOut();
       }),
     }] : []),
   ];

@@ -1,0 +1,118 @@
+@use '../../../../styles/abstracts/variables' as *;
+@use '../../../../styles/abstracts/forms';
+@use '../../../../styles/abstracts/mixins';
+
+// A pill like the favorite and bookmark buttons beside it. Its faces (Downloaded, and Remove over it) share one
+// cell, so it keeps its size when one turns into the other.
+.download {
+  position: relative;
+  display: inline-grid;
+  min-height: 36px;
+  padding: $spacing-xs $spacing-md;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: $radius-full;
+  background: $color-surface;
+  color: $color-text-primary;
+  font-family: $font-secondary;
+  font-size: 0.9rem;
+  font-weight: $font-weight-semibold;
+  transition: background $transition-fast ease, border-color $transition-fast ease, color $transition-fast ease,
+    transform $transition-fast ease;
+
+  svg {
+    font-size: 1.25rem;
+  }
+
+  &:hover:not(:disabled, [aria-disabled='true']) {
+    background: color-mix(in srgb, $color-white 18%, transparent);
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.6;
+  }
+
+  &.downloaded {
+    border-color: color-mix(in srgb, $color-accent-light 60%, transparent);
+    color: $color-accent-light;
+  }
+
+  &.busy {
+    cursor: progress;
+
+    svg {
+      animation: bob 900ms ease-in-out infinite;
+    }
+  }
+}
+
+.face {
+  grid-area: 1 / 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-xs;
+  transition: opacity $transition-fast ease, transform $transition-fast ease;
+}
+
+// Remove waits below, out of sight
+.remove {
+  opacity: 0;
+  transform: translateY(100%);
+}
+
+// Downloaded slides up and out, Remove slides in from below, and the pill turns red
+@mixin offer-remove {
+  border-color: color-mix(in srgb, $color-error 70%, transparent);
+  background: color-mix(in srgb, $color-error 15%, transparent);
+  color: forms.$color-status-error;
+
+  .face {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+
+  .remove {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+// Pointed at: only with a real pointer, as a tap on a touch screen leaves :hover behind (a tap asks straight away)
+@media (hover: hover) {
+  .download.removable:hover {
+    @include offer-remove;
+  }
+}
+
+.download.removable:focus-visible {
+  @include offer-remove;
+}
+
+// The game page's header in one column (the same breakpoint as in GamePage.module.scss): only the icon, in a
+// circle like the help button beside it
+@media (width <= $breakpoint-small) {
+  .download {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+  }
+
+  .label {
+    @include mixins.visually-hidden;
+  }
+}
+
+@keyframes bob {
+  50% {
+    transform: translateY(3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .download.busy svg {
+    animation: none;
+  }
+}

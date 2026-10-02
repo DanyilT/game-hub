@@ -6,6 +6,7 @@ import { useLibrary } from '../../contexts/LibraryContext';
 import { games } from '../../data/games';
 import { supabase } from '../../lib/supabase';
 import { USERNAME_PATTERN } from '../../lib/account';
+import { askToConfirm } from '../../lib/confirm';
 import { monthYear } from '../../lib/dates';
 import {
   acceptFriendRequest, describeFriendError, fetchFriends, fetchFriendState, fetchMyRequests, removeFriend,
@@ -109,8 +110,9 @@ const FriendButton = ({ player, onChange }) => {
   }
   if (!status.loaded) return null;
 
-  const run = async (action, confirmText) => {
-    if (confirmText && !window.confirm(confirmText)) return;
+  // `question`: askToConfirm's, for actions that need a yes first
+  const run = async (action, question) => {
+    if (question && !(await askToConfirm(question))) return;
     setBusy(true);
     setError(null);
     try {
@@ -132,7 +134,16 @@ const FriendButton = ({ player, onChange }) => {
       buttons = (
         <>
           <span className={styles.friendsBadge}><PiUserCheck aria-hidden="true" />Friends</span>
-          <Button variant="outline" disabled={busy} onClick={() => run(removeFriend, `Remove ${name} from your friends?`)}>
+          <Button
+            variant="outline"
+            disabled={busy}
+            onClick={() => run(removeFriend, {
+              title: 'Remove friend?',
+              message: `${name} comes off your friends list, and you come off theirs. You can send a new request any time.`,
+              confirmLabel: 'Remove',
+              danger: true,
+            })}
+          >
             <PiUserMinus aria-hidden="true" />Remove
           </Button>
         </>
@@ -194,7 +205,13 @@ const RatingRow = ({ game, score }) => {
   };
 
   const remove = async () => {
-    if (!window.confirm(`Remove your rating for ${game.title}?`)) return;
+    const yes = await askToConfirm({
+      title: 'Remove rating?',
+      message: `Your rating comes off ${game.title}’s average. You can rate it again any time.`,
+      confirmLabel: 'Remove',
+      danger: true,
+    });
+    if (!yes) return;
     clearTimeout(timer.current);
     setState('saving');
     try {

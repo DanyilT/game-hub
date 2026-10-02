@@ -1,0 +1,19 @@
+@use '../../../styles/abstracts/variables' as *;
+
+.message {
+  margin-bottom: $spacing-lg;
+  color: $color-text-secondary;
+  font-family: $font-secondary;
+  text-align: center;
+}
+
+// Yes, then Cancel, sharing the width
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+
+  > * {
+    flex: 1 1 8rem;
+  }
+}

@@ -19,6 +19,7 @@ v2 is a **static site**: `npm run build` turns it into plain HTML/CSS/JS files i
 
 - **Accounts** live in [Supabase](https://supabase.com) (sign-in, database, access rules). The browser talks to it directly.
 - **Game saves** reach the account through the game bridge (see "Saving progress" below): `public/hub-bridge.js` runs inside the game's page, and `src/lib/gameBridge.js` answers it in the hub.
+- **Offline:** the site's service worker (`src/service-worker.js`, built into `/sw.js`) keeps the app on the device, so GameHub opens without a network, and downloaded games play offline (see "Offline play" below).
 - **Security headers:** the build also writes `dist/_headers` (see `vite.config.js`), so Cloudflare sends a Content-Security-Policy that allows only the sites the pages use.
 - **Files at the root:** the build writes the usual ones from the catalogue (their text is in `scripts/site-files.mjs`): `robots.txt`, `sitemap.xml`, `llms.txt` (for AI assistants), `humans.txt` and `.well-known/security.txt`. For full URLs they use the site's address, `SITE_URL` in `vite.config.js` (https://game-hub.danyt.workers.dev). Change it there if the site moves, e.g. to a domain of its own.
 - **Installable as an app (a PWA):** `public/manifest.json`. The icons are "GAME" over "HUB" in Doto's dots with the display-name gradient: transparent ones for tabs and desktops, maskable ones on the app's dark background (Android fills its icon shape with them), and a white silhouette for Android's themed icons (`purpose: monochrome`: the launcher recolours it and its background to match the icon theme). At 16 px they say "GH" instead: seven letters can't be read that small (`favicon.ico`'s 16 px frame, and `favicon.svg` switches when it's drawn at 24 px or less). They're in `public/icons/`, plus `favicon.ico`, `favicon.svg` and `apple-touch-icon.png`. Phones and tablets get "Install app" in the menu, and after a couple of games a suggestion floating at the bottom of the games page. It opens the browser's own install dialog where there is one (Chrome, Edge and Samsung Internet, once the site has been used for a bit), and otherwise shows the steps: the browser menu's Add to Home screen on Android, Share → Add to Home Screen on iPhone and iPad. Computers see it only once the browser's dialog is ready (`src/lib/install.js`). Installing needs HTTPS, so try it on the deployed site: a phone opening the dev server over your network (`http://192.168…`) can only add a shortcut.
@@ -86,7 +87,18 @@ Games keep their progress in the browser, and in the player's account when they 
 4. Signed in, the account's save wins. If the account has none for that game yet, the browser's goes up (a first sign-in on a device). Signing in or out reloads the game.
 5. The **?** button on a game's page resets its progress: the browser's copy (through the bridge), then the account's (`delete_game_save()`), then reloads the game.
 
-To try saves locally, the dev server has to run on port 3000 (the address `gamehub.js` trusts), with the games loaded from their live addresses.
+To try saves locally, the dev server has to run on port 3000 (the address `gamehub.js` trusts), with the games loaded from their live addresses. Privacy extensions (uBlock Origin's "Block Outsider Intrusion into LAN" list, Brave Shields) block a public game page from loading anything from `localhost` (`net::ERR_BLOCKED_BY_CLIENT`): allow it for `dt-games.pages.dev`, or try saves on the live site.
+
+## ✈ Offline play
+
+GameHub opens offline, and a game downloaded from its page plays offline too, in the browser or the installed app:
+
+1. **The site:** its service worker (`src/service-worker.js`; `vite.config.js` builds it into `/sw.js` with the list of the app's files) keeps the app when it installs. Pages come from the network when there is one, and from that copy when there isn't. Production builds only: the dev server never registers it.
+2. **A game:** its page in GameHub has a **Download** button. A page's service worker can't answer for a frame from another site, so each game has a worker of its own (`sw.js` in every `dt-games` branch). The bridge, running in the game's page, keeps the game's files in the game's storage and registers that worker. From then on the game's files come from the network, refreshing the copy, and from the copy when there's no network. The button removes the download too.
+3. **Progress made offline isn't lost:** `gamehub.js` version 2 keeps a note next to the save of which account save it carries on from (`<game>GameSync`). Back online, if the account hasn't changed meanwhile, the browser's progress wins and goes up; if another device saved meanwhile, the account's save wins.
+4. The games list remembers which games are downloaded (`src/lib/offline.js`). Offline, it marks them, and fades the ones that need the internet. A game page offline shows a note in place of a game that isn't downloaded.
+
+Games whose `gamehub.js` is still version 1 can't be downloaded: their Download button stays hidden.
 
 ## 🎮 Adding a game
 
@@ -195,13 +207,14 @@ game-hub/
 ├── src/
 │   ├── components/account/  # SignInModal, UsernameDialog (new players pick a username), UsernameField (🎲)
 │   ├── components/install/  # installing as an app: the steps for iPhone/iPad, the banner on phones, useInstall()
-│   ├── components/common/   # Avatar, Button, ErrorBoundary, GooglePlayBadge, InfoTip, Modal (the neon window), Toasts
+│   ├── components/common/   # Avatar, Button, ConfirmDialog ("Sign out?"), ErrorBoundary, GooglePlayBadge, InfoTip, Modal (the neon window), Toasts
 │   ├── components/layout/   # Header, Footer, MainLayout; the navigation: Sidebar or FloatingNav, both from useNavItems.js
-│   ├── components/layout/game/  # GameCard, GameList, GameControls, GameReactions (favorites, bookmarks), RatingSlider, RateGame, GameHelp (the ? window)
+│   ├── components/layout/game/  # GameCard, GameList, GameControls, GameReactions (favorites, bookmarks), DownloadGame (offline), RatingSlider, RateGame, GameHelp (the ? window)
 │   ├── contexts/            # AuthContext (the signed-in player, useAuth()), LibraryContext (their favorites, bookmarks, ratings, friend requests: useLibrary())
 │   ├── data/                # games.json (the game list without Supabase), games.js (helpers), controls.js (key and gesture names)
-│   ├── lib/                 # supabase.js (the client), gameBridge.js (saves), friends.js, account.js (username rules), install.js, preferences.js (navigation style), support.js (bug report links), toast.js, dates.js
-│   ├── pages/               # Games, GamePage, About, Account/ (players, profile, /me, settings, sign-in callback), Legal/ (terms, privacy), ErrorPage
+│   ├── lib/                 # supabase.js (the client), gameBridge.js (saves, downloads), offline.js, friends.js, account.js (username rules), install.js, preferences.js (navigation style), support.js (bug report links), toast.js, confirm.js, dates.js
+│   ├── service-worker.js    # the site's service worker: built into /sw.js by vite.config.js, not imported by the app
+│   ├── pages/               # Games, GamePage, Account/ (players, profile, /me, settings, sign-in callback), Legal/ (about, terms, privacy), ErrorPage
 │   ├── styles/              # Sass variables, mixins, buttons and forms, shared animations, reset, base
 │   ├── App.jsx              # routes
 │   └── index.jsx            # entry point
@@ -213,7 +226,7 @@ game-hub/
 ├── worker/index.js          # the Worker's script: passes unmatched paths to the files, pings Supabase every 6 hours
 ├── .env.example             # template for .env.local (Supabase URL + publishable key)
 ├── index.html
-├── vite.config.js           # also loads the game list (virtual:catalog), writes /catalog.json, the catalogue's icons module, the security headers (dist/_headers), _redirects and the root files; SITE_URL is here
+├── vite.config.js           # also loads the game list (virtual:catalog), writes /catalog.json, the catalogue's icons module, the security headers (dist/_headers), _redirects, the root files and /sw.js; SITE_URL is here
 ├── wrangler.jsonc           # Cloudflare config
 └── package.json
 ```

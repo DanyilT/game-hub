@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { keepOfflineCopy, setDownloaded } from './offline';
 import { rpcWithKeepalive, supabase } from './supabase';
 
 // ==========================================
@@ -8,10 +9,13 @@ import { rpcWithKeepalive, supabase } from './supabase';
 // that talks to this with postMessage. The list of messages is at the top of that file. This:
 // - answers the game's hello with whether a player is signed in (the game is reloaded when that
 //   changes, so it only needs to know at the start)
-// - reads the player's save for the game, and writes the game's saves to their account: at most one
-//   every 10 seconds, and whatever's left when the page is hidden or left
+// - reads the player's save for the game (with when it was saved), and writes the game's saves to
+//   their account: at most one every 10 seconds, and whatever's left when the page is hidden or left.
+//   It tells the game when each save landed, so a game can tell progress made offline from the
+//   account's (gamehub.js version 2).
 // - resets the game's progress (its help menu): the browser's copy through the bridge, then the
 //   account's
+// - downloads the game to play offline, or removes the download (src/lib/offline.js)
 // It only listens to the game's own frame, from the game's own address, and never gives the game
 // the player's sign-in.
 
@@ -20,6 +24,7 @@ export const SAVE_LIMIT = 64 * 1024; // bytes of JSON, like js/gamehub.js (bigge
 const SAVE_INTERVAL = 10_000; // ms: at most one save per game this often
 const MAX_RETRY_WAIT = 60_000; // ms: failed saves are tried again, less and less often, up to this
 const RESET_TIMEOUT = 3000; // ms for the game's page to clear its copy
+const DOWNLOAD_TIMEOUT = 60_000; // ms for the game's page to download (or remove) its copy
 
 // Saves still waiting to go out, written before signing out (AuthContext) so none are lost
 const flushers = new Set();
@@ -58,10 +63,11 @@ class SaveQueue {
    * @param {string} gameId
    * @param {function} getToken - the signed-in player's access token, or null
    * @param {function} onChange - gets { saving, savedAt?, saveFailed? } as writes start and end
+   * @param {function} onWritten - gets the save (as added) and when the account saved it, after each write
    */
-  constructor(gameId, getToken, onChange) {
-    Object.assign(this, { gameId, getToken, onChange });
-    this.pending = null; // JSON text
+  constructor(gameId, getToken, onChange, onWritten) {
+    Object.assign(this, { gameId, getToken, onChange, onWritten });
+    this.pending = null; // { json, seq, frame }
     this.timer = null;
     this.lastWrite = 0;
     this.failures = 0;
@@ -69,9 +75,14 @@ class SaveQueue {
     this.paused = false; // while a reset is under way, until the game reloads
   }
 
-  add(json) {
+  /**
+   * @param {string} json - the save
+   * @param {number|null} seq - the game's number for it (gamehub.js version 2), to acknowledge
+   * @param {object} frame - the <iframe> it came from: the acknowledgement goes only to that page
+   */
+  add(json, seq, frame) {
     if (this.paused) return;
-    this.pending = json;
+    this.pending = { json, seq, frame };
     this.schedule();
   }
 
@@ -94,26 +105,27 @@ class SaveQueue {
   }
 
   async write(keepalive) {
-    const json = this.pending;
+    const save = this.pending;
     const token = this.getToken();
-    if (json === null || !token || this.paused) return;
+    if (save === null || !token || this.paused) return;
     this.pending = null;
     this.lastWrite = Date.now();
     this.onChange({ saving: true });
     try {
       let savedAt;
       if (keepalive) {
-        savedAt = await rpcWithKeepalive('save_game', `{"p_game":${JSON.stringify(this.gameId)},"p_data":${json}}`, token);
+        savedAt = await rpcWithKeepalive('save_game', `{"p_game":${JSON.stringify(this.gameId)},"p_data":${save.json}}`, token);
       } else {
-        const { data, error } = await supabase.rpc('save_game', { p_game: this.gameId, p_data: JSON.parse(json) });
+        const { data, error } = await supabase.rpc('save_game', { p_game: this.gameId, p_data: JSON.parse(save.json) });
         if (error) throw error;
         savedAt = data;
       }
       this.failures = 0;
       this.onChange({ saving: false, savedAt: new Date(savedAt), saveFailed: false });
+      this.onWritten(save, savedAt);
     } catch {
       // Tried again later, unless a newer save came in meanwhile (that one goes instead)
-      if (this.pending === null && !this.paused) this.pending = json;
+      if (this.pending === null && !this.paused) this.pending = save;
       this.failures += 1;
       this.onChange({ saving: false, saveFailed: true });
       if (this.pending !== null) this.schedule();
@@ -134,6 +146,9 @@ class SaveQueue {
   }
 }
 
+// What the game's page says about downloading it: supported is null until it has answered
+const OFFLINE_UNKNOWN = { supported: null, downloaded: false, busy: false, error: null };
+
 /**
  * Connects the hub page to the game in its frame.
  * @param {object} frameRef - the game's <iframe>
@@ -142,19 +157,29 @@ class SaveQueue {
  * @param {string} origin - the game's own origin (its embed URL's): only its messages count
  * @param {object|null} session - the signed-in player's session (AuthContext), null for guests
  * @return {{ frameKey: number, connected: boolean, saving: boolean, savedAt: Date|null, saveFailed: boolean,
- *   resetProgress: function }} - frameKey changes when the game has to start again (a key for its <iframe>)
+ *   offline: object, setDownload: function, reloadGame: function, resetProgress: function }} - frameKey
+ *   changes when the game has to start again (a key for its <iframe>); offline is
+ *   { supported, downloaded, busy, error } (see OFFLINE_UNKNOWN)
  */
 export const useGameBridge = ({ frameRef, gameId, origin, session }) => {
   const signedIn = Boolean(session);
   const [frameKey, setFrameKey] = useState(0);
   const [status, setStatus] = useState({ connected: false, saving: false, savedAt: null, saveFailed: false });
+  const [offline, setOffline] = useState(OFFLINE_UNKNOWN);
   const sessionRef = useRef(session);
   const connectedRef = useRef(false);
   const resetReplyRef = useRef(null); // resolves a reset waiting for the game's page
+  const downloadTimerRef = useRef(null);
   const [queue] = useState(() => new SaveQueue(
     gameId,
     () => sessionRef.current?.access_token ?? null,
     (changes) => setStatus((previous) => ({ ...previous, ...changes })),
+    // The game hears that its save landed, if it numbered it and its page is still the one in the frame
+    ({ seq, frame }, updatedAt) => {
+      if (seq !== null && frame === frameRef.current && connectedRef.current) {
+        frame.contentWindow?.postMessage({ type: 'gamehub:synced', seq, updatedAt }, origin);
+      }
+    },
   ));
 
   useLayoutEffect(() => {
@@ -177,13 +202,14 @@ export const useGameBridge = ({ frameRef, gameId, origin, session }) => {
           queue.resume(); // a fresh page (a reset reloads the game)
           setStatus((previous) => ({ ...previous, connected: true }));
           reply({ type: 'gamehub:welcome', version: VERSION, signedIn });
+          reply({ type: 'gamehub:offline', action: 'status' }); // is it downloaded?
           return;
         case 'gamehub:load':
           if (!signedIn || !Number.isSafeInteger(message.id)) return;
           readSave(gameId).then(
             (row) => {
               if (row) setStatus((previous) => ({ ...previous, savedAt: new Date(row.updated_at) }));
-              reply({ type: 'gamehub:loaded', id: message.id, data: row?.data ?? null });
+              reply({ type: 'gamehub:loaded', id: message.id, data: row?.data ?? null, updatedAt: row?.updated_at ?? null });
             },
             () => reply({ type: 'gamehub:loaded', id: message.id, error: true }),
           );
@@ -191,12 +217,20 @@ export const useGameBridge = ({ frameRef, gameId, origin, session }) => {
         case 'gamehub:save': {
           if (!signedIn) return;
           const json = saveJson(message.data);
-          if (json !== null) queue.add(json);
+          if (json !== null) queue.add(json, Number.isSafeInteger(message.seq) ? message.seq : null, frame);
           return;
         }
         case 'gamehub:reset-done':
           resetReplyRef.current?.(message.ok === true);
           return;
+        case 'gamehub:offline-state': {
+          clearTimeout(downloadTimerRef.current);
+          const supported = message.supported === true;
+          const downloaded = supported && message.downloaded === true;
+          setOffline({ supported, downloaded, busy: false, error: typeof message.error === 'string' ? message.error : null });
+          setDownloaded(gameId, downloaded); // for the games list
+          return;
+        }
         default:
       }
     };
@@ -208,6 +242,7 @@ export const useGameBridge = ({ frameRef, gameId, origin, session }) => {
   useEffect(() => {
     connectedRef.current = false;
     setStatus((previous) => ({ ...previous, connected: false }));
+    setOffline(OFFLINE_UNKNOWN);
   }, [frameKey, signedIn]);
 
   // Nothing waiting is lost: it goes out when the page is hidden or closed (it may not come back),
@@ -228,6 +263,28 @@ export const useGameBridge = ({ frameRef, gameId, origin, session }) => {
       queue.flush();
     };
   }, [queue]);
+
+  useEffect(() => () => clearTimeout(downloadTimerRef.current), []);
+
+  /**
+   * Downloads the game to play offline, or removes the download. The game's page does it, and
+   * answers with its new state (offline).
+   * @param {boolean} download
+   */
+  const setDownload = useCallback((download) => {
+    const target = frameRef.current?.contentWindow;
+    if (!target || !connectedRef.current) return;
+    if (download) keepOfflineCopy();
+    setOffline((previous) => ({ ...previous, busy: true, error: null }));
+    clearTimeout(downloadTimerRef.current);
+    downloadTimerRef.current = setTimeout(() => {
+      setOffline((previous) => ({ ...previous, busy: false, error: 'failed' }));
+    }, DOWNLOAD_TIMEOUT);
+    target.postMessage({ type: 'gamehub:offline', action: download ? 'download' : 'remove' }, origin);
+  }, [frameRef, origin]);
+
+  /** Starts the game again (e.g. back online: it reconnects, and its progress goes up) */
+  const reloadGame = useCallback(() => setFrameKey((key) => key + 1), []);
 
   // Asks the game's page to clear its copy; resolves to whether it did
   const clearGameCopy = useCallback(() => new Promise((resolve) => {
@@ -274,5 +331,5 @@ export const useGameBridge = ({ frameRef, gameId, origin, session }) => {
     }
   }, [queue, clearGameCopy, gameId, signedIn]);
 
-  return { frameKey, ...status, resetProgress };
+  return { frameKey, ...status, offline, setDownload, reloadGame, resetProgress };
 };

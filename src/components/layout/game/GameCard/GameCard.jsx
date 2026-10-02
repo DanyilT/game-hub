@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { CiCircleInfo, CiCircleMore, CiGlobe, CiPlay1 } from 'react-icons/ci';
-import { PiBookmarkSimple, PiBookmarkSimpleFill } from 'react-icons/pi';
+import { PiBookmarkSimple, PiBookmarkSimpleFill, PiCloudCheck } from 'react-icons/pi';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { useLibrary } from '../../../../contexts/LibraryContext';
 import {
   getEmbedUrl, getPlatformIcon, getPlatformTypes, getSourceLinks, getStorePlatforms, getWebPlatform,
 } from '../../../../data/games';
 import { calendarDate } from '../../../../lib/dates';
+import { useDownloads, useOnline } from '../../../../lib/offline';
 import styles from './GameCard.module.scss';
 
 /**
@@ -50,6 +51,8 @@ const GameCard = ({ game, index = 0, onTagClick, selectedTags = [] }) => {
   const { isAvailable } = useAuth();
   const { bookmarks, toggleBookmark } = useLibrary();
   const bookmarked = bookmarks.has(game.id);
+  const downloaded = Boolean(useDownloads()[game.id]);
+  const online = useOnline();
   const [showInfo, setShowInfo] = useState(false);
   const infoButtonRef = useRef(null);
   const infoPanelRef = useRef(null);
@@ -57,6 +60,8 @@ const GameCard = ({ game, index = 0, onTagClick, selectedTags = [] }) => {
   const gamePage = `/g/${game.id}`;
   const embedUrl = getEmbedUrl(game); // null for entries that live on their own site or in a store
   const webPlatform = getWebPlatform(game);
+  // Offline, only downloaded games play: the rest are dimmed
+  const needsInternet = !online && !downloaded;
 
   // Keyboard users: focus goes to the info panel when it opens and back to the Info button
   // when it closes. Mouse users keep their focus where it was.
@@ -88,7 +93,7 @@ const GameCard = ({ game, index = 0, onTagClick, selectedTags = [] }) => {
 
   return (
     <div
-      className={styles.gameCard}
+      className={`${styles.gameCard} ${needsInternet ? styles.needsInternet : ''}`}
       style={{ '--card-index': index }} // staggers the drop-in animation
       onMouseLeave={() => { if (showInfo) closeInfo(false); }}
     >
@@ -102,6 +107,14 @@ const GameCard = ({ game, index = 0, onTagClick, selectedTags = [] }) => {
           </div>
         )}
       </div>
+
+      {/* Downloaded to play offline (from the game's page), or, offline, a game that needs the internet */}
+      {(downloaded || needsInternet) && (
+        <span className={`${styles.offlineBadge} ${downloaded ? styles.ready : ''}`} title={downloaded ? 'Downloaded: plays offline' : 'Needs the internet'}>
+          {downloaded && <PiCloudCheck aria-hidden="true" />}
+          {downloaded ? 'Offline' : 'Needs internet'}
+        </span>
+      )}
 
       {/* Bookmark to play later (private; the profile lists them). Always shown once bookmarked,
           otherwise with the rest of the card's buttons. Signed out, it opens the sign-in window. */}

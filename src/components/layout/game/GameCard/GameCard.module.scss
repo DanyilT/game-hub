@@ -205,6 +205,37 @@ $drop-delay: min(0.1s * (var(--card-index, 0) + 1), 1.5s);
   }
 }
 
+// Downloaded to play offline, or (offline) needing the internet: a label in the top-left corner,
+// over the picture, under the title when the card opens
+.offlineBadge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: 2px $spacing-sm;
+  border-radius: $radius-full;
+  background: color-mix(in srgb, $color-black 65%, transparent);
+  backdrop-filter: blur(4px);
+  color: $color-text-secondary;
+  font-family: $font-secondary;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  pointer-events: none;
+
+  &.ready {
+    color: $color-accent-light;
+  }
+}
+
+// Offline, games that aren't downloaded: still there, but faded (on the picture's box: the picture's
+// own fade-in animation holds its filter)
+.needsInternet .gameImageContainer {
+  filter: grayscale(1) brightness(0.6);
+}
+
 // Bookmark, in the top-right corner: shown with the other buttons, and always once bookmarked
 // (touch screens, which can't hover, always show it)
 .bookmarkButton {

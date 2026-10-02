@@ -12,6 +12,8 @@ import { useGameStats } from '../../contexts/LibraryContext';
 import { calendarDate } from '../../lib/dates';
 import { useGameBridge } from '../../lib/gameBridge';
 import { noteGameOpened } from '../../lib/install';
+import { useDownloads, useOnline } from '../../lib/offline';
+import DownloadGame from '../../components/layout/game/DownloadGame/DownloadGame.jsx';
 import GameControls from '../../components/layout/game/GameControls/GameControls.jsx';
 import GameHelp from '../../components/layout/game/GameHelp/GameHelp.jsx';
 import GameReactions from '../../components/layout/game/GameReactions/GameReactions.jsx';
@@ -80,9 +82,17 @@ const NewTabNote = () => (
 
 /**
  * Where the game's progress is going, under the game: the account (signed in, once the game has
- * connected) or this browser
+ * connected) or this browser; offline, this device
  */
-const SaveStatus = ({ bridge, signedIn, accountsAvailable }) => {
+const SaveStatus = ({ bridge, signedIn, accountsAvailable, online }) => {
+  if (!online) {
+    return (
+      <p className={styles.saveStatus}>
+        You&rsquo;re offline. Your progress is kept on this device
+        {signedIn ? ', and goes up to your account the next time you play this game online.' : '.'}
+      </p>
+    );
+  }
   // Games only connect a moment after they load; until then (or if they never do) nothing is claimed
   if (!accountsAvailable || !bridge.connected) return null;
   if (!signedIn) {
@@ -128,9 +138,43 @@ const GamePageContent = ({ gameId }) => {
     origin: embedUrl ? new URL(embedUrl).origin : null,
     session,
   });
+  // Offline, a game plays only if it's downloaded (the record can be out of date, so there's a way
+  // to try anyway)
+  const online = useOnline();
+  const downloads = useDownloads();
+  const [tryAnyway, setTryAnyway] = useState(false);
+  const blockedOffline = Boolean(embedUrl) && !online && !downloads[gameId] && !tryAnyway;
+
   // The game starts again when the player signs in or out (so it loads their save), and after a
-  // reset. It waits until we know who's signed in, so it doesn't load twice.
-  const frameId = sessionReady ? `${user?.id ?? 'guest'}:${bridge.frameKey}` : null;
+  // reset. Online, it waits until we know who's signed in, so it doesn't load twice. Offline it
+  // starts at once: finding out can take a while then (Supabase spends half a minute trying to
+  // refresh a sign-in that's over an hour old), and the game can't reach the account anyway. When
+  // we do find out, a game started that way carries on as that player's.
+  const player = sessionReady ? user?.id ?? 'guest' : null; // null until we know
+  // A game started offline before we knew: { frameKey, player } (who it turned out to be, or null)
+  const [offlineStart, setOfflineStart] = useState(null);
+  const startedOffline = offlineStart?.frameKey === bridge.frameKey;
+  if (!startedOffline && player === null && !online && !blockedOffline) {
+    setOfflineStart({ frameKey: bridge.frameKey, player: null });
+  } else if (startedOffline && offlineStart.player === null && player !== null) {
+    setOfflineStart({ frameKey: bridge.frameKey, player });
+  }
+  let frameId = null;
+  if (startedOffline && (offlineStart.player === null || offlineStart.player === player)) {
+    frameId = `offline:${bridge.frameKey}`;
+  } else if (player !== null) {
+    frameId = `${player}:${bridge.frameKey}`;
+  }
+
+  // A game that loaded offline can't reach the account, so back online, a reload sends its progress up
+  const [offlineSinceLoad, setOfflineSinceLoad] = useState(() => !navigator.onLine);
+  useEffect(() => {
+    setOfflineSinceLoad(!navigator.onLine);
+  }, [frameId]);
+  useEffect(() => {
+    if (!online) setOfflineSinceLoad(true);
+  }, [online]);
+  const offerReload = online && offlineSinceLoad && Boolean(user) && !bridge.connected;
 
   useEffect(() => {
     try {
@@ -352,6 +396,9 @@ const GamePageContent = ({ gameId }) => {
         <div className={styles.gameReactions}>
           {stats?.rating_count > 0 && <RatingChip stats={stats} />}
           <GameReactions game={game} stats={stats} />
+          {embedUrl && (
+            <DownloadGame game={game} offline={bridge.offline} recorded={Boolean(downloads[gameId])} onSetDownload={bridge.setDownload} />
+          )}
           <button
             type="button"
             className={styles.helpButton}
@@ -380,7 +427,17 @@ const GamePageContent = ({ gameId }) => {
               ref={frameContainerRef}
               className={`${styles.gameFrameContainer} ${resizeEnabled ? styles.resizable : ''}`}
             >
-              {frameId && (
+              {blockedOffline && (
+                <div className={styles.offlineNotice} role="status">
+                  <p>You&rsquo;re offline, and {game.title} isn&rsquo;t downloaded.</p>
+                  <p className={styles.offlineHint}>
+                    Connect to the internet to play it. To play it offline next time, download it from this page
+                    (the Download button at the top).
+                  </p>
+                  <button type="button" className={styles.sizeButton} onClick={() => setTryAnyway(true)}>Try anyway</button>
+                </div>
+              )}
+              {frameId && !blockedOffline && (
                 <iframe
                   key={frameId}
                   ref={iframeRef}
@@ -463,7 +520,15 @@ const GamePageContent = ({ gameId }) => {
                 </button>
               </div>
             </div>
-            <SaveStatus bridge={bridge} signedIn={Boolean(user)} accountsAvailable={accountsAvailable} />
+            {!blockedOffline && (
+              <SaveStatus bridge={bridge} signedIn={Boolean(user)} accountsAvailable={accountsAvailable} online={online} />
+            )}
+            {offerReload && (
+              <p className={styles.saveStatus}>
+                You&rsquo;re back online. Reload the game to send the progress you made offline to your account.{' '}
+                <button type="button" className={styles.textButton} onClick={bridge.reloadGame}>Reload the game</button>
+              </p>
+            )}
             {showControlsExpanded && controls}
           </section>
         ) : (

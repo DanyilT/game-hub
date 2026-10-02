@@ -5,12 +5,15 @@ import Sidebar from '../Sidebar/Sidebar';
 import FloatingNav from '../FloatingNav/FloatingNav';
 import Footer from '../Footer/Footer';
 import ErrorBoundary from '../../common/ErrorBoundary/ErrorBoundary';
+import ConfirmDialog from '../../common/ConfirmDialog/ConfirmDialog';
 import Toasts from '../../common/Toasts/Toasts';
 import UsernameDialog from '../../account/UsernameDialog/UsernameDialog';
 import SignInModal from '../../account/SignInModal/SignInModal';
 import { InstallSteps, useInstall } from '../../install/InstallApp';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useOnline } from '../../../lib/offline';
 import { usePreferences } from '../../../lib/preferences';
+import { showToast } from '../../../lib/toast';
 import styles from './MainLayout.module.scss';
 
 // Remember whether the desktop sidebar was left expanded. Storage can be
@@ -38,6 +41,15 @@ const MainLayout = () => {
   // Settings → Preferences: the sidebar, or the floating button in a corner
   const { navStyle, navCorner } = usePreferences();
   const floating = navStyle === 'floating';
+
+  // Losing or getting back the connection (and opening the site offline) says so
+  const online = useOnline();
+  const wasOnlineRef = useRef(true);
+  useEffect(() => {
+    if (online === wasOnlineRef.current) return;
+    wasOnlineRef.current = online;
+    showToast(online ? "You're back online." : "You're offline. Downloaded games still play.", { duration: online ? 4000 : 8000 });
+  }, [online]);
 
   useEffect(() => {
     try {
@@ -149,6 +161,8 @@ const MainLayout = () => {
       {stepsOpen && <InstallSteps />}
       {/* Short messages ("Couldn't save…"), at the bottom of the screen */}
       <Toasts />
+      {/* "Sign out of GameHub?" and other questions before something happens */}
+      <ConfirmDialog />
     </div>
   );
 };
