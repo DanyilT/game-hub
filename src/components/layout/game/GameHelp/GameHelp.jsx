@@ -87,7 +87,8 @@ const ResetConfirm = ({ game, signedIn, onReset, onBack }) => {
     <div className={styles.form}>
       <p>
         Start {game.title} from scratch? This deletes your progress in it (scores, levels, anything it saved)
-        {signedIn ? ' in your account and in this browser.' : ' in this browser.'} It can&rsquo;t be undone.
+        {signedIn ? ' in your account and in this browser' : ' in this browser'}, and your replays of it. It
+        can&rsquo;t be undone.{signedIn && ' Your checked records stay in your account.'}
       </p>
       {state.error && <p className={styles.error} role="alert">{state.error}</p>}
       <div className={styles.actions}>

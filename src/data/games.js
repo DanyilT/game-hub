@@ -12,6 +12,9 @@ import gamesData from 'virtual:catalog';
 // `icon` fields name react-icons components; vite.config.js bundles just those (`virtual:catalog-icons`).
 export const games = gamesData.games;
 
+/** The catalogue's entries by id */
+export const gamesById = new Map(games.map((game) => [game.id, game]));
+
 // Icons for platforms that don't name one
 const PLATFORM_ICONS = { web: CiShare1, android: CiMobile3 };
 

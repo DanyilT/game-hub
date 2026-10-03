@@ -11,9 +11,10 @@ import UsernameDialog from '../../account/UsernameDialog/UsernameDialog';
 import SignInModal from '../../account/SignInModal/SignInModal';
 import { InstallSteps, useInstall } from '../../install/InstallApp';
 import { useAuth } from '../../../contexts/AuthContext';
-import { useOnline } from '../../../lib/offline';
+import { catchUp } from '../../../lib/checks';
+import { useDownloads, useOnline } from '../../../lib/offline';
 import { usePreferences } from '../../../lib/preferences';
-import { showToast } from '../../../lib/toast';
+import { dismissToast, showToast } from '../../../lib/toast';
 import styles from './MainLayout.module.scss';
 
 // Remember whether the desktop sidebar was left expanded. Storage can be
@@ -30,26 +31,68 @@ const readExpanded = () => {
 // Must match $breakpoint-mobile in styles/abstracts/_variables.scss
 const DESKTOP_QUERY = '(width > 768px)';
 
+const games = (count) => (count === 1 ? 'A game' : `${count} games`);
+// What catching up did (src/lib/checks.js): tickets got (back online), games played offline checked
+const caughtUpNote = ({ tickets, checked, refused }, backOnline = true) => {
+  const parts = [];
+  if (backOnline) {
+    parts.push(tickets ? 'Tickets ready: your games are saved to your account again.'
+      : 'Couldn’t get new tickets just now: they come the next time you’re online.');
+  }
+  if (checked > 0) parts.push(`${games(checked)} you played offline ${checked === 1 ? 'was' : 'were'} checked and saved to your account.`);
+  if (refused > 0) parts.push(`${games(refused)} didn’t play out the same on GameHub’s server, so ${refused === 1 ? 'it doesn’t' : 'they don’t'} count.`);
+  return parts.join(' ');
+};
+
 const MainLayout = () => {
   const [isExpanded, setIsExpanded] = useState(readExpanded); // desktop: wide sidebar with labels
   const [isMenuOpen, setIsMenuOpen] = useState(false);        // phone: sidebar drawer
   const menuButtonRef = useRef(null);
   const wasMenuOpenRef = useRef(false);
   const location = useLocation();
-  const { signInOpen } = useAuth();
+  const { signInOpen, session } = useAuth();
   const { stepsOpen } = useInstall();
   // Settings → Preferences: the sidebar, or the floating button in a corner
   const { navStyle, navCorner } = usePreferences();
   const floating = navStyle === 'floating';
 
-  // Losing or getting back the connection (and opening the site offline) says so
+  // Losing or getting back the connection (and opening the site offline) says so. Back online, a
+  // signed-in player gets tickets again for their downloaded games, and the games they played offline
+  // are checked (src/lib/checks.js); so they are when the site opens online, quietly.
   const online = useOnline();
+  const downloads = useDownloads();
   const wasOnlineRef = useRef(true);
+  const sessionRef = useRef(session);
+  const downloadsRef = useRef(downloads);
+  useLayoutEffect(() => {
+    sessionRef.current = session;
+    downloadsRef.current = downloads;
+  });
   useEffect(() => {
     if (online === wasOnlineRef.current) return;
     wasOnlineRef.current = online;
-    showToast(online ? "You're back online." : "You're offline. Downloaded games still play.", { duration: online ? 4000 : 8000 });
+    if (!online) {
+      showToast("You're offline. Downloaded games still play.", { duration: 8000 });
+      return;
+    }
+    const signedIn = sessionRef.current;
+    if (!signedIn) {
+      showToast("You're back online.", { duration: 4000 });
+      return;
+    }
+    const getting = showToast("You're back online. Getting your game tickets…", { duration: 0 });
+    catchUp(signedIn, Object.keys(downloadsRef.current)).then((done) => {
+      dismissToast(getting);
+      showToast(caughtUpNote(done), { duration: 8000 });
+    }, () => dismissToast(getting));
   }, [online]);
+  const userId = session?.user?.id ?? null;
+  useEffect(() => {
+    if (!userId || !navigator.onLine || !sessionRef.current) return;
+    catchUp(sessionRef.current, Object.keys(downloadsRef.current)).then((done) => {
+      if (done.checked + done.refused > 0) showToast(caughtUpNote(done, false), { duration: 8000 });
+    }, () => {});
+  }, [userId]);
 
   useEffect(() => {
     try {

@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { canCheck, keepAndCheck, refillTickets, spendTicket, ticketsFor } from './checks';
+import { cleanStatus } from './gameStatus';
 import { keepOfflineCopy, setDownloaded } from './offline';
+import { cleanRun, clearRuns } from './runs';
 import { rpcWithKeepalive, supabase } from './supabase';
 
 // ==========================================
@@ -7,8 +10,9 @@ import { rpcWithKeepalive, supabase } from './supabase';
 // ==========================================
 // A game in the hub runs public/hub-bridge.js inside its own page (its js/gamehub.js loads it), and
 // that talks to this with postMessage. The list of messages is at the top of that file. This:
-// - answers the game's hello with whether a player is signed in (the game is reloaded when that
-//   changes, so it only needs to know at the start)
+// - answers the game's hello with whether a player is signed in, and a name for them that means
+//   nothing outside this game (the bridge keeps each player's copy of the save apart by it). The game
+//   is reloaded when that changes, so it only needs to know at the start.
 // - reads the player's save for the game (with when it was saved), and writes the game's saves to
 //   their account: at most one every 10 seconds, and whatever's left when the page is hidden or left.
 //   It tells the game when each save landed, so a game can tell progress made offline from the
@@ -16,6 +20,11 @@ import { rpcWithKeepalive, supabase } from './supabase';
 // - resets the game's progress (its help menu): the browser's copy through the bridge, then the
 //   account's
 // - downloads the game to play offline, or removes the download (src/lib/offline.js)
+// - notes when the player last pressed a key or tapped in the game (play time, src/lib/playTime.js)
+// - for the panel under the game (gamehub.js version 3): takes the game's numbers, keeps each run it
+//   finishes (src/lib/runs.js), and plays a run again in a game opened for that (GameHub.replaying)
+// - hands a signed-in player's game their tickets (seeds the server chose, src/lib/checks.js), one for
+//   each run, and sends each run played on one to be checked
 // It only listens to the game's own frame, from the game's own address, and never gives the game
 // the player's sign-in.
 
@@ -32,6 +41,27 @@ const flushers = new Set();
 export const flushSaves = () => Promise.allSettled([...flushers].map((flush) => flush()));
 
 const isPlainObject = (value) => typeof value === 'object' && value !== null && !Array.isArray(value);
+
+/**
+ * The name the game's page knows a signed-in player by: a 53-bit hash (cyrb53) of their account and the
+ * game, as 14 hex characters. The same every time, but it doesn't say who they are, nor ties them
+ * across games. It only keeps players' copies apart, so it needn't be cryptographic (crypto.subtle
+ * isn't there on plain-http pages, like the dev server on the local network).
+ * @return {string}
+ */
+const playerName = (userId, gameId) => {
+  const text = `${userId}:${gameId}`;
+  let h1 = 0xdeadbeef;
+  let h2 = 0x41c6ce57;
+  for (let i = 0; i < text.length; i += 1) {
+    const code = text.charCodeAt(i);
+    h1 = Math.imul(h1 ^ code, 2654435761);
+    h2 = Math.imul(h2 ^ code, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16).padStart(14, '0');
+};
 
 /**
  * A save as JSON text, if it's something a game could have saved (an object JSON can hold) and not
@@ -149,6 +179,9 @@ class SaveQueue {
 // What the game's page says about downloading it: supported is null until it has answered
 const OFFLINE_UNKNOWN = { supported: null, downloaded: false, busy: false, error: null };
 
+const REPLAY_STATES = ['playing', 'paused', 'ended', 'error'];
+const isTime = (value) => Number.isFinite(value) && value >= 0;
+
 /**
  * Connects the hub page to the game in its frame.
  * @param {object} frameRef - the game's <iframe>
@@ -156,16 +189,29 @@ const OFFLINE_UNKNOWN = { supported: null, downloaded: false, busy: false, error
  *   is keyed by game, so this doesn't change.
  * @param {string} origin - the game's own origin (its embed URL's): only its messages count
  * @param {object|null} session - the signed-in player's session (AuthContext), null for guests
- * @return {{ frameKey: number, connected: boolean, saving: boolean, savedAt: Date|null, saveFailed: boolean,
- *   offline: object, setDownload: function, reloadGame: function, resetProgress: function }} - frameKey
- *   changes when the game has to start again (a key for its <iframe>); offline is
- *   { supported, downloaded, busy, error } (see OFFLINE_UNKNOWN)
+ * @param {object|null} replay - { run, speed, key } while the frame holds a game opened to play that
+ *   run (a new key for each time it's played); null for a game to play
+ * @return {{ frameKey: number, connected: boolean, gameVersion: number, saving: boolean,
+ *   savedAt: Date|null, saveFailed: boolean, offline: object, setDownload: function,
+ *   reloadGame: function, resetProgress: function, activity: object, gameStatus: object|null,
+ *   replayState: object|null, controlReplay: function }} - frameKey changes when
+ *   the game has to start again (a key for its <iframe>); gameVersion is its gamehub.js version (1 to
+ *   3, once connected); offline is { supported, downloaded, busy, error } (see OFFLINE_UNKNOWN);
+ *   activity.current is when the player last pressed a key or tapped in the game (Date.now(), 0
+ *   before they have); gameStatus is what the game says its panel shows (src/lib/gameStatus.js);
+ *   replayState is { state, position, length } of a replay under way
  */
-export const useGameBridge = ({ frameRef, gameId, origin, session }) => {
+export const useGameBridge = ({ frameRef, gameId, origin, session, replay = null }) => {
   const signedIn = Boolean(session);
+  const userId = session?.user?.id ?? null;
+  const activity = useRef(0);
   const [frameKey, setFrameKey] = useState(0);
-  const [status, setStatus] = useState({ connected: false, saving: false, savedAt: null, saveFailed: false });
+  const [status, setStatus] = useState({ connected: false, gameVersion: 1, saving: false, savedAt: null, saveFailed: false });
   const [offline, setOffline] = useState(OFFLINE_UNKNOWN);
+  const [gameStatus, setGameStatus] = useState(null);
+  const [replayState, setReplayState] = useState(null);
+  const replayRef = useRef(replay);
+  const playerRef = useRef(userId ?? 'guest'); // whose runs the game's runs are
   const sessionRef = useRef(session);
   const connectedRef = useRef(false);
   const resetReplyRef = useRef(null); // resolves a reset waiting for the game's page
@@ -184,7 +230,27 @@ export const useGameBridge = ({ frameRef, gameId, origin, session }) => {
 
   useLayoutEffect(() => {
     sessionRef.current = session;
+    replayRef.current = replay;
+    playerRef.current = userId ?? 'guest';
   });
+
+  // Hands the game in the frame the player's tickets for it: the ones kept in this browser at once, then a fresh list
+  // once topped up from the server, when online (only that, when none are kept: a game that starts a run as it loads
+  // waits for the first list)
+  const handTickets = useCallback(async (reply) => {
+    const player = sessionRef.current?.user?.id;
+    if (!player) return;
+    const send = (list) => reply({ type: 'gamehub:tickets', tickets: list.map(({ id, seed }) => ({ id, seed })) });
+    const kept = canCheck(gameId) ? ticketsFor(player, gameId) : [];
+    const online = navigator.onLine && canCheck(gameId);
+    if (kept.length > 0 || !online) send(kept);
+    if (!online) return;
+    try {
+      send(await refillTickets(player, gameId));
+    } catch {
+      if (kept.length === 0) send(kept); // the server can't be reached: none, then
+    }
+  }, [gameId]);
 
   // The game's messages
   useEffect(() => {
@@ -196,14 +262,21 @@ export const useGameBridge = ({ frameRef, gameId, origin, session }) => {
       const reply = (answer) => frame.contentWindow?.postMessage(answer, origin);
 
       switch (message.type) {
-        case 'gamehub:hello':
+        case 'gamehub:hello': {
           if (message.version !== VERSION) return;
           connectedRef.current = true;
           queue.resume(); // a fresh page (a reset reloads the game)
-          setStatus((previous) => ({ ...previous, connected: true }));
-          reply({ type: 'gamehub:welcome', version: VERSION, signedIn });
+          const gameVersion = [2, 3].includes(message.game) ? message.game : 1;
+          setStatus((previous) => ({ ...previous, connected: true, gameVersion }));
+          reply({ type: 'gamehub:welcome', version: VERSION, signedIn, player: userId ? playerName(userId, gameId) : null });
           reply({ type: 'gamehub:offline', action: 'status' }); // is it downloaded?
+          // A game opened for a replay plays it (the bridge holds it until the game is ready); a game to play gets the
+          // player's tickets
+          const wanted = replayRef.current;
+          if (wanted) reply({ type: 'gamehub:replay', action: 'play', run: wanted.run, speed: wanted.speed });
+          else if (gameVersion === 3 && signedIn) handTickets(reply);
           return;
+        }
         case 'gamehub:load':
           if (!signedIn || !Number.isSafeInteger(message.id)) return;
           readSave(gameId).then(
@@ -223,6 +296,33 @@ export const useGameBridge = ({ frameRef, gameId, origin, session }) => {
         case 'gamehub:reset-done':
           resetReplyRef.current?.(message.ok === true);
           return;
+        case 'gamehub:active':
+          activity.current = Date.now();
+          return;
+        case 'gamehub:status':
+          setGameStatus(cleanStatus(message.status));
+          return;
+        case 'gamehub:run-start': {
+          // A run took one of the player's tickets: it's spent, and the game gets more when online
+          const player = sessionRef.current?.user?.id;
+          if (!player || replayRef.current || typeof message.ticket !== 'string') return;
+          spendTicket(player, gameId, message.ticket).then(() => {
+            if (navigator.onLine) handTickets(reply);
+          });
+          return;
+        }
+        case 'gamehub:run': {
+          // A game it played, kept with this player's runs, and checked when it was played on a ticket (none come from
+          // a replay)
+          const run = cleanRun(message.run);
+          if (!run || replayRef.current) return;
+          keepAndCheck(signedIn ? sessionRef.current : null, gameId, run).catch(() => {});
+          return;
+        }
+        case 'gamehub:replay-state':
+          if (!replayRef.current || !REPLAY_STATES.includes(message.state) || !isTime(message.position) || !isTime(message.length)) return;
+          setReplayState({ state: message.state, position: Math.min(message.position, message.length), length: message.length });
+          return;
         case 'gamehub:offline-state': {
           clearTimeout(downloadTimerRef.current);
           const supported = message.supported === true;
@@ -236,14 +336,18 @@ export const useGameBridge = ({ frameRef, gameId, origin, session }) => {
     };
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
-  }, [frameRef, origin, gameId, signedIn, queue]);
+  }, [frameRef, origin, gameId, signedIn, userId, queue, handTickets]);
 
-  // A new frame (after signing in or out, or a reset) starts out unconnected
+  // A new frame (after signing in or out, or a reset, or for a replay or back from one) starts out
+  // unconnected. The game's numbers stay until the new page sends its own, so the panel doesn't
+  // blink.
+  const replayKey = replay?.key ?? null;
   useEffect(() => {
     connectedRef.current = false;
     setStatus((previous) => ({ ...previous, connected: false }));
     setOffline(OFFLINE_UNKNOWN);
-  }, [frameKey, signedIn]);
+    setReplayState(null);
+  }, [frameKey, signedIn, replayKey]);
 
   // Nothing waiting is lost: it goes out when the page is hidden or closed (it may not come back),
   // before signing out, and when leaving the game for another page of the hub
@@ -286,6 +390,15 @@ export const useGameBridge = ({ frameRef, gameId, origin, session }) => {
   /** Starts the game again (e.g. back online: it reconnects, and its progress goes up) */
   const reloadGame = useCallback(() => setFrameKey((key) => key + 1), []);
 
+  /**
+   * Pauses or resumes the replay under way, or changes its speed
+   * @param {object} command - { action: 'pause' } | { action: 'resume' } | { action: 'speed', speed: 1 | 2 | 4 }
+   */
+  const controlReplay = useCallback((command) => {
+    const target = frameRef.current?.contentWindow;
+    if (target && connectedRef.current && replayRef.current) target.postMessage({ type: 'gamehub:replay', ...command }, origin);
+  }, [frameRef, origin]);
+
   // Asks the game's page to clear its copy; resolves to whether it did
   const clearGameCopy = useCallback(() => new Promise((resolve) => {
     const target = frameRef.current?.contentWindow;
@@ -308,7 +421,7 @@ export const useGameBridge = ({ frameRef, gameId, origin, session }) => {
   /**
    * Resets the game's progress: this browser's copy (through the game's page), then the account's,
    * then reloads the game so it starts afresh. The browser's copy goes first: signed in, a copy left
-   * behind would go straight back up to the account.
+   * behind would go straight back up to the account. The player's runs of the game go too.
    * Throws an error with code 'game' when the game's page couldn't clear its copy, or Supabase's
    * error when the account's copy couldn't be deleted. Either way nothing is reset: in the second
    * case the reloaded game gets the account's copy back.
@@ -324,6 +437,7 @@ export const useGameBridge = ({ frameRef, gameId, origin, session }) => {
         if (error) throw error;
         setStatus((previous) => ({ ...previous, savedAt: null, saveFailed: false }));
       }
+      await clearRuns(playerRef.current, gameId).catch(() => {}); // a browser that can't keep runs has none
     } finally {
       // The cleared page keeps nothing from now on, so the game starts again either way
       if (cleared) setFrameKey((key) => key + 1);
@@ -331,5 +445,5 @@ export const useGameBridge = ({ frameRef, gameId, origin, session }) => {
     }
   }, [queue, clearGameCopy, gameId, signedIn]);
 
-  return { frameKey, ...status, offline, setDownload, reloadGame, resetProgress };
+  return { frameKey, ...status, offline, setDownload, reloadGame, resetProgress, activity, gameStatus, replayState, controlReplay };
 };

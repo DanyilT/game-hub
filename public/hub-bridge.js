@@ -7,8 +7,9 @@
  * game's saves reach the player's account. The game never sees the player's sign-in.
  *
  * The messages (the hub page's side is src/lib/gameBridge.js):
- * - game → hub: { type: 'gamehub:hello', version: 1 }
- *   hub → game: { type: 'gamehub:welcome', version: 1, signedIn }
+ * - game → hub: { type: 'gamehub:hello', version: 1, game } (game: its gamehub.js version, 1 to 3)
+ *   hub → game: { type: 'gamehub:welcome', version: 1, signedIn, player } (player: a name for the
+ *   signed-in account that means nothing outside this game, or null for a guest; see "Whose copy")
  * - game → hub: { type: 'gamehub:load', id }
  *   hub → game: { type: 'gamehub:loaded', id, data, updatedAt } (both null when the account has none),
  *               or { type: 'gamehub:loaded', id, error: true }
@@ -20,6 +21,20 @@
  *   game's page in GameHub)
  *   game → hub: { type: 'gamehub:offline-state', supported, downloaded, error } (error: 'unavailable'
  *   when the game can't be downloaded yet, 'failed' when it didn't work)
+ * - game → hub: { type: 'gamehub:active' } when the player presses a key or taps in the game (at most
+ *   every 10 seconds): GameHub counts play time only while they do (src/lib/playTime.js). Not in a
+ *   replay: watching isn't playing.
+ * The panel under the game (gamehub.js version 3; GameHub's side is src/components/layout/game/GameProgress):
+ * - game → hub: { type: 'gamehub:status', status } (the game's numbers: GameHub.status())
+ * - game → hub: { type: 'gamehub:run', run } when a game ends (GameHub keeps it, to watch again, and
+ *   checks it on its server when it was played on a ticket)
+ * - hub → game: { type: 'gamehub:tickets', tickets } for a signed-in player: [{ id, seed }], seeds the
+ *   server chose (src/lib/checks.js), one per run (an empty list when there are none)
+ *   game → hub: { type: 'gamehub:run-start', ticket } as a run starts (ticket: its id, or null)
+ * - hub → game: { type: 'gamehub:replay', action: 'play', run, speed } | { …, action: 'pause' | 'resume' }
+ *   | { …, action: 'speed', speed }, in a game GameHub opened with #gamehub-replay (GameHub.replaying)
+ *   game → hub: { type: 'gamehub:replay-state', state, position, length } ('playing', 'paused',
+ *   'ended' or 'error'; how far it has got, in ms of the game's time)
  * Messages go only to GameHub's address (where this file came from), and only messages from the
  * GameHub page itself are read.
  *
@@ -30,6 +45,15 @@
  * Downloading: the game's own service worker (sw.js, next to its index.html: the same file in every
  * game) answers with the copy this script keeps in the game's storage when there's no network. Only
  * games with gamehub.js version 2 have it.
+ *
+ * Whose copy: gamehub.js keeps one save in this browser (<id>GameData, and <id>GameSync), whoever is
+ * playing. So that one player's progress never shows for another, nor goes up to their account, this
+ * script keeps a copy per player: before the game reads its save, it puts the copy there aside under
+ * its owner's name (<key>@<owner>) and brings back the current player's own, if they have one. The
+ * owner is the welcome's player, or 'guest' (<id>GameOwner says whose copy is out). A guest's progress
+ * stays the guest's: it never goes up to an account. Copies from before this have no owner: one that
+ * never came from an account is the guest's, and one that did is the signed-in player's only when it
+ * carries on from their account's save (otherwise it's set aside as 'earlier').
  */
 (function () {
   const VERSION = 1;
@@ -41,17 +65,21 @@
   const hub = window.parent;
   if (!script || hub === window || !window.GameHub) return;
   const hubOrigin = new URL(script.src).origin;
-  const gameVersion = window.GameHub.version === 2 ? 2 : 1;
+  const gameVersion = [2, 3].includes(window.GameHub.version) ? window.GameHub.version : 1;
+  const replaying = window.GameHub.replaying === true; // GameHub opened the game to play a replay
 
   // The game's id, from its gamehub.js tag: that file keeps the save in this browser under <id>GameData,
   // and (version 2) where it stands against the account under <id>GameSync
   const game = document.querySelector('script[data-game]')?.dataset.game;
 
   let welcomed = false;
-  let gamePort = null; // version 2: how to tell the game a save reached the account
+  let gamePort = null; // version 2 on: how to tell the game a save reached the account (and, 3, the replay's controls)
+  let waitingReplay = []; // what GameHub asked of the replay before the game attached
+  let waitingTickets = null; // tickets GameHub sent before the game attached
   let resetting = false; // Once progress is reset, nothing is saved until GameHub reloads the game
   let lastLoadId = 0;
   const loads = new Map(); // id → { resolve, reject, timer }
+  let earlyLoad = null; // the account's save, read before the game asks (to sort the copies)
 
   function send(message) {
     hub.postMessage(message, hubOrigin);
@@ -70,8 +98,73 @@
     });
   }
 
+  // For the game: the account's save, the one already read for sorting the copies if there is one
+  function loadForGame() {
+    const pending = earlyLoad ?? loadSave();
+    earlyLoad = null;
+    return pending;
+  }
+
   function save(data, seq) {
     if (!resetting) send({ type: 'gamehub:save', data, seq });
+  }
+
+  // Whose copy (see the top of this file)
+  const dataKeys = game ? [`${game}GameData`, `${game}GameSync`] : [];
+  const ownerKey = `${game}GameOwner`;
+
+  // When the copy out was last in step with the account (gamehub.js version 2's GameSync), or null
+  function copyBase(suffix = '') {
+    try {
+      const base = JSON.parse(localStorage.getItem(`${game}GameSync${suffix}`))?.base;
+      return typeof base === 'string' ? base : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  // Puts the copy out aside under its owner's name (an empty one clears theirs)
+  function putAside(owner) {
+    for (const key of dataKeys) {
+      const value = localStorage.getItem(key);
+      if (value === null) localStorage.removeItem(`${key}@${owner}`);
+      else localStorage.setItem(`${key}@${owner}`, value);
+      localStorage.removeItem(key);
+    }
+  }
+
+  // Brings back an owner's copy put aside, if there is one
+  function bringBack(owner) {
+    for (const key of dataKeys) {
+      const value = localStorage.getItem(`${key}@${owner}`);
+      if (value !== null) localStorage.setItem(key, value);
+      localStorage.removeItem(`${key}@${owner}`);
+    }
+  }
+
+  // Makes the copy out the current player's (me: their player name, or 'guest')
+  async function sortCopies(me, signedIn) {
+    let owner = localStorage.getItem(ownerKey);
+    if (owner === null && localStorage.getItem(dataKeys[0]) !== null) owner = copyBase() ? 'earlier' : 'guest';
+    if (owner !== null && owner !== me) {
+      // An earlier copy from an account is this player's when it carries on from their account's save
+      if (owner === 'earlier' && signedIn) {
+        earlyLoad ??= loadSave();
+        const account = await earlyLoad.catch(() => null);
+        if (account?.updatedAt && account.updatedAt === copyBase()) owner = me;
+      }
+      if (owner !== me) {
+        putAside(owner);
+        bringBack(me);
+      }
+    }
+    // Or one set aside earlier, when this player has none of their own here
+    if (signedIn && localStorage.getItem(dataKeys[0]) === null && localStorage.getItem(`${dataKeys[0]}@earlier`) !== null) {
+      earlyLoad ??= loadSave();
+      const account = await earlyLoad.catch(() => null);
+      if (account?.updatedAt && account.updatedAt === copyBase('@earlier')) bringBack('earlier');
+    }
+    localStorage.setItem(ownerKey, me);
   }
 
   // Clears this browser's save, and keeps it clear until GameHub reloads the game: a game may save
@@ -94,7 +187,7 @@
   }
 
   // Downloading the game: its files go into OFFLINE_CACHE, and its sw.js answers from there offline
-  const offlineSupported = gameVersion === 2 && 'serviceWorker' in navigator && 'caches' in window;
+  const offlineSupported = gameVersion >= 2 && 'serviceWorker' in navigator && 'caches' in window;
 
   async function offlineState() {
     if (!offlineSupported) return { supported: false, downloaded: false };
@@ -128,7 +221,7 @@
   }
 
   async function offline(action) {
-    if (!offlineSupported) return { supported: false, downloaded: false, error: gameVersion === 2 ? null : 'unavailable' };
+    if (!offlineSupported) return { supported: false, downloaded: false, error: gameVersion >= 2 ? null : 'unavailable' };
     try {
       if (action === 'download') await download();
       if (action === 'remove') await removeDownload();
@@ -147,15 +240,35 @@
     if (message.type === 'gamehub:welcome' && message.version === VERSION && !welcomed) {
       welcomed = true;
       const signedIn = message.signedIn === true;
-      if (gameVersion === 2) {
-        const port = window.GameHub.attach({ version: 2, signedIn, load: loadSave, save });
-        gamePort = typeof port === 'object' && port !== null ? port : null;
-      } else {
-        // Version 1 games take the save alone
-        window.GameHub.attach({
-          version: 1, signedIn, load: () => loadSave().then((saved) => saved?.data ?? null), save: (data) => save(data),
-        });
-      }
+      const attach = () => {
+        if (gameVersion >= 2) {
+          const adapter = { version: gameVersion, signedIn, load: loadForGame, save };
+          if (gameVersion === 3) {
+            // GameHub's panel: the game's numbers, its finished runs, and how a replay is going
+            adapter.status = (status) => send({ type: 'gamehub:status', status });
+            adapter.run = (run) => send({ type: 'gamehub:run', run });
+            adapter.runStart = (start) => send({ type: 'gamehub:run-start', ticket: start?.ticket ?? null });
+            adapter.replayState = (state) => send({ type: 'gamehub:replay-state', ...state });
+          }
+          const port = window.GameHub.attach(adapter);
+          gamePort = typeof port === 'object' && port !== null ? port : null;
+          if (waitingTickets) gamePort?.tickets?.(waitingTickets);
+          waitingTickets = null;
+          waitingReplay.forEach((command) => gamePort?.replay?.(command));
+          waitingReplay = null;
+        } else {
+          // Version 1 games take the save alone
+          window.GameHub.attach({
+            version: 1, signedIn, load: () => loadForGame().then((saved) => saved?.data ?? null), save: (data) => save(data),
+          });
+        }
+      };
+      // The copies are sorted first, since the game reads its save once attached (an older GameHub
+      // page names no player: then they're left as they are). Storage that can't be used has nothing
+      // to sort.
+      const player = typeof message.player === 'string' && message.player ? message.player : null;
+      const sorting = game && 'player' in message ? sortCopies(signedIn && player ? player : 'guest', signedIn && Boolean(player)) : null;
+      Promise.resolve(sorting).catch(() => {}).then(attach);
     } else if (message.type === 'gamehub:loaded') {
       const pending = loads.get(message.id);
       if (!pending) return;
@@ -172,8 +285,28 @@
       send({ type: 'gamehub:reset-done', ok: reset() });
     } else if (message.type === 'gamehub:offline' && ['status', 'download', 'remove'].includes(message.action)) {
       offline(message.action).then((state) => send({ type: 'gamehub:offline-state', ...state }));
+    } else if (message.type === 'gamehub:tickets' && Array.isArray(message.tickets)) {
+      if (waitingReplay) waitingTickets = message.tickets; // the game isn't attached yet: the newest list waits
+      else gamePort?.tickets?.(message.tickets);
+    } else if (message.type === 'gamehub:replay' && replaying) {
+      const command = { action: message.action, run: message.run, speed: message.speed };
+      if (waitingReplay) waitingReplay.push(command); // the game isn't attached yet
+      else gamePort?.replay?.(command);
     }
   });
 
-  send({ type: 'gamehub:hello', version: VERSION });
+  // The player pressing a key or tapping in the game (or moving the pointer over it): said at most
+  // every 10 seconds, and never in a replay
+  let lastActive = 0;
+  const onInput = () => {
+    const now = Date.now();
+    if (replaying || now - lastActive < 10000) return;
+    lastActive = now;
+    send({ type: 'gamehub:active' });
+  };
+  for (const type of ['keydown', 'pointerdown', 'pointermove', 'touchstart', 'wheel']) {
+    window.addEventListener(type, onInput, { capture: true, passive: true });
+  }
+
+  send({ type: 'gamehub:hello', version: VERSION, game: gameVersion });
 })();

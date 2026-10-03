@@ -513,6 +513,102 @@
   font-weight: $font-weight-semibold;
 }
 
+// Under the title: when it was last played, and for how long (Played)
+.gameTileMeta {
+  margin-top: -$spacing-xs;
+  padding: 0 $spacing-sm $spacing-sm;
+  color: $color-text-secondary;
+  font-family: $font-secondary;
+  font-size: $font-size-xs;
+}
+
+// "Playing Snake", with a dot that pulses while they play
+.playingNow {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  color: $color-accent-light;
+  font-family: $font-secondary;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+}
+
+.liveDot {
+  width: 8px;
+  height: 8px;
+  border-radius: $radius-full;
+  background: $color-accent-light;
+  animation: live-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes live-pulse {
+  50% {
+    box-shadow: 0 0 0 4px color-mix(in srgb, $color-accent-light 25%, transparent);
+  }
+}
+
+.playingLink {
+  width: fit-content;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+    text-decoration-color: $color-accent-light;
+  }
+}
+
+// Privacy: who sees each kind of activity, as a row of three choices
+.audienceGroup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-sm $spacing-md;
+  min-width: 0;
+}
+
+.audienceText {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  max-width: 24rem;
+}
+
+.audienceOptions {
+  display: inline-flex;
+  border: 1px solid color-mix(in srgb, $color-primary 60%, transparent);
+}
+
+.audienceOption {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-xs $spacing-md;
+  font-family: $font-secondary;
+  font-size: $font-size-sm;
+  cursor: pointer;
+  transition: background $transition-fast, color $transition-fast;
+
+  & + & {
+    border-left: 1px solid color-mix(in srgb, $color-primary 60%, transparent);
+  }
+
+  &:hover {
+    background: color-mix(in srgb, $color-primary 20%, transparent);
+  }
+
+  // The radio itself is hidden, so its focus shows on the option
+  &:has(input:focus-visible) {
+    outline: 2px solid $color-primary-light;
+    outline-offset: 2px;
+  }
+
+  &.chosenAudience {
+    background: $color-primary;
+    color: $color-text-primary;
+  }
+}
+
 .gameTileIcon {
   flex-shrink: 0;
   width: 1.4em;

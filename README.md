@@ -58,11 +58,13 @@ Requires **Node 22.22+**.
    npx supabase db push
    ```
 
-   The same Worker keeps the free Supabase project awake: a cron in `wrangler.jsonc` pings the database every 6 hours. With accounts on, give it the project's URL and publishable key once, as Worker secrets (they stay set across deploys):
+   The same Worker keeps the free Supabase project awake: a cron in `wrangler.jsonc` pings the database every 6 hours. It also checks runs (`/api/verify-run`, see "Checked runs" below). With accounts on, give it the project's URL, publishable key and secret key once, as Worker secrets (they stay set across deploys). The secret key (Supabase → Project Settings → API Keys, `sb_secret_…`) only ever goes here, never in a `VITE_` variable:
    ```bash
-   npx wrangler secret put SUPABASE_URL
-   npx wrangler secret put SUPABASE_PUBLISHABLE_KEY
+   npx wrangler secret put SUPABASE_URL              # https://<project ref>.supabase.co
+   npx wrangler secret put SUPABASE_PUBLISHABLE_KEY  # sb_publishable_…
+   npx wrangler secret put SUPABASE_SECRET_KEY       # sb_secret_…
    ```
+   Paste each value as it is, without quotes. If games stay "Not checked yet", the Worker's Logs (Workers & Pages → game-hub → Logs, or `npx wrangler tail`) say which setting or step is wrong.
 
    **Rebuilding when the games change:** the database asks Cloudflare for a new build once your edits to the `games` table have stopped for 30 seconds. It needs Cloudflare building the site from GitHub (Workers & Pages → game-hub → Settings → Build), and a deploy hook:
    1. In the same Build settings, under **Deploy Hooks**, create one for the production branch and copy its URL. Anyone with the URL can start builds, so treat it like a password.
@@ -72,6 +74,7 @@ Requires **Node 22.22+**.
 7. **Local Supabase (optional, needs Docker)**: the same database and sign-in server on your machine, for trying schema changes and running the database tests.
    ```bash
    npm run db:start    # then: npm run test:db, or npm run dev:local (the site against it)
+   npm run test:worker # the run checkers (worker/games/) against runs recorded from the games, and /api/verify-run with Supabase faked; no database needed
    npm run db:reset    # a fresh local database, with 240 mock players (supabase/seed.sql)
    npm run db:stop
    ```
@@ -84,10 +87,38 @@ Games keep their progress in the browser, and in the player's account when they 
 1. Each game (in [`DanyilT/dt-games`](https://github.com/DanyilT/dt-games)) loads `js/gamehub.js` first, and saves only through it: `GameHub.load()` and `GameHub.save(data)` (one JSON object per game, at most 64 KB).
 2. Inside the hub, `gamehub.js` loads the hub's `/hub-bridge.js` (only from the hub's own addresses: the live site and `http://localhost:3000`). That script runs in the game's page and passes loads and saves to the hub page with `postMessage`. The messages are listed at the top of `public/hub-bridge.js`.
 3. The hub page (`src/lib/gameBridge.js`) only listens to its own game frame, from the game's own address. It reads the save from the `game_saves` table, and writes the game's saves with `save_game()`: at most one every 10 seconds, plus whatever's waiting when the page is hidden or left, or before signing out.
-4. Signed in, the account's save wins. If the account has none for that game yet, the browser's goes up (a first sign-in on a device). Signing in or out reloads the game.
-5. The **?** button on a game's page resets its progress: the browser's copy (through the bridge), then the account's (`delete_game_save()`), then reloads the game.
+4. Signed in, the account's save wins, with two exceptions, where the player's own copy in the browser goes up instead: the account has none for that game yet, or the copy carries on from the account's save with progress it doesn't have yet (made offline, or a save that didn't land). Signing in or out reloads the game.
+5. **Each player keeps their own copy in the browser.** The browser has one save slot per game, whoever is playing, so the bridge sorts it out before the game reads it: the copy there is put aside under its owner's name (`<key>@<owner>`), and the current player's comes back. Each player is a name the hub gives the bridge (a hash of their account and the game), or `guest`. So one player's progress never shows for another, nor goes up to their account, and a guest's progress stays the guest's: it never goes into an account. Copies saved before this had no owner: one that never came from an account is the guest's, and one that did is a player's only when it carries on from their account's save.
+6. The **?** button on a game's page resets its progress: the browser's copy (through the bridge), then the account's (`delete_game_save()`), then reloads the game.
 
-To try saves locally, the dev server has to run on port 3000 (the address `gamehub.js` trusts), with the games loaded from their live addresses. Privacy extensions (uBlock Origin's "Block Outsider Intrusion into LAN" list, Brave Shields) block a public game page from loading anything from `localhost` (`net::ERR_BLOCKED_BY_CLIENT`): allow it for `dt-games.pages.dev`, or try saves on the live site.
+Saves are the player's own and can't be made tamper-proof (they're in their browser), so nothing other players see is ever taken from a save: records come only from runs the server has played again itself ("Checked runs and records" below).
+
+## 📊 The panel under the game, and replays
+
+Under a game played in the hub, a panel shows the player's progress (`src/components/layout/game/GameProgress`). Games with `gamehub.js` version 3 fill it in:
+
+1. **The game's numbers:** the game says what to show with `GameHub.status({ main, more, ongoing })`, whenever they change: up to 4 shown large (the score now, the best), and sections behind **More** (wins and best times per level: the rest of what it saves). The hub checks them (`src/lib/gameStatus.js`), since they come from another site: labels with numbers or short texts, never markup. With the numbers comes the time played (below).
+2. **Runs:** a game records each game it plays, from start to end: `GameHub.startRun({ mode, tick })` gives it random numbers from a seed (`run.random()`, mulberry32), and it records each input that changes the game with the step it came after (games that move by themselves: Snake, Tetris) or its time (games that wait for the player: Minesweeper, Sudoku). Never pictures: a run is a few KB. When the game ends, the run goes to the hub, which keeps it in the browser (IndexedDB, `src/lib/runs.js`), with that player's runs of the game: the latest 20, and their 5 newest best ones however old. A guest's runs are the guest's. Resetting the game's progress deletes them too.
+3. **Replays:** watching a run reloads the game with `#gamehub-replay` at the end of its address. The game then saves nothing and records nothing, and plays the run itself: `gamehub.js` gives it the run's seed and calls it with each input at its step or time (1×, 2× or 4×, and long waits between a game's inputs cut to 2 s). Back to the game reloads it as it was. Starting a replay while a game is under way (`ongoing`) asks first.
+4. A signed-in player's runs played on a ticket also go to the server to be checked: see "Checked runs" below.
+
+## ✅ Checked runs and records
+
+Saves are in the player's browser and can say anything, so records come only from runs GameHub's server has played again itself (`supabase/migrations/*_checked_runs.sql`, `worker/`, `src/lib/checks.js`):
+
+1. **Tickets:** a signed-in player's game takes one for each run: a seed the server chose (`issue_tickets()`, 10 ready per game, good for 14 days). The hub keeps them in the browser and hands them to the game (`gamehub:tickets`); a game that starts a run as it loads waits for them (`GameHub.ready()`). So games played offline get them too. The server hears a ticket was taken as its run starts (`start_ticket()`, which also starts that run's clock), or once back online (`take_tickets()`).
+2. **Checking:** when a run on a ticket ends, the hub sends it to the site's Worker (`POST /api/verify-run`, `worker/verify-run.js`), or keeps it until back online. The Worker plays it again from the ticket's seed with the game's own rules (`worker/games/`, one file per game, written to match the game's code exactly) and records what *its* replay gave (`record_run()`, with the secret key): never the game's claim. A ticket is good for one run, and a run can't have lasted longer than the time since its ticket was started (online) or issued, plus 30 s. Runs that don't play out are kept as refused; ones whose game said otherwise, or whose inputs came too fast, count but are flagged for a look. Inputs are kept 30 days, or while a run is a record (`private.tidy_runs()`, daily).
+3. **What players see:** under the game, each run says whether it counts, is waiting to be checked, didn't count, or stays on the device (played without a ticket, offline once they ran out: the hub warns as the last one goes, and says so while offline). Back online, the hub gets new tickets for the downloaded games and checks the runs that waited (`MainLayout`), with a note. **More** shows the player's checked records (`my_records()`).
+4. **When a game changes:** its checker in `worker/games/` must change with it, or its runs stop checking out. `npm run test:worker` replays runs recorded from the games (`worker/games/fixtures.json`); record new ones when the rules change.
+5. **Locally:** `npm run dev:local` runs the same checker in the dev server (with the local project's secret key). Against the hosted project, set `SUPABASE_SECRET_KEY` in `.env.local` (not `VITE_`) to check runs; without it, they wait.
+
+## ⏱ Play activity
+
+The hub counts how long players play each game (`src/lib/playTime.js`); the games aren't involved. A second counts while the game's page is on screen, the player has pressed a key or tapped in the game in the last 2 minutes (the bridge says when), and no replay is playing. A guest's time is kept in the browser only, for the panel. A signed-in player's goes to their account, while online: a play session starts at the first such second, and reports go up about once a minute (`report_play()`), when the page is hidden, and when it's left. The server never adds more time than has really passed, and a session counts as a play from a minute.
+
+From it come a profile's **Played** tab, **playing now** (on profiles and friends lists) and the games page's **Recent activity**. Each player picks who sees each of the three in Settings → Privacy: everyone, friends, or only them (out of the box: everyone, friends, everyone). The database applies those choices itself (`supabase/migrations/*_play_activity.sql`): the sessions are only read through its functions.
+
+To try saves (and the panel under the game) locally, the dev server has to run on port 3000 (the address `gamehub.js` trusts), with the games loaded from their live addresses. A game from the internet then loads the bridge from `localhost`, which Chrome blocks until you allow it (Local Network Access): on a local address the hub lets the game's frame ask (`allow="loopback-network; local-network"`, GamePage.jsx), so Chrome shows a prompt for the game's site; allow it. Until then the game never connects, so there's no panel and saves stay in the browser. Privacy extensions (uBlock Origin's "Block Outsider Intrusion into LAN" list, Brave Shields) block it too (`net::ERR_BLOCKED_BY_CLIENT`): allow it for `dt-games.pages.dev`. Or try it all on the live site.
 
 ## ✈ Offline play
 
@@ -192,7 +223,7 @@ Each list is optional, and every link needs a `label`. A new game on another sit
 - **SCSS modules**: component styles (`*.module.scss`, `@use` only). Colours, sizes, fonts and timings are Sass variables in `src/styles/abstracts/_variables.scss`, and shared mixins are in `_mixins.scss` next to it.
 - **Fonts** (Google Fonts): Doto for the site, and Chakra Petch (easier to read small) for game tags. To change one, edit `$font-primary` / `$font-secondary` in `_variables.scss` and the Google Fonts link in `index.html`.
 - **react-icons**: interface icons, and the icons the catalogue names.
-- **Supabase**: sign-in (Google; Discord is coming), Postgres with row level security: profiles, the game list, game saves, ratings, favorites, bookmarks, feedback and friends. Schema changes are migrations in `supabase/migrations/`, applied with `npx supabase db push`, with pgTAP tests in `supabase/tests/`.
+- **Supabase**: sign-in (Google; Discord is coming), Postgres with row level security: profiles, the game list, game saves, ratings, favorites, bookmarks, feedback, friends, play activity and privacy settings. Schema changes are migrations in `supabase/migrations/`, applied with `npx supabase db push`, with pgTAP tests in `supabase/tests/`.
 - **Cloudflare Workers (static assets)**: hosting, plus a small script (`worker/index.js`) whose cron trigger keeps Supabase awake.
 
 ## 📂 Project Structure
@@ -210,11 +241,11 @@ game-hub/
 │   ├── components/account/  # SignInModal, UsernameDialog (new players pick a username), UsernameField (🎲)
 │   ├── components/install/  # installing as an app: the steps for iPhone/iPad, the banner on phones, useInstall()
 │   ├── components/common/   # Avatar, Button, ConfirmDialog ("Sign out?"), ErrorBoundary, GooglePlayBadge, InfoTip, Modal (the neon window), Toasts
-│   ├── components/layout/   # Header, Footer, MainLayout; the navigation: Sidebar or FloatingNav, both from useNavItems.js
-│   ├── components/layout/game/  # GameCard, GameList, GameControls, GameReactions (favorites, bookmarks), DownloadGame (offline), RatingSlider, RateGame, GameHelp (the ? window)
+│   ├── components/layout/   # Header, Footer, MainLayout, RecentActivity (the games page); the navigation: Sidebar or FloatingNav, both from useNavItems.js
+│   ├── components/layout/game/  # GameCard, GameList, GameControls, GameReactions (favorites, bookmarks), DownloadGame (offline), GameProgress (the panel under the game, replays), RatingSlider, RateGame, GameHelp (the ? window)
 │   ├── contexts/            # AuthContext (the signed-in player, useAuth()), LibraryContext (their favorites, bookmarks, ratings, friend requests: useLibrary())
 │   ├── data/                # games.json (the game list without Supabase), games.js (helpers), controls.js (key and gesture names)
-│   ├── lib/                 # supabase.js (the client), gameBridge.js (saves, downloads), offline.js, friends.js, account.js (username rules), install.js, preferences.js (navigation style), support.js (bug report links), toast.js, confirm.js, dates.js
+│   ├── lib/                 # supabase.js (the client), gameBridge.js (saves, downloads, the panel), runs.js (runs to replay), checks.js (tickets, checked runs, records), gameStatus.js (the panel's numbers), playTime.js (play time), activity.js (played games, playing now, privacy), offline.js, friends.js, account.js (username rules), install.js, preferences.js (navigation style), support.js (bug report links), toast.js, confirm.js, dates.js
 │   ├── service-worker.js    # the site's service worker: built into /sw.js by vite.config.js, not imported by the app
 │   ├── pages/               # Games, GamePage, Account/ (players, profile, /me, settings, sign-in callback), Legal/ (about, terms, privacy), ErrorPage
 │   ├── styles/              # Sass variables, mixins, buttons and forms, shared animations, reset, base
@@ -225,7 +256,8 @@ game-hub/
 │   ├── migrations/          # database schema, applied with `npx supabase db push`
 │   ├── seed.sql             # 240 mock players, local only (`npm run db:reset`; never pushed)
 │   └── tests/               # database tests (pgTAP), `npm run test:db`
-├── worker/index.js          # the Worker's script: passes unmatched paths to the files, pings Supabase every 6 hours
+├── worker/index.js          # the Worker's script: checks runs (/api/verify-run: verify-run.js), passes other unmatched paths to the files, pings Supabase every 6 hours
+├── worker/games/            # each game's rules, to play a run again on the server (`npm run test:worker`)
 ├── .env.example             # template for .env.local (Supabase URL + publishable key)
 ├── index.html
 ├── vite.config.js           # also loads the game list (virtual:catalog), writes /catalog.json, the catalogue's icons module, the security headers (dist/_headers), _redirects, the root files and /sw.js; SITE_URL is here

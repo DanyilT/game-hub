@@ -1,0 +1,72 @@
+@use '../../../styles/abstracts/variables' as *;
+
+// Under the games list, as wide as it
+.activity {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 $spacing-xl $spacing-xl * 2;
+}
+
+.title {
+  margin-bottom: $spacing-md;
+  color: $color-primary-light;
+  font-size: $font-size-lg;
+}
+
+// One row that scrolls sideways, a play at a time
+.list {
+  display: flex;
+  gap: $spacing-sm;
+  overflow-x: auto;
+  padding-bottom: $spacing-sm; // room for the scrollbar
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+}
+
+.play {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-sm $spacing-md;
+  background: $color-section;
+  border-radius: $radius-lg;
+  scroll-snap-align: start;
+}
+
+.avatar {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: $font-secondary;
+  font-size: $font-size-sm;
+  white-space: nowrap;
+
+  a {
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+.name {
+  color: $color-text-primary;
+  font-weight: $font-weight-semibold;
+}
+
+.game {
+  color: $color-primary-light;
+  font-weight: $font-weight-semibold;
+}
+
+.when {
+  color: $color-text-secondary;
+  font-size: $font-size-xs;
+}

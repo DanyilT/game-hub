@@ -1,11 +1,12 @@
 import { createHash } from 'node:crypto';
 import { readdir, readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import { CATALOG_PATH, EMBED_ORIGINS } from './scripts/check-catalog.mjs';
 import { loadCatalog } from './scripts/catalog-source.mjs';
 import { gamePage, siteFiles } from './scripts/site-files.mjs';
+import { verifyRun } from './worker/verify-run.js';
 
 // The game list, as `import gamesData from 'virtual:catalog'` (src/data/games.js)
 const CATALOG_MODULE = 'virtual:catalog';
@@ -321,15 +322,56 @@ function serviceWorker() {
   };
 }
 
+/**
+ * The dev server's run checker: POST /api/verify-run, with the Worker's own code (worker/verify-run.js),
+ * so runs get checked locally as on the live site. It needs the Supabase secret key, as
+ * SUPABASE_SECRET_KEY in the environment or .env.local (never a VITE_ variable: those reach the
+ * browser). `npm run dev:local` sets the local project's. Without one, runs wait unchecked.
+ */
+function runChecker() {
+  let env = {};
+  return {
+    name: 'gamehub-run-checker',
+    apply: 'serve',
+    configResolved(config) {
+      const fromFiles = loadEnv(config.mode, config.envDir ?? config.root, 'SUPABASE_');
+      env = {
+        SUPABASE_URL: config.env.VITE_SUPABASE_URL,
+        SUPABASE_PUBLISHABLE_KEY: config.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        SUPABASE_SECRET_KEY: process.env.SUPABASE_SECRET_KEY || fromFiles.SUPABASE_SECRET_KEY,
+      };
+    },
+    configureServer(server) {
+      server.middlewares.use('/api/verify-run', async (req, res) => {
+        const chunks = [];
+        for await (const chunk of req) chunks.push(chunk);
+        const request = new Request(`http://localhost${req.originalUrl}`, {
+          method: req.method,
+          headers: Object.entries(req.headers).filter(([, value]) => typeof value === 'string'),
+          body: ['GET', 'HEAD'].includes(req.method) ? undefined : Buffer.concat(chunks),
+        });
+        const response = await verifyRun(request, env);
+        res.statusCode = response.status;
+        response.headers.forEach((value, name) => res.setHeader(name, value));
+        res.end(Buffer.from(await response.arrayBuffer()));
+      });
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), gamesCatalog(), appPages(), rootFiles(), securityHeaders(), serviceWorker()],
+  plugins: [react(), gamesCatalog(), appPages(), rootFiles(), securityHeaders(), serviceWorker(), runChecker()],
   build: {
     rolldownOptions: {
       output: {
-        // Supabase's client (about 190 kB) gets a file of its own. It changes less often than the
-        // site's code, so browsers keep it cached across deploys, and the main file stays small.
+        // Supabase's client (about 190 kB) and React (with React Router) get files of their own. They
+        // change less often than the site's code, so browsers keep them cached across deploys, and the
+        // main file stays small.
         codeSplitting: {
-          groups: [{ name: 'supabase', test: /node_modules[\\/]@supabase[\\/]/ }],
+          groups: [
+            { name: 'supabase', test: /node_modules[\\/]@supabase[\\/]/ },
+            { name: 'react', test: /node_modules[\\/](react|react-dom|react-router|scheduler)[\\/]/ },
+          ],
         },
       },
     },

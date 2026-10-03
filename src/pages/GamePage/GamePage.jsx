@@ -9,13 +9,19 @@ import {
 import GooglePlayBadge, { GOOGLE_PLAY_TRADEMARK } from '../../components/common/GooglePlayBadge/GooglePlayBadge.jsx';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGameStats } from '../../contexts/LibraryContext';
+import { useRecords, useTicketsLeft } from '../../lib/checks';
+import { askToConfirm } from '../../lib/confirm';
 import { calendarDate } from '../../lib/dates';
 import { useGameBridge } from '../../lib/gameBridge';
 import { noteGameOpened } from '../../lib/install';
 import { useDownloads, useOnline } from '../../lib/offline';
+import { usePlayTime } from '../../lib/playTime';
+import { useRuns } from '../../lib/runs';
+import { showToast } from '../../lib/toast';
 import DownloadGame from '../../components/layout/game/DownloadGame/DownloadGame.jsx';
 import GameControls from '../../components/layout/game/GameControls/GameControls.jsx';
 import GameHelp from '../../components/layout/game/GameHelp/GameHelp.jsx';
+import GameProgress from '../../components/layout/game/GameProgress/GameProgress.jsx';
 import GameReactions from '../../components/layout/game/GameReactions/GameReactions.jsx';
 import RateGame from '../../components/layout/game/RateGame/RateGame.jsx';
 import ErrorPage from '../ErrorPage/ErrorPage.jsx';
@@ -41,6 +47,14 @@ const isWideScreen = () => window.matchMedia(WIDE_QUERY).matches;
 // The info cards under the game (narrower screens, maximized) are at least this wide (px), in as
 // many columns as fit
 const MIN_CARD_WIDTH = 340;
+
+// GameHub running on this computer (the dev server) or on the local network. A game from the internet
+// in its frame then loads the bridge (/hub-bridge.js) from a local address, which Chrome only allows
+// once the player says so (Local Network Access), and a frame may only ask when the page lets it. On
+// the live site the bridge comes from the internet like the game, so it never asks.
+const LOCAL_HUB = /^(localhost|.+\.localhost|127(\.\d+){3}|\[::1\]|10(\.\d+){3}|192\.168(\.\d+){2}|172\.(1[6-9]|2\d|3[01])(\.\d+){2})$/
+  .test(window.location.hostname);
+const FRAME_ALLOW = LOCAL_HUB ? 'loopback-network; local-network' : undefined;
 
 /**
  * Packs the info cards under the game like bricks: columns that each stack their cards with no gaps.
@@ -169,14 +183,31 @@ const DeveloperName = ({ developer }) => (developer.url ? (
 
 /**
  * Where the game's progress is going, under the game: the account (signed in, once the game has
- * connected) or this browser; offline, this device
+ * connected) or this browser; offline, this device, and for a game whose runs are checked, how many
+ * tickets are left (src/lib/checks.js)
+ * @param {number|null} ticketsLeft - null when the game's runs aren't checked
  */
-const SaveStatus = ({ bridge, signedIn, accountsAvailable, online }) => {
+const SaveStatus = ({ bridge, signedIn, accountsAvailable, online, ticketsLeft, title }) => {
   if (!online) {
+    if (signedIn && ticketsLeft === 0) {
+      return (
+        <p className={`${styles.saveStatus} ${styles.saveProblem}`} role="status">
+          You&rsquo;re offline, and out of tickets for {title}: the games you play now won&rsquo;t be saved to your
+          account, only on this device (they can&rsquo;t be checked). Your progress still goes up once you&rsquo;re
+          back online. Connect to the internet to get more tickets.
+        </p>
+      );
+    }
     return (
       <p className={styles.saveStatus}>
         You&rsquo;re offline. Your progress is kept on this device
         {signedIn ? ', and goes up to your account the next time you play this game online.' : '.'}
+        {signedIn && ticketsLeft > 0 && (
+          <>
+            {' '}{ticketsLeft} {ticketsLeft === 1 ? 'ticket' : 'tickets'} left: the games you play on them are
+            checked and saved to your account once you&rsquo;re back online.
+          </>
+        )}
       </p>
     );
   }
@@ -235,14 +266,23 @@ const GamePageContent = ({ gameId }) => {
   const frameSize = sizes && columnWidth !== null ? sizeFor(sizes, columnWidth) : null;
 
   // Games that run in the hub get the iframe player; the rest (other sites, store apps) get a picture
-  // with links out. The game in the frame talks to the hub through the bridge (cloud saves).
+  // with links out. The game in the frame talks to the hub through the bridge (cloud saves, and the
+  // panel under it).
   const embedUrl = game ? getEmbedUrl(game) : null;
+  // A run being watched again: { row, speed, key }. The frame then holds the game opened to play it
+  // (#gamehub-replay), a fresh one each time (key), and the game the player was playing comes back after.
+  const [replay, setReplay] = useState(null);
+  const replayCountRef = useRef(0);
   const bridge = useGameBridge({
     frameRef: iframeRef,
     gameId,
     origin: embedUrl ? new URL(embedUrl).origin : null,
     session,
+    replay: replay && { run: replay.row.run, speed: replay.speed, key: replay.key },
   });
+  // How long they play, for their activity and the panel (counted only while they press keys or tap in
+  // the game, and not while they watch a replay)
+  const played = usePlayTime({ gameId, session, activity: bridge.activity, paused: Boolean(replay) });
   // Offline, a game plays only if it's downloaded (the record can be out of date, so there's a way
   // to try anyway)
   const online = useOnline();
@@ -269,6 +309,58 @@ const GamePageContent = ({ gameId }) => {
     frameId = `offline:${bridge.frameKey}`;
   } else if (player !== null) {
     frameId = `${player}:${bridge.frameKey}`;
+  }
+  if (frameId && replay) frameId += `:replay${replay.key}`;
+
+  // The player's runs of the game, to watch again (kept in this browser: src/lib/runs.js), and their
+  // records: their best runs that GameHub's server has checked (src/lib/checks.js)
+  const runs = useRuns(player, gameId);
+  const records = useRecords(user?.id ?? null, gameId, runs);
+
+  // Offline, a signed-in player's games are checked once back online, on the tickets they have left:
+  // using the last one says so (a run without one can't go to their account)
+  const ticketsLeft = useTicketsLeft(bridge.gameVersion === 3 ? user?.id : null, gameId);
+  const ticketsBeforeRef = useRef(ticketsLeft);
+  useEffect(() => {
+    const before = ticketsBeforeRef.current;
+    ticketsBeforeRef.current = ticketsLeft;
+    if (!online && before > 0 && ticketsLeft === 0) {
+      showToast(
+        `That was your last offline ticket for ${game?.title}: your next games won’t be saved to your account. Connect to the internet to get more.`,
+        { duration: 12000 },
+      );
+    }
+  }, [ticketsLeft, online, game?.title]);
+
+  // Watching a run again: asks first when a game under way would be lost (the frame reloads for it)
+  const watchRun = async (row) => {
+    if (!replay && bridge.gameStatus?.ongoing) {
+      const yes = await askToConfirm({
+        title: 'Watch the replay?',
+        message: 'The game you’re playing now ends.',
+        confirmLabel: 'Watch',
+      });
+      if (!yes) return;
+    }
+    replayCountRef.current += 1;
+    setReplay((current) => ({ row, speed: current?.speed ?? 1, key: replayCountRef.current }));
+  };
+  const watchAgain = () => {
+    replayCountRef.current += 1;
+    setReplay((current) => current && { ...current, key: replayCountRef.current });
+  };
+  const controlReplay = (command) => {
+    if (command.action === 'speed') setReplay((current) => current && { ...current, speed: command.speed });
+    bridge.controlReplay(command);
+  };
+
+  // Signing in or out, or a reset, starts the game afresh: a replay being watched ends with it
+  const [replayFrameKey, setReplayFrameKey] = useState(bridge.frameKey);
+  const [replayPlayer, setReplayPlayer] = useState(player);
+  if (replayFrameKey !== bridge.frameKey || replayPlayer !== player) {
+    setReplayFrameKey(bridge.frameKey);
+    setReplayPlayer(player);
+    setReplay(null);
   }
 
   // A game that loaded offline can't reach the account, so back online, a reload sends its progress up
@@ -599,10 +691,11 @@ const GamePageContent = ({ gameId }) => {
                 <iframe
                   key={frameId}
                   ref={iframeRef}
-                  src={embedUrl}
-                  title={game.title}
+                  src={replay ? `${embedUrl}#gamehub-replay` : embedUrl}
+                  title={replay ? `${game.title}: replay` : game.title}
                   className={styles.gameFrame}
                   allowFullScreen
+                  allow={FRAME_ALLOW}
                   onLoad={dimensions?.center ? (e) => askToCenter(e.currentTarget) : undefined}
                 />
               )}
@@ -687,8 +780,32 @@ const GamePageContent = ({ gameId }) => {
                 </button>
               </div>
             )}
-            {!blockedOffline && (
-              <SaveStatus bridge={bridge} signedIn={Boolean(user)} accountsAvailable={accountsAvailable} online={online} />
+            {/* Up once the game has connected, and through the reloads for a replay and back */}
+            {!blockedOffline && (bridge.connected || replay || bridge.gameStatus) && (
+              <GameProgress
+                status={bridge.gameStatus}
+                played={played}
+                runs={runs}
+                records={records}
+                canReplay={bridge.gameVersion === 3}
+                signedIn={Boolean(user)}
+                replay={replay}
+                replayState={bridge.replayState}
+                onWatch={watchRun}
+                onControlReplay={controlReplay}
+                onReplayAgain={watchAgain}
+                onStopReplay={() => setReplay(null)}
+              />
+            )}
+            {!blockedOffline && !replay && (
+              <SaveStatus
+                bridge={bridge}
+                signedIn={Boolean(user)}
+                accountsAvailable={accountsAvailable}
+                online={online}
+                ticketsLeft={ticketsLeft}
+                title={game.title}
+              />
             )}
             {offerReload && (
               <p className={styles.saveStatus}>

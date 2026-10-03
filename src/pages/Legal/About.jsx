@@ -39,7 +39,29 @@ const About = () => {
 
         <section className={styles.section}>
           <h2>Your progress</h2>
-          <p>Games keep your scores and progress in your browser. Sign in, and that&rsquo;s saved to your account too, so you can pick up where you left off on any device. The first time you sign in on a device, progress already saved there moves into your account, if your account doesn&rsquo;t have any for that game yet. Progress made offline goes up to your account the next time you play that game online, unless you&rsquo;ve played it on another device in the meantime: then your account&rsquo;s progress wins.</p>
+          <p>Games keep your scores and progress in your browser. Sign in, and that&rsquo;s saved to your account too, so you can pick up where you left off on any device. The first time you sign in on a device, progress already saved there moves into your account, if your account doesn&rsquo;t have any for that game yet. Progress made offline goes up to your account the next time you play that game online, unless you&rsquo;ve played it on another device in the meantime: then your account&rsquo;s progress wins. On a shared browser, each player keeps their own, and progress made without signing in stays in the browser.</p>
+          <p>Under each game, a panel shows your numbers (your score, your best, and more), how long you&rsquo;ve played, and your finished games, to watch again: the moves you made, played back by the game itself, not a video.</p>
+        </section>
+
+        <section className={styles.section}>
+          <h2>How the game, GameHub and its server talk</h2>
+          <ul>
+            <li><strong>The game</strong> runs from its own address, in a frame on GameHub&rsquo;s page, and saves in your browser. It never gets your sign-in.</li>
+            <li><strong>GameHub&rsquo;s page</strong> hears from the game through a small script GameHub gives it (a &ldquo;bridge&rdquo;), with messages that only GameHub&rsquo;s page and the game&rsquo;s own address can exchange: your saves, the game&rsquo;s numbers, and each game you finish.</li>
+            <li><strong>GameHub&rsquo;s server</strong> (Supabase, and the site&rsquo;s own Cloudflare Worker) gets your saves from GameHub&rsquo;s page when you&rsquo;re signed in, and nothing straight from the game.</li>
+          </ul>
+        </section>
+
+        <section className={styles.section}>
+          <h2>Checked games and records</h2>
+          <p>Saves are in your browser, so they could say anything. That&rsquo;s why records come only from games GameHub&rsquo;s server has checked itself:</p>
+          <ul>
+            <li>Signed in, each game you start takes a <strong>ticket</strong>: a random seed the server picked (where the food goes, which pieces come, where the mines are, which puzzle). Your browser keeps a few for each game you play or download, so games played offline get them too.</li>
+            <li>When you finish, the game sends the moves you made, with their timing. The server plays them again on the ticket&rsquo;s seed, with the game&rsquo;s own rules, and keeps the result <em>it</em> gets as yours, never the one the game claims. A ticket is good for one game, and a game can&rsquo;t have lasted longer than its ticket has existed.</li>
+            <li>Offline, games wait on your device and are checked once you&rsquo;re back online. When the tickets run out offline, the games you play after that stay on your device only: they can&rsquo;t be checked, so they don&rsquo;t count. Back online, GameHub gets you new tickets.</li>
+            <li>Under each game, your finished games say whether they count, and <strong>More</strong> shows your checked records.</li>
+          </ul>
+          <p>No check can stop everything (a good enough bot plays like a person), so odd results get a closer look, and cheating is against the <Link to="/terms">Terms</Link>. Found a way around it? Please tell the developer on <Out href={HUB_ISSUES_URL}>GitHub issues</Out>.</p>
         </section>
 
         <section className={styles.section}>

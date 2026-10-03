@@ -4,7 +4,7 @@ import styles from './Legal.module.scss';
 
 // Change this whenever the policy changes. Keep it in step with what the site really does:
 // sign-in providers, where data is stored, and which other sites pages load from (the CSP in vite.config.js lists them).
-const LAST_UPDATED = '1 October 2026';
+const LAST_UPDATED = '3 October 2026';
 
 const Privacy = () => (
   <div className={styles.page}>
@@ -19,7 +19,7 @@ const Privacy = () => (
 
       <section className={styles.section}>
         <h2>1. Playing without an account</h2>
-        <p>You can browse and play every game without an account. GameHub then keeps nothing about you on a server. Your browser remembers a few small things on your device: whether the sidebar is expanded, whether you chose the sidebar or the floating button to get around (and its corner), whether you've seen the note that favorites are public, whether a game's controls were left expanded, which games you've downloaded and, for the suggestion to install GameHub as an app, how many games you've opened, when you last chose "Not now", and whether you've installed it.</p>
+        <p>You can browse and play every game without an account. GameHub then keeps nothing about you on a server. Your browser remembers a few small things on your device: whether the sidebar is expanded, whether you chose the sidebar or the floating button to get around (and its corner), whether you've seen the note that favorites are public, whether a game's controls were left expanded, which games you've downloaded, how long you've played each game (shown under it) and, for the suggestion to install GameHub as an app, how many games you've opened, when you last chose "Not now", and whether you've installed it.</p>
         <p>To open without a network, the site keeps a copy of itself in your browser, and of the pictures and fonts it shows. A game you download from its page is kept there too, with the game's own address, until you remove the download.</p>
       </section>
 
@@ -45,6 +45,8 @@ const Privacy = () => (
           <li><strong>Your favorites.</strong> Public: they're on your profile.</li>
           <li><strong>Your bookmarks.</strong> Private: others only see how many players bookmarked each game.</li>
           <li><strong>Your friends.</strong> Your friends list is public, on your profile. A friend request is only seen by the two of you until it's accepted.</li>
+          <li><strong>Your checked games and records.</strong> When you finish a game on a ticket (a random seed GameHub&rsquo;s server picked for it), the game goes to the server to be checked: the moves you made, with their timing, and the result the game showed. The server plays it again, and keeps what that gave as your result, so your records come only from checked games. The moves are deleted after 30 days, unless that game is one of your records. Games that don&rsquo;t check out are kept the same way, in case they need a closer look (see the <Link to="/terms">Terms</Link> on cheating). Your tickets are kept until they&rsquo;re used, or for a month after they run out. Private: only you see your records, and the developer, when looking into cheating.</li>
+          <li><strong>What you play, and for how long.</strong> Each time you play a game here: which game, when, and how many seconds you played (counted only while you're pressing keys or tapping in the game, not while it's just open). From it come the games on your profile, &ldquo;playing now&rdquo;, and the games page&rsquo;s recent activity. You choose who sees each of those in Settings → Privacy: everyone, your friends, or only you. Out of the box, played games and recent activity are for everyone, and what you&rsquo;re playing now is for your friends.</li>
           <li><strong>Messages you send us</strong>, after rating a game or from its help: what you wrote, the game, the rating you gave, and, if you tick the box, your browser's name and version. Only the developer reads them.</li>
         </ul>
         <p>You can take back any rating, favorite, bookmark or friend at any time, and a message goes when your account does.</p>
@@ -71,13 +73,15 @@ const Privacy = () => (
 
       <section className={styles.section}>
         <h2>6. Cookies and storage on your device</h2>
-        <p>GameHub has no ads, no analytics and no tracking cookies. Besides those settings, games save things like your high score or progress in your browser, each under its own address. When you play in GameHub signed in, that progress is also saved to your account (section 3).</p>
+        <p>GameHub has no ads, no analytics and no tracking cookies. Besides those settings, games save things like your high score or progress in your browser, each under its own address. When you play in GameHub signed in, that progress is also saved to your account (section 3). On a shared browser each player keeps a copy of their own there, so one player&rsquo;s progress never shows for another, and progress made without signing in stays with the browser, never going into an account.</p>
+        <p>The games you finish are kept as replays in your browser, so you can watch them again under the game: the moves you made and the random numbers the game used, not a video. Each player on a browser has their own. A guest&rsquo;s never leave the browser; signed in, a game played on a ticket also goes to GameHub&rsquo;s server to be checked (section 3). Resetting a game&rsquo;s progress deletes its replays in the browser.</p>
+        <p>Signed in, your browser also keeps a few tickets for each game you play or download (random seeds from GameHub&rsquo;s server, so games played offline can be checked later), and the games played offline until they&rsquo;re checked.</p>
         <p>When you sign in, your browser keeps a sign-in token in its local storage, so you stay signed in. Signing out removes it.</p>
       </section>
 
       <section className={styles.section}>
         <h2>7. Deleting your data</h2>
-        <p>Your data is kept for as long as you have an account. <strong>Settings → Delete account</strong> deletes your account, your profile, your list of usernames, your game progress, ratings, favorites, bookmarks, friends and the messages you sent, straight away. If a backup of the database was made before that, your data stays in that backup until the backup is deleted.</p>
+        <p>Your data is kept for as long as you have an account. <strong>Settings → Delete account</strong> deletes your account, your profile, your list of usernames, your game progress, checked games, records and tickets, ratings, favorites, bookmarks, friends and the messages you sent, straight away. If a backup of the database was made before that, your data stays in that backup until the backup is deleted.</p>
       </section>
 
       <section className={styles.section}>

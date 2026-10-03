@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { CiImageOn, CiTrash } from 'react-icons/ci';
 import { FaDiscord } from 'react-icons/fa6';
@@ -11,6 +11,7 @@ import {
   describeProfileError,
   nextUsernameChange,
 } from '../../lib/account';
+import { AUDIENCES, fetchMyPrivacy, setPrivacy } from '../../lib/activity';
 import { fullDate } from '../../lib/dates';
 import { setPreference, usePreferences } from '../../lib/preferences';
 import Avatar from '../../components/common/Avatar/Avatar';
@@ -304,6 +305,77 @@ const PreferencesSection = () => {
   );
 };
 
+// What the Privacy section asks about (supabase/migrations/*_play_activity.sql)
+const PRIVACY_CHOICES = [
+  { key: 'show_played', label: "Games you've played", text: 'On your profile: when you last played each game, and for how long.' },
+  { key: 'show_playing', label: "What you're playing now", text: 'On your profile and in friends lists, while you play.' },
+  { key: 'show_activity', label: 'Recent activity', text: 'Your plays in the recent activity on the games page.' },
+];
+
+/** Who sees what you play: saved to your account as you choose */
+const PrivacySection = () => {
+  const [choices, setChoices] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let active = true;
+    fetchMyPrivacy().then(
+      (data) => active && setChoices(data),
+      () => active && setError("Couldn't load your privacy settings. Check your connection and reload the page."),
+    );
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const choose = async (key, value) => {
+    const before = choices;
+    setChoices({ ...choices, [key]: value });
+    setError(null);
+    try {
+      await setPrivacy({ [key]: value });
+    } catch {
+      setChoices(before);
+      setError("Couldn't save that. Check your connection and try again.");
+    }
+  };
+
+  return (
+    <section className={styles.card} aria-labelledby="settings-privacy">
+      <h2 id="settings-privacy" className={styles.cardTitle}>Privacy</h2>
+      <p className={styles.muted}>
+        Who sees what you play. Your favorite games and friends list are public; your ratings, bookmarks and
+        progress are only yours.
+      </p>
+      {choices && PRIVACY_CHOICES.map(({ key, label, text }) => (
+        <div key={key} className={styles.audienceGroup} role="radiogroup" aria-labelledby={`privacy-${key}`}>
+          <span className={styles.audienceText}>
+            <span id={`privacy-${key}`} className={styles.label}>{label}</span>
+            <span className={styles.muted}>{text}</span>
+          </span>
+          <span className={styles.audienceOptions}>
+            {AUDIENCES.map(({ value, label: audience }) => (
+              <label key={value} className={`${styles.audienceOption} ${choices[key] === value ? styles.chosenAudience : ''}`}>
+                <input
+                  type="radio"
+                  className="visually-hidden"
+                  name={`privacy-${key}`}
+                  value={value}
+                  checked={choices[key] === value}
+                  onChange={() => choose(key, value)}
+                />
+                {audience}
+              </label>
+            ))}
+          </span>
+        </div>
+      ))}
+      {!choices && !error && <p className={styles.muted}>Loading…</p>}
+      {error && <p className={styles.error} role="alert">{error}</p>}
+    </section>
+  );
+};
+
 const DeleteSection = ({ profile, onDelete }) => {
   const [typed, setTyped] = useState('');
   const [state, setState] = useState({ busy: false, error: null });
@@ -424,6 +496,7 @@ const Settings = () => {
     <>
       <ProfileSection profile={profile} user={user} />
       <UsernameSection profile={profile} />
+      <PrivacySection />
       <PreferencesSection />
       <AccountSection user={user} onSignOutProblem={setSignOutProblem} />
       <DeleteSection profile={profile} onDelete={removeAccount} />

@@ -3,9 +3,10 @@ import { Link, Navigate, useParams, useSearchParams } from 'react-router';
 import { PiUserCheck, PiUserMinus, PiUserPlus } from 'react-icons/pi';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLibrary } from '../../contexts/LibraryContext';
-import { games } from '../../data/games';
+import { gamesById } from '../../data/games';
 import { supabase } from '../../lib/supabase';
 import { USERNAME_PATTERN } from '../../lib/account';
+import { AUDIENCES, fetchMyPrivacy, fetchPlayed, playTime, timeAgo, usePlayingNow } from '../../lib/activity';
 import { askToConfirm } from '../../lib/confirm';
 import { monthYear } from '../../lib/dates';
 import {
@@ -18,7 +19,6 @@ import RatingSlider from '../../components/layout/game/RatingSlider/RatingSlider
 import styles from './Account.module.scss';
 
 const PUBLIC_COLUMNS = 'id, username, display_name, avatar_url, created_at';
-const gamesById = new Map(games.map((game) => [game.id, game]));
 
 /**
  * Runs something that loads, keeping { loaded, data, error } for it. `reload` runs it again.
@@ -44,13 +44,13 @@ const useLoad = (load, deps) => {
   return { loaded, data: loaded ? state.data : null, error: loaded ? state.error : null, reload: () => setAttempt((n) => n + 1) };
 };
 
-/** The games in a list of ids (newest first), as tiles linking to each game's page */
+/** The games in a list of ids (newest first), as tiles linking to each game's page, each with an optional line under its title */
 const GameTiles = ({ entries, empty }) => {
   const known = entries.filter(({ gameId }) => gamesById.has(gameId));
   if (known.length === 0) return <p className={styles.muted}>{empty}</p>;
   return (
     <ul className={styles.gameTiles}>
-      {known.map(({ gameId }) => {
+      {known.map(({ gameId, meta }) => {
         const game = gamesById.get(gameId);
         return (
           <li key={gameId}>
@@ -62,6 +62,7 @@ const GameTiles = ({ entries, empty }) => {
                 {game.iconUrl && <img src={game.iconUrl} alt="" className={styles.gameTileIcon} />}
                 {game.title}
               </span>
+              {meta && <span className={styles.gameTileMeta}>{meta}</span>}
             </Link>
           </li>
         );
@@ -73,8 +74,19 @@ const GameTiles = ({ entries, empty }) => {
 // Newest first, from a Map of game id → when (the library's favorites and bookmarks)
 const newestFirst = (map) => [...map].map(([gameId, at]) => ({ gameId, at })).sort((a, b) => b.at.localeCompare(a.at));
 
-/** A player card linking to their profile (friends, requests) */
-const PlayerCard = ({ player, meta, children }) => {
+/** What a player is playing now, as a line: "Playing Snake" */
+const PlayingNow = ({ gameId }) => {
+  const game = gamesById.get(gameId);
+  return game && (
+    <span className={styles.playingNow}>
+      <span className={styles.liveDot} aria-hidden="true" />
+      Playing {game.title}
+    </span>
+  );
+};
+
+/** A player card linking to their profile (friends, requests), with what they're playing now if that's known */
+const PlayerCard = ({ player, meta, playing, children }) => {
   const name = player.display_name ?? player.username;
   return (
     <div className={styles.playerRow}>
@@ -83,7 +95,7 @@ const PlayerCard = ({ player, meta, children }) => {
         <span className={styles.playerNames}>
           <span className={styles.playerName}>{name}</span>
           <span className={styles.playerMeta}>@{player.username}</span>
-          {meta && <span className={styles.playerMeta}>{meta}</span>}
+          {playing ? <PlayingNow gameId={playing.game_id} /> : meta && <span className={styles.playerMeta}>{meta}</span>}
         </span>
       </Link>
       {children && <div className={styles.playerActions}>{children}</div>}
@@ -331,6 +343,7 @@ const Requests = ({ onChange }) => {
 };
 
 const Friends = ({ friends, isMe }) => {
+  const playing = usePlayingNow(friends.data?.map((friend) => friend.id) ?? []);
   if (!friends.loaded) return <p className={styles.muted}>Loading…</p>;
   if (friends.error) {
     return (
@@ -346,9 +359,37 @@ const Friends = ({ friends, isMe }) => {
   return (
     <ul className={styles.playerList}>
       {friends.data.map((friend) => (
-        <li key={friend.id}><PlayerCard player={friend} meta={`Friends since ${monthYear(friend.since, 'short')}`} /></li>
+        <li key={friend.id}>
+          <PlayerCard player={friend} meta={`Friends since ${monthYear(friend.since, 'short')}`} playing={playing.get(friend.id)} />
+        </li>
       ))}
     </ul>
+  );
+};
+
+/** The games a player has played for a minute or more: when last, how long in all, how many plays */
+const Played = ({ played, isMe, privacy }) => {
+  if (!played.loaded) return <p className={styles.muted}>Loading…</p>;
+  if (played.error) return <p className={styles.error} role="alert">Couldn&rsquo;t load the games played.</p>;
+  const audience = privacy.data && AUDIENCES.find(({ value }) => value === privacy.data.show_played);
+  return (
+    <>
+      {isMe && (
+        <p className={styles.muted}>
+          Games you&rsquo;ve played for a minute or more.
+          {audience && ` ${audience.value === 'nobody' ? 'Only you see them' : `${audience.label} can see them`}`}
+          {' '}(<Link to="/settings" className={styles.textLink}>Settings → Privacy</Link>).
+        </p>
+      )}
+      <GameTiles
+        entries={played.data.map((row) => ({
+          gameId: row.game_id,
+          meta: [timeAgo(row.last_played), `${playTime(row.seconds)} played`, row.plays > 1 && `${row.plays} plays`]
+            .filter(Boolean).join(' · '),
+        }))}
+        empty={isMe ? 'Games you play for a minute or more show here.' : 'Nothing played yet.'}
+      />
+    </>
   );
 };
 
@@ -369,11 +410,15 @@ const ProfileTabs = ({ player, isMe }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const theirFavorites = useFavorites(player, isMe);
   const friends = useLoad(() => fetchFriends(player.id), [player.id]);
+  const played = useLoad(() => fetchPlayed(player.id), [player.id]);
+  const myPrivacy = useLoad(isMe ? fetchMyPrivacy : null, [player.id, isMe]);
   const tabRefs = useRef({});
 
   const favorites = isMe ? { loaded: library.loaded, data: newestFirst(library.favorites) } : theirFavorites;
   const tabs = [
     { id: 'favorites', label: 'Favorites', count: favorites.data?.length },
+    // Another player's only when they let you see some (yours always)
+    ...(isMe || played.data?.length ? [{ id: 'played', label: 'Played', count: played.data?.length }] : []),
     { id: 'friends', label: 'Friends', count: friends.data?.length },
     ...(isMe ? [
       { id: 'bookmarks', label: 'Bookmarks', count: library.bookmarks.size, private: true },
@@ -414,6 +459,8 @@ const ProfileTabs = ({ player, isMe }) => {
           />
         </>
       );
+  } else if (tab === 'played') {
+    panel = <Played played={played} isMe={isMe} privacy={myPrivacy} />;
   } else if (tab === 'friends') {
     panel = <Friends friends={friends} isMe={isMe} />;
   } else if (tab === 'bookmarks') {
@@ -460,6 +507,16 @@ const ProfileTabs = ({ player, isMe }) => {
         {panel}
       </div>
     </section>
+  );
+};
+
+/** "Playing Snake", under a player's name while they play (when they let the viewer see it) */
+const PlayingNowLine = ({ playerId }) => {
+  const playing = usePlayingNow([playerId]).get(playerId);
+  return playing && (
+    <Link to={`/g/${playing.game_id}`} className={styles.playingLink}>
+      <PlayingNow gameId={playing.game_id} />
+    </Link>
   );
 };
 
@@ -528,6 +585,7 @@ const Profile = () => {
           <h1 className={styles.title}>{name}</h1>
           <p className={styles.handle}>@{player.username}</p>
           <p className={styles.muted}>Joined {monthYear(player.created_at)}</p>
+          <PlayingNowLine playerId={player.id} />
         </div>
         {isMe && <Button as={Link} to="/settings" variant="outline">Edit profile</Button>}
       </section>

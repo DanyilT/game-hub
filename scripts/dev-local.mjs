@@ -22,9 +22,11 @@ console.log(`Local Supabase: ${url}`);
 console.log(`  Studio (tables, users): ${status.STUDIO_URL}`);
 if (status.MAILPIT_URL ?? status.INBUCKET_URL) console.log(`  Emails it would send: ${status.MAILPIT_URL ?? status.INBUCKET_URL}`);
 
-// Variables set here win over .env.local (Vite never overwrites existing ones)
+// Variables set here win over .env.local (Vite never overwrites existing ones). The secret key is the
+// local project's (`supabase status`), for the dev server's run checker (vite.config.js); it's no
+// VITE_ variable, so it never reaches the browser.
 const vite = spawn('npx', ['vite', ...process.argv.slice(2)], {
   stdio: 'inherit',
-  env: { ...process.env, VITE_SUPABASE_URL: url, VITE_SUPABASE_PUBLISHABLE_KEY: key },
+  env: { ...process.env, VITE_SUPABASE_URL: url, VITE_SUPABASE_PUBLISHABLE_KEY: key, SUPABASE_SECRET_KEY: status.SECRET_KEY ?? '' },
 });
 vite.on('exit', (code) => process.exit(code ?? 0));
