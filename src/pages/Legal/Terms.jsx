@@ -3,7 +3,7 @@ import { HUB_ISSUES_URL, HUB_REPO_URL, hubBugReportUrl } from '../../lib/support
 import styles from './Legal.module.scss';
 
 // Change this whenever the terms text changes
-const LAST_UPDATED = '3 October 2026';
+const LAST_UPDATED = '4 October 2026';
 
 const GAMES_ISSUES_URL = 'https://github.com/DanyilT/dt-games/issues';
 
@@ -43,6 +43,7 @@ const Terms = () => (
           <li>using a bug to get a record</li>
         </ul>
         <p>Games that don&rsquo;t check out are kept for a while, and so are odd ones. If we have reason to think an account cheats or tampers with GameHub&rsquo;s data, we&rsquo;ll look into it, and may remove its games and records, suspend it, or delete it for good (a permanent ban).</p>
+        <p>Think another player cheats? Report them with the <strong>⋯</strong> on their profile (signed in). Only the developer reads reports, and the player isn&rsquo;t told who sent one. Please only report what you really think happened: reports made to get at someone break these Terms too.</p>
         <p>Found a way to cheat, fake a record, or get past the checks? Please don&rsquo;t use it: tell the developer on <a href={HUB_ISSUES_URL} target="_blank" rel="noopener noreferrer">GitHub issues<span className="visually-hidden"> (opens in a new tab)</span></a>, or, if it&rsquo;s serious, privately with the <strong>?</strong> button on a game&rsquo;s page (signed in), so it can be fixed before anyone else finds it. The same goes for any bug: reporting it keeps GameHub fair for everyone. Thank you!</p>
       </section>
 
@@ -50,7 +51,7 @@ const Terms = () => (
         <h2>5. Accounts</h2>
         <p>You don't need an account to play. If you create one, you sign in with Google, and you need to be at least 13 (or older, if the law where you live says so).</p>
         <p>Your username, display name and picture are public, and so are your favorite games and your friends list. Your ratings, bookmarks and game progress are private. Don't use your profile to pretend to be someone else, to harass anyone, or for anything offensive or illegal. Names and profiles that break these rules may be changed or removed, and accounts that keep breaking them may be deleted.</p>
-        <p>Only add friends you want on your public friends list, and don't send friend requests to pester people.</p>
+        <p>Only add friends you want on your public friends list, and don't send friend requests to pester people. If someone bothers you, block them with the <strong>⋯</strong> on their profile: they can't add you as a friend, and neither of you sees the other's activity. Report anyone who breaks these rules from the same menu.</p>
         <p>You can delete your account at any time in Settings. What we store about you is explained in the <Link to="/privacy">Privacy Policy</Link>.</p>
       </section>
 

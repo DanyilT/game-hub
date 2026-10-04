@@ -1,20 +1,24 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useParams, useSearchParams } from 'react-router';
-import { PiUserCheck, PiUserMinus, PiUserPlus } from 'react-icons/pi';
+import { PiDotsThreeVertical, PiFlag, PiProhibit, PiUserCheck, PiUserMinus, PiUserPlus } from 'react-icons/pi';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLibrary } from '../../contexts/LibraryContext';
 import { gamesById } from '../../data/games';
 import { supabase } from '../../lib/supabase';
 import { USERNAME_PATTERN } from '../../lib/account';
 import { AUDIENCES, fetchMyPrivacy, fetchPlayed, playTime, timeAgo, usePlayingNow } from '../../lib/activity';
+import { blockPlayer, fetchIsBlocked, unblockPlayer } from '../../lib/blocks';
 import { askToConfirm } from '../../lib/confirm';
 import { monthYear } from '../../lib/dates';
 import {
   acceptFriendRequest, describeFriendError, fetchFriends, fetchFriendState, fetchMyRequests, removeFriend,
   sendFriendRequest,
 } from '../../lib/friends';
+import { showToast } from '../../lib/toast';
+import ReportPlayer from '../../components/account/ReportPlayer/ReportPlayer';
 import Avatar from '../../components/common/Avatar/Avatar';
 import Button from '../../components/common/Button/Button';
+import Menu from '../../components/common/Menu/Menu';
 import RatingSlider from '../../components/layout/game/RatingSlider/RatingSlider';
 import styles from './Account.module.scss';
 
@@ -188,6 +192,71 @@ const FriendButton = ({ player, onChange }) => {
         <p className={styles.error} role="alert">{error ?? "Couldn't check whether you're friends."}</p>
       )}
     </div>
+  );
+};
+
+/** In place of the friend buttons, on the profile of a player you've blocked */
+const BlockedNote = ({ onUnblock }) => {
+  const [busy, setBusy] = useState(false);
+  return (
+    <div className={styles.friendButton}>
+      <div className={styles.actions}>
+        <span className={styles.blockedBadge}><PiProhibit aria-hidden="true" />Blocked</span>
+        <Button
+          variant="outline"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            await onUnblock();
+            setBusy(false);
+          }}
+        >
+          Unblock
+        </Button>
+      </div>
+      <p className={styles.muted}>
+        You aren&rsquo;t friends, neither of you can add the other, and you don&rsquo;t see each other&rsquo;s
+        activity. They aren&rsquo;t told.
+      </p>
+    </div>
+  );
+};
+
+/**
+ * The ⋯ on another player's profile: block or unblock them, and report them to the developer. Signed out, each opens
+ * the sign-in window.
+ * @param {object} player - their profile
+ * @param {boolean} blocked - you've blocked them
+ * @param {function} onBlock - asks, then blocks them
+ * @param {function} onUnblock
+ */
+const PlayerActions = ({ player, blocked, onBlock, onUnblock }) => {
+  const { user, openSignIn } = useAuth();
+  const [reporting, setReporting] = useState(false);
+  const name = player.display_name ?? player.username;
+  const signedIn = Boolean(user);
+
+  const items = [
+    blocked
+      ? { label: 'Unblock', icon: <PiProhibit aria-hidden="true" />, onSelect: signedIn ? onUnblock : openSignIn }
+      : { label: 'Block', icon: <PiProhibit aria-hidden="true" />, onSelect: signedIn ? onBlock : openSignIn, danger: true },
+    { label: 'Report…', icon: <PiFlag aria-hidden="true" />, onSelect: signedIn ? () => setReporting(true) : openSignIn, danger: true },
+  ];
+
+  return (
+    <>
+      <Menu label={`More for ${name}`} icon={<PiDotsThreeVertical aria-hidden="true" />} items={items} />
+      {reporting && (
+        <ReportPlayer
+          player={player}
+          onClose={() => setReporting(false)}
+          onDone={() => {
+            setReporting(false);
+            showToast(`Thanks. Your report on ${name} went to the developer.`);
+          }}
+        />
+      )}
+    </>
   );
 };
 
@@ -404,8 +473,12 @@ const useFavorites = (player, isMe) => useLoad(
   [player.id],
 );
 
-/** The tabs under the profile header: public ones for everyone, private ones on your own */
-const ProfileTabs = ({ player, isMe }) => {
+/**
+ * The tabs under the profile header: public ones for everyone, private ones on your own
+ * @param {boolean} blocked - you've blocked this player: no friend buttons, but Unblock
+ * @param {function} onUnblock
+ */
+const ProfileTabs = ({ player, isMe, blocked, onUnblock }) => {
   const library = useLibrary();
   const [searchParams, setSearchParams] = useSearchParams();
   const theirFavorites = useFavorites(player, isMe);
@@ -480,7 +553,7 @@ const ProfileTabs = ({ player, isMe }) => {
     <section className={styles.card}>
       {!isMe && (
         <div className={styles.profileFriend}>
-          <FriendButton player={player} onChange={reloadFriends} />
+          {blocked ? <BlockedNote onUnblock={onUnblock} /> : <FriendButton player={player} onChange={reloadFriends} />}
         </div>
       )}
       <div className={styles.tabs} role="tablist" aria-label="Profile" onKeyDown={onKeyDown}>
@@ -517,6 +590,72 @@ const PlayingNowLine = ({ playerId }) => {
     <Link to={`/g/${playing.game_id}`} className={styles.playingLink}>
       <PlayingNow gameId={playing.game_id} />
     </Link>
+  );
+};
+
+/** A profile once it's loaded: the header, and the tabs under it */
+const ProfileBody = ({ player, isMe }) => {
+  const { user } = useAuth();
+  const { refreshRequests } = useLibrary();
+  const me = user?.id ?? null;
+  const block = useLoad(me && !isMe ? () => fetchIsBlocked(player.id) : null, [me, player.id]);
+  const [blockedNow, setBlockedNow] = useState(null); // after blocking or unblocking here
+  const blocked = blockedNow ?? block.data === true;
+  // Bumped by blocking or unblocking: what each of you sees of the other changes, so it loads again
+  const [seen, setSeen] = useState(0);
+  const name = player.display_name ?? player.username;
+
+  const changed = (now) => {
+    setBlockedNow(now);
+    setSeen((n) => n + 1);
+  };
+
+  const blockThem = async () => {
+    const yes = await askToConfirm({
+      title: `Block ${name}?`,
+      message: `Neither of you can add the other as a friend (if you're friends, that ends), and you won't see each other's games, what you're playing or your recent activity. ${name} isn't told. You can unblock them any time, here or in Settings.`,
+      confirmLabel: 'Block',
+      danger: true,
+    });
+    if (!yes) return;
+    try {
+      await blockPlayer(player.id);
+      refreshRequests(); // a request either way is gone
+      changed(true);
+      showToast(`You blocked ${name}.`);
+    } catch (error) {
+      showToast(describeFriendError(error), { tone: 'error' });
+    }
+  };
+
+  const unblockThem = async () => {
+    try {
+      await unblockPlayer(player.id);
+      changed(false);
+      showToast(`You unblocked ${name}.`);
+    } catch (error) {
+      showToast(describeFriendError(error), { tone: 'error' });
+    }
+  };
+
+  return (
+    <>
+      <section className={styles.profileHeader}>
+        <Avatar url={player.avatar_url} name={name} size={96} />
+        <div className={styles.profileNames}>
+          <h1 className={styles.title}>{name}</h1>
+          <p className={styles.handle}>@{player.username}</p>
+          <p className={styles.muted}>Joined {monthYear(player.created_at)}</p>
+          <PlayingNowLine key={seen} playerId={player.id} />
+        </div>
+        {isMe && <Button as={Link} to="/settings" variant="outline">Edit profile</Button>}
+        {!isMe && (!me || block.loaded) && (
+          <PlayerActions player={player} blocked={blocked} onBlock={blockThem} onUnblock={unblockThem} />
+        )}
+      </section>
+
+      <ProfileTabs key={seen} player={player} isMe={isMe} blocked={blocked} onUnblock={unblockThem} />
+    </>
   );
 };
 
@@ -575,25 +714,9 @@ const Profile = () => {
 
   const isMe = isOwn || me?.id === result.data.id;
   const player = isMe ? me : result.data;
-  const name = player.display_name ?? player.username;
 
-  return page(
-    <>
-      <section className={styles.profileHeader}>
-        <Avatar url={player.avatar_url} name={name} size={96} />
-        <div className={styles.profileNames}>
-          <h1 className={styles.title}>{name}</h1>
-          <p className={styles.handle}>@{player.username}</p>
-          <p className={styles.muted}>Joined {monthYear(player.created_at)}</p>
-          <PlayingNowLine playerId={player.id} />
-        </div>
-        {isMe && <Button as={Link} to="/settings" variant="outline">Edit profile</Button>}
-      </section>
-
-      {/* Keyed by player, so moving to another profile starts on fresh tabs */}
-      <ProfileTabs key={player.id} player={player} isMe={isMe} />
-    </>,
-  );
+  // Keyed by player, so moving to another profile starts afresh
+  return page(<ProfileBody key={player.id} player={player} isMe={isMe} />);
 };
 
 export default Profile;

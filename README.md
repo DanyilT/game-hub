@@ -6,7 +6,7 @@ Welcome to the **GameHub** project! This repository contains the source code for
 
 Hub for all games, that was created by me.
 
-This is **v2** (branch [`main-v2`](https://github.com/DanyilT/game-hub/tree/main-v2)): a rewrite on Vite, hosted on Cloudflare Workers. It adds accounts (sign in with Google, with Discord coming): public profiles, game progress saved to the account, 1–5 ratings with a feedback box, favorites (public) and bookmarks (private), and friends. The navigation is a sidebar, or a floating round button (Settings → Preferences).
+This is **v2** (branch [`main-v2`](https://github.com/DanyilT/game-hub/tree/main-v2)): a rewrite on Vite, hosted on Cloudflare Workers. It adds accounts (sign in with Google, with Discord coming): public profiles, game progress saved to the account, 1–5 ratings with a feedback box, favorites (public) and bookmarks (private), and friends, with blocking and reporting players. The navigation is a sidebar, or a floating round button (Settings → Preferences).
 
 > [!NOTE]
 > ### 🕹️ v1
@@ -118,6 +118,8 @@ The hub counts how long players play each game (`src/lib/playTime.js`); the game
 
 From it come a profile's **Played** tab, **playing now** (on profiles and friends lists) and the games page's **Recent activity**. Each player picks who sees each of the three in Settings → Privacy: everyone, friends, or only them (out of the box: everyone, friends, everyone). The database applies those choices itself (`supabase/migrations/*_play_activity.sql`): the sessions are only read through its functions.
 
+**Blocking and reporting** (`supabase/migrations/*_blocks_and_reports.sql`): the ⋯ on another player's profile blocks them or reports them. Blocking ends a friendship (and drops a request either way), stops friend requests between the two, and hides each one's activity from the other, whatever their choices say; the blocked player isn't told. Settings → Privacy lists the players you've blocked. A report (cheating, with the game if known, or something else, with what happened) can't be read back: read them in Supabase's Table Editor → `player_reports`, and for cheating, the player's checked games in `game_runs`. At most one report a day about the same player, and 10 a day in all.
+
 To try saves (and the panel under the game) locally, the dev server has to run on port 3000 (the address `gamehub.js` trusts), with the games loaded from their live addresses. A game from the internet then loads the bridge from `localhost`, which Chrome blocks until you allow it (Local Network Access): on a local address the hub lets the game's frame ask (`allow="loopback-network; local-network"`, GamePage.jsx), so Chrome shows a prompt for the game's site; allow it. Until then the game never connects, so there's no panel and saves stay in the browser. Privacy extensions (uBlock Origin's "Block Outsider Intrusion into LAN" list, Brave Shields) block it too (`net::ERR_BLOCKED_BY_CLIENT`): allow it for `dt-games.pages.dev`. Or try it all on the live site.
 
 ## ✈ Offline play
@@ -223,7 +225,7 @@ Each list is optional, and every link needs a `label`. A new game on another sit
 - **SCSS modules**: component styles (`*.module.scss`, `@use` only). Colours, sizes, fonts and timings are Sass variables in `src/styles/abstracts/_variables.scss`, and shared mixins are in `_mixins.scss` next to it.
 - **Fonts** (Google Fonts): Doto for the site, and Chakra Petch (easier to read small) for game tags. To change one, edit `$font-primary` / `$font-secondary` in `_variables.scss` and the Google Fonts link in `index.html`.
 - **react-icons**: interface icons, and the icons the catalogue names.
-- **Supabase**: sign-in (Google; Discord is coming), Postgres with row level security: profiles, the game list, game saves, ratings, favorites, bookmarks, feedback, friends, play activity and privacy settings. Schema changes are migrations in `supabase/migrations/`, applied with `npx supabase db push`, with pgTAP tests in `supabase/tests/`.
+- **Supabase**: sign-in (Google; Discord is coming), Postgres with row level security: profiles, the game list, game saves, ratings, favorites, bookmarks, feedback, friends, blocks and reports, play activity and privacy settings. Schema changes are migrations in `supabase/migrations/`, applied with `npx supabase db push`, with pgTAP tests in `supabase/tests/`.
 - **Cloudflare Workers (static assets)**: hosting, plus a small script (`worker/index.js`) whose cron trigger keeps Supabase awake.
 
 ## 📂 Project Structure
@@ -238,14 +240,14 @@ game-hub/
 │   ├── site-files.mjs       # robots.txt, sitemap.xml, llms.txt, humans.txt, security.txt (written by the build)
 │   └── dev-local.mjs        # `npm run dev:local`: the dev server against the local Supabase
 ├── src/
-│   ├── components/account/  # SignInModal, UsernameDialog (new players pick a username), UsernameField (🎲)
+│   ├── components/account/  # SignInModal, UsernameDialog (new players pick a username), UsernameField (🎲), ReportPlayer (the ⋯ → Report window)
 │   ├── components/install/  # installing as an app: the steps for iPhone/iPad, the banner on phones, useInstall()
-│   ├── components/common/   # Avatar, Button, ConfirmDialog ("Sign out?"), ErrorBoundary, GooglePlayBadge, InfoTip, Modal (the neon window), Toasts
+│   ├── components/common/   # Avatar, Button, ConfirmDialog ("Sign out?"), ErrorBoundary, GooglePlayBadge, InfoTip, Menu (a ⋯ button with actions), Modal (the neon window), Toasts
 │   ├── components/layout/   # Header, Footer, MainLayout, RecentActivity (the games page); the navigation: Sidebar or FloatingNav, both from useNavItems.js
 │   ├── components/layout/game/  # GameCard, GameList, GameControls, GameReactions (favorites, bookmarks), DownloadGame (offline), GameProgress (the panel under the game, replays), RatingSlider, RateGame, GameHelp (the ? window)
 │   ├── contexts/            # AuthContext (the signed-in player, useAuth()), LibraryContext (their favorites, bookmarks, ratings, friend requests: useLibrary())
 │   ├── data/                # games.json (the game list without Supabase), games.js (helpers), controls.js (key and gesture names)
-│   ├── lib/                 # supabase.js (the client), gameBridge.js (saves, downloads, the panel), runs.js (runs to replay), checks.js (tickets, checked runs, records), gameStatus.js (the panel's numbers), playTime.js (play time), activity.js (played games, playing now, privacy), offline.js, friends.js, account.js (username rules), install.js, preferences.js (navigation style), support.js (bug report links), toast.js, confirm.js, dates.js
+│   ├── lib/                 # supabase.js (the client), gameBridge.js (saves, downloads, the panel), runs.js (runs to replay), checks.js (tickets, checked runs, records), gameStatus.js (the panel's numbers), playTime.js (play time), activity.js (played games, playing now, privacy), offline.js, friends.js, blocks.js, reports.js, account.js (username rules), install.js, preferences.js (navigation style), support.js (bug report links), toast.js, confirm.js, dates.js
 │   ├── service-worker.js    # the site's service worker: built into /sw.js by vite.config.js, not imported by the app
 │   ├── pages/               # Games, GamePage, Account/ (players, profile, /me, settings, sign-in callback), Legal/ (about, terms, privacy), ErrorPage
 │   ├── styles/              # Sass variables, mixins, buttons and forms, shared animations, reset, base

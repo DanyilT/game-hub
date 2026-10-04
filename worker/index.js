@@ -14,6 +14,13 @@ export default {
     // Its settings are Worker secrets (README → Deploy): SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY and
     // SUPABASE_SECRET_KEY
     if (new URL(request.url).pathname === '/api/verify-run') return verifyRun(request, env);
+    // The Cloudflare dashboard's Preview runs this script without the site's files
+    if (!env.ASSETS) {
+      return new Response("This preview runs the Worker's script without the site's files. Open the live site to see them.", {
+        status: 404,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+      });
+    }
     return env.ASSETS.fetch(request);
   },
 

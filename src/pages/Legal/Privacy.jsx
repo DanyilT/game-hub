@@ -4,7 +4,7 @@ import styles from './Legal.module.scss';
 
 // Change this whenever the policy changes. Keep it in step with what the site really does:
 // sign-in providers, where data is stored, and which other sites pages load from (the CSP in vite.config.js lists them).
-const LAST_UPDATED = '3 October 2026';
+const LAST_UPDATED = '4 October 2026';
 
 const Privacy = () => (
   <div className={styles.page}>
@@ -45,11 +45,13 @@ const Privacy = () => (
           <li><strong>Your favorites.</strong> Public: they're on your profile.</li>
           <li><strong>Your bookmarks.</strong> Private: others only see how many players bookmarked each game.</li>
           <li><strong>Your friends.</strong> Your friends list is public, on your profile. A friend request is only seen by the two of you until it's accepted.</li>
+          <li><strong>Who you&rsquo;ve blocked.</strong> Private: only you see it (Settings → Privacy lists them). The player isn&rsquo;t told, though they can&rsquo;t send you a friend request.</li>
+          <li><strong>Reports you send</strong> about a player: who it&rsquo;s about, why (cheating or something else), the game and what you wrote. Only the developer reads them, and the player isn&rsquo;t told who sent one. A report is kept until your account or the reported player&rsquo;s is deleted, and so is one about you.</li>
           <li><strong>Your checked games and records.</strong> When you finish a game on a ticket (a random seed GameHub&rsquo;s server picked for it), the game goes to the server to be checked: the moves you made, with their timing, and the result the game showed. The server plays it again, and keeps what that gave as your result, so your records come only from checked games. The moves are deleted after 30 days, unless that game is one of your records. Games that don&rsquo;t check out are kept the same way, in case they need a closer look (see the <Link to="/terms">Terms</Link> on cheating). Your tickets are kept until they&rsquo;re used, or for a month after they run out. Private: only you see your records, and the developer, when looking into cheating.</li>
           <li><strong>What you play, and for how long.</strong> Each time you play a game here: which game, when, and how many seconds you played (counted only while you're pressing keys or tapping in the game, not while it's just open). From it come the games on your profile, &ldquo;playing now&rdquo;, and the games page&rsquo;s recent activity. You choose who sees each of those in Settings → Privacy: everyone, your friends, or only you. Out of the box, played games and recent activity are for everyone, and what you&rsquo;re playing now is for your friends.</li>
           <li><strong>Messages you send us</strong>, after rating a game or from its help: what you wrote, the game, the rating you gave, and, if you tick the box, your browser's name and version. Only the developer reads them.</li>
         </ul>
-        <p>You can take back any rating, favorite, bookmark or friend at any time, and a message goes when your account does.</p>
+        <p>You can take back any rating, favorite, bookmark, friend or block at any time, and a message or report goes when your account does.</p>
       </section>
 
       <section className={styles.section}>
@@ -81,7 +83,7 @@ const Privacy = () => (
 
       <section className={styles.section}>
         <h2>7. Deleting your data</h2>
-        <p>Your data is kept for as long as you have an account. <strong>Settings → Delete account</strong> deletes your account, your profile, your list of usernames, your game progress, checked games, records and tickets, ratings, favorites, bookmarks, friends and the messages you sent, straight away. If a backup of the database was made before that, your data stays in that backup until the backup is deleted.</p>
+        <p>Your data is kept for as long as you have an account. <strong>Settings → Delete account</strong> deletes your account, your profile, your list of usernames, your game progress, checked games, records and tickets, ratings, favorites, bookmarks, friends, blocks, and the messages and reports you sent, straight away. If a backup of the database was made before that, your data stays in that backup until the backup is deleted.</p>
       </section>
 
       <section className={styles.section}>

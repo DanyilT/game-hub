@@ -3,7 +3,7 @@
 -- Inside the transaction now() doesn't move, so time passing is tested by moving tickets and runs back.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(59);
+select plan(60);
 
 delete from public.game_runs;
 delete from public.run_tickets;
@@ -191,6 +191,8 @@ select is((select array_agg(row(mode, time_ms)::text order by mode) from public.
   array['(easy,50000)', '(hard,90000)'], '...and the fastest win on each level');
 select is((select count(*) from public.my_records('tetris')), 0::bigint, '...none where nothing was checked');
 reset role;
+select is((select ticket_id from public.my_records('snake')), pg_temp.ticket(3),
+  '...and which game holds the record: its ticket, for the panel''s star');
 
 -- ---------------------------------------------------------------------------
 -- Tidying up

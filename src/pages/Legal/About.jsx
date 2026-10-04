@@ -70,7 +70,7 @@ const About = () => {
             <li>Rate games from 1 to 5. Only you see your ratings; everyone sees each game&rsquo;s average.</li>
             <li>Add the games you love to your favorites (the heart): they show on your profile.</li>
             <li>Bookmark games to play later: only you see your bookmarks.</li>
-            <li>Add friends: friends lists are on profiles, for everyone to see.</li>
+            <li>Add friends: friends lists are on profiles, for everyone to see. The <strong>⋯</strong> on a player&rsquo;s profile blocks them, or reports them to the developer.</li>
           </ul>
           <p>Sign in with Google. What&rsquo;s stored, and how to delete it, is in the <Link to="/privacy">Privacy Policy</Link>.</p>
         </section>

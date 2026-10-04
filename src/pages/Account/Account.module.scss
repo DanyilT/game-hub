@@ -399,6 +399,49 @@
   font-weight: $font-weight-semibold;
 }
 
+.blockedBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-sm $spacing-md;
+  border: 1px solid color-mix(in srgb, $color-error 70%, transparent);
+  color: forms.$color-status-error;
+  font-weight: $font-weight-semibold;
+}
+
+// Settings → Privacy: the players you've blocked
+.blockedList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.blockedRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-sm $spacing-md;
+}
+
+.blockedPlayer {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-sm;
+  min-width: 0;
+  color: $color-text-primary;
+  text-decoration: none;
+
+  &:hover .blockedName {
+    color: $color-primary-light;
+  }
+}
+
+.blockedName {
+  font-weight: $font-weight-semibold;
+  transition: color $transition-fast ease;
+}
+
 .tabs {
   display: flex;
   flex-wrap: wrap;

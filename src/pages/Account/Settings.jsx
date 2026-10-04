@@ -12,6 +12,7 @@ import {
   nextUsernameChange,
 } from '../../lib/account';
 import { AUDIENCES, fetchMyPrivacy, setPrivacy } from '../../lib/activity';
+import { fetchMyBlocks, unblockPlayer } from '../../lib/blocks';
 import { fullDate } from '../../lib/dates';
 import { setPreference, usePreferences } from '../../lib/preferences';
 import Avatar from '../../components/common/Avatar/Avatar';
@@ -312,7 +313,68 @@ const PRIVACY_CHOICES = [
   { key: 'show_activity', label: 'Recent activity', text: 'Your plays in the recent activity on the games page.' },
 ];
 
-/** Who sees what you play: saved to your account as you choose */
+/** The players you've blocked (from the ⋯ on their profiles), each with Unblock */
+const BlockedPlayers = () => {
+  const [list, setList] = useState(null);
+  const [busy, setBusy] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let active = true;
+    fetchMyBlocks().then(
+      (data) => active && setList(data),
+      () => active && setError("Couldn't load the players you've blocked. Check your connection and reload the page."),
+    );
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const unblock = async (player) => {
+    setBusy(player.id);
+    setError(null);
+    try {
+      await unblockPlayer(player.id);
+      setList((players) => players.filter(({ id }) => id !== player.id));
+    } catch {
+      setError("Couldn't unblock them. Check your connection and try again.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <>
+      <h3 className={styles.subTitle}>Blocked players</h3>
+      <p className={styles.muted}>
+        They can&rsquo;t add you as a friend, and you don&rsquo;t see each other&rsquo;s activity. Block a player with
+        the ⋯ on their profile.
+      </p>
+      {list?.length === 0 && <p className={styles.muted}>You haven&rsquo;t blocked anyone.</p>}
+      {list?.length > 0 && (
+        <ul className={styles.blockedList}>
+          {list.map((player) => {
+            const name = player.display_name ?? player.username;
+            return (
+              <li key={player.id} className={styles.blockedRow}>
+                <Link to={`/u/${player.username}`} className={styles.blockedPlayer}>
+                  <Avatar url={player.avatar_url} name={name} size={32} />
+                  <span>
+                    <span className={styles.blockedName}>{name}</span> <span className={styles.muted}>@{player.username}</span>
+                  </span>
+                </Link>
+                <Button variant="outline" disabled={busy === player.id} onClick={() => unblock(player)}>Unblock</Button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {error && <p className={styles.error} role="alert">{error}</p>}
+    </>
+  );
+};
+
+/** Who sees what you play, saved to your account as you choose; and who you've blocked */
 const PrivacySection = () => {
   const [choices, setChoices] = useState(null);
   const [error, setError] = useState(null);
@@ -372,6 +434,7 @@ const PrivacySection = () => {
       ))}
       {!choices && !error && <p className={styles.muted}>Loading…</p>}
       {error && <p className={styles.error} role="alert">{error}</p>}
+      <BlockedPlayers />
     </section>
   );
 };

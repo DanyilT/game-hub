@@ -1,0 +1,76 @@
+@use '../../../styles/abstracts/variables' as *;
+@use '../../../styles/abstracts/mixins';
+@use '../../../styles/abstracts/forms';
+
+.menu {
+  position: relative;
+  display: inline-flex;
+}
+
+// Square, with the outline buttons' border
+.button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid $color-primary-light;
+  color: $color-primary-light;
+  font-size: 1.4rem;
+  transition: color $transition-fast ease, border-color $transition-fast ease, box-shadow $transition-fast ease;
+
+  &:hover,
+  &[aria-expanded='true'] {
+    color: $color-secondary;
+    border-color: $color-secondary;
+    box-shadow: 0 0 10px color-mix(in srgb, $color-secondary 60%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid $color-primary-light;
+    outline-offset: 2px;
+  }
+}
+
+.list {
+  @include mixins.popup;
+  display: flex;
+  flex-direction: column;
+  min-width: 200px;
+  padding: $spacing-xs;
+  border-radius: 0;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  width: 100%;
+  padding: $spacing-sm $spacing-md;
+  color: $color-text-primary;
+  font-family: $font-secondary;
+  text-align: left;
+  white-space: nowrap;
+
+  svg {
+    flex-shrink: 0;
+    font-size: 1.2rem;
+    color: $color-primary-light;
+  }
+
+  &:hover,
+  &:focus-visible {
+    outline: none;
+    background: color-mix(in srgb, $color-primary-light 15%, transparent);
+  }
+
+  &.danger,
+  &.danger svg {
+    color: forms.$color-status-error;
+  }
+
+  &.danger:hover,
+  &.danger:focus-visible {
+    background: color-mix(in srgb, $color-error 15%, transparent);
+  }
+}

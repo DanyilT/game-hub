@@ -264,21 +264,53 @@ $line: color-mix(in srgb, $color-white 10%, transparent);
   opacity: 0.85;
 }
 
-.best {
+// A run's badges are icons. A badge's label slides out of its icon on hover, or for the whole row while it has the
+// keyboard's focus. It comes out to the left, so the icon stays where it is.
+.badge {
   display: inline-flex;
+  flex-direction: row-reverse;
   align-items: center;
-  gap: 2px;
-  color: $color-gold;
+  align-self: center;
+  gap: 0;
   font-weight: $font-weight-semibold;
+  transition: gap $transition-base ease;
+
+  svg {
+    flex-shrink: 0;
+    font-size: 1.15em;
+  }
+}
+
+.badgeLabel {
+  display: grid;
+  grid-template-columns: 0fr;
+  opacity: 0;
+  transition: grid-template-columns $transition-base ease, opacity $transition-base ease;
+
+  > span {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+}
+
+.badge:hover,
+.run:focus-visible .badge {
+  gap: 3px;
+
+  .badgeLabel {
+    grid-template-columns: 1fr;
+    opacity: 1;
+  }
+}
+
+// The player's record
+.best {
+  color: $color-gold;
 }
 
 // How a signed-in player's run did on GameHub's server
 .check {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  font-weight: $font-weight-semibold;
-
   &.checked {
     color: $color-accent-light;
   }

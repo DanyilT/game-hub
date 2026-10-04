@@ -57,7 +57,7 @@ export const fetchIncomingCount = async (me) => {
  * @return {string}
  */
 export const describeFriendError = (error) => {
-  if (error?.hint === 'request_limit' || error?.hint === 'self' || error?.hint === 'no_player') return error.message;
+  if (['request_limit', 'self', 'no_player', 'blocked'].includes(error?.hint)) return error.message;
   if (error?.code === '42501' || error?.code === 'PGRST301') return 'Your session has expired. Sign in again.';
   return "Couldn't do that. Check your connection and try again.";
 };

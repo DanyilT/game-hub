@@ -1,5 +1,7 @@
 import { useId, useState } from 'react';
-import { PiArrowCounterClockwise, PiCheckCircleFill, PiClockFill, PiPauseFill, PiPlayFill, PiStarFill, PiXCircleFill } from 'react-icons/pi';
+import {
+  PiArrowCounterClockwise, PiCheckCircleFill, PiClockFill, PiCloudSlashFill, PiPauseFill, PiPlayFill, PiStarFill, PiXCircleFill,
+} from 'react-icons/pi';
 import { playTime, timeAgo } from '../../../../lib/activity';
 import { clockTime, formatValue } from '../../../../lib/gameStatus';
 import { usePlayed } from '../../../../lib/playTime';
@@ -29,6 +31,7 @@ const CHECKS = {
     note: 'It didn’t play out the same on GameHub’s server, or its ticket couldn’t be used.',
   },
   unchecked: {
+    Icon: PiCloudSlashFill,
     text: 'This device only',
     note: 'Played without a ticket (offline, after they ran out): it isn’t saved to your account.',
   },
@@ -48,6 +51,33 @@ const RunResult = ({ run, check }) => {
       ))}
     </span>
   );
+};
+
+/** A badge on a run: its icon, with its label sliding out of it on hover (or while the row has the keyboard's focus) */
+const Badge = ({ Icon, label, note = null, className }) => (
+  <span className={`${styles.badge} ${className}`}>
+    <Icon aria-hidden="true" />
+    <span className={styles.badgeLabel}><span>{label}</span></span>
+    {note && <span className="visually-hidden">: {note}</span>}
+  </span>
+);
+
+/**
+ * Which of the kept runs holds the player's record, on each level: a signed-in player's is the one GameHub's server
+ * names (my_records: its ticket); a guest's, the newest one the game itself said beat their best
+ * @return {Set<number>} - their keys
+ */
+const recordKeys = (runs, records, signedIn) => {
+  if (signedIn) {
+    const tickets = new Set((records ?? []).map((record) => record.ticket_id));
+    return new Set(runs.filter(({ run, check }) => check?.state === 'checked' && tickets.has(run.ticket)).map(({ key }) => key));
+  }
+  const levels = new Set();
+  return new Set(runs.filter(({ run, check }) => {
+    if (check || !run.best || levels.has(run.mode)) return false;
+    levels.add(run.mode); // runs are newest first
+    return true;
+  }).map(({ key }) => key));
 };
 
 /** A checked record, as the panel lists it: its level (if the game has levels) and what it gave */
@@ -125,15 +155,14 @@ const ReplayBar = ({ replay, state, onControl, onAgain, onStop }) => {
 };
 
 /** The player's runs of the game, newest first, to watch again */
-const Replays = ({ runs, replay, onWatch, signedIn }) => {
+const Replays = ({ runs, records, replay, onWatch, signedIn }) => {
   const [showAll, setShowAll] = useState(false);
   const headingId = useId();
   const extraId = useId();
   const watching = replay?.row.key ?? null;
+  const record = recordKeys(runs, records, signedIn);
 
   const row = ({ key, endedAt, run, check }) => {
-    // A guest's best is the game's word; a signed-in player's, the server's once checked
-    const best = check ? check.state === 'checked' && check.best : run.best;
     const badge = check && CHECKS[check.state];
     return (
       <li key={key}>
@@ -149,18 +178,9 @@ const Replays = ({ runs, replay, onWatch, signedIn }) => {
           <RunResult run={run} check={check} />
           <span className={styles.runMeta}>
             {badge && (
-              <span className={`${styles.check} ${styles[check.state]}`}>
-                {badge.Icon && <badge.Icon aria-hidden="true" />}
-                {badge.text}
-                <span className="visually-hidden">: {badge.note}</span>
-              </span>
+              <Badge Icon={badge.Icon} label={badge.text} note={badge.note} className={`${styles.check} ${styles[check.state]}`} />
             )}
-            {best && (
-              <span className={styles.best}>
-                <PiStarFill aria-hidden="true" />
-                {check ? 'Record' : 'Best'}
-              </span>
-            )}
+            {record.has(key) && <Badge Icon={PiStarFill} label={signedIn ? 'Record' : 'Best'} className={styles.best} />}
             {/* How long it lasted, unless its result says (a game's own clock: Minesweeper's time) */}
             {!run.result.some((item) => item.format === 'time') && <span>{clockTime(runSeconds(run))}</span>}
             <span className={styles.runWhen}>{timeAgo(endedAt)}</span>
@@ -336,7 +356,7 @@ const GameProgress = ({
         </div>
       )}
 
-      {showReplays && <Replays runs={runs} replay={replay} onWatch={onWatch} signedIn={signedIn} />}
+      {showReplays && <Replays runs={runs} records={records} replay={replay} onWatch={onWatch} signedIn={signedIn} />}
     </section>
   );
 };
