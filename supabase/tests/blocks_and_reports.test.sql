@@ -28,9 +28,11 @@ insert into public.friendships (user_a, user_b, requested_by, status, accepted_a
    '00000000-0000-4000-8000-000000000ba1', 'accepted', now()),
   ('00000000-0000-4000-8000-000000000ba1', '00000000-0000-4000-8000-000000000bc3',
    '00000000-0000-4000-8000-000000000bc3', 'pending', null);
--- A and B have each played Snake for 2 minutes, and A is playing it now, for everyone to see
+-- A and B have each played Snake for 2 minutes, and A is playing it again now, for everyone to see
 insert into public.play_sessions (user_id, game_id, started_at, last_seen_at, seconds, ended_at) values
-  ('00000000-0000-4000-8000-000000000ba1', 'snake', now() - interval '3 minutes', now(), 120, null),
+  ('00000000-0000-4000-8000-000000000ba1', 'snake', now() - interval '5 minutes', now() - interval '2 minutes', 120,
+   now() - interval '2 minutes'),
+  ('00000000-0000-4000-8000-000000000ba1', 'snake', now() - interval '1 minute', now(), 50, null),
   ('00000000-0000-4000-8000-000000000bb2', 'snake', now() - interval '1 hour', now() - interval '50 minutes', 120,
    now() - interval '50 minutes');
 insert into public.privacy_settings (user_id, show_playing) values ('00000000-0000-4000-8000-000000000ba1', 'everyone');

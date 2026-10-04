@@ -1,3 +1,4 @@
+import ExternalLink from '../ExternalLink/ExternalLink';
 import styles from './GooglePlayBadge.module.scss';
 
 // Official badge, loaded unmodified from Google. Brand rules: only link it to a live
@@ -15,10 +16,10 @@ export const GOOGLE_PLAY_TRADEMARK = 'Google Play and the Google Play logo are t
  */
 const GooglePlayBadge = ({ url, height = 64, showLegal = false }) => (
   <div className={styles.wrapper}>
-    <a href={url} target="_blank" rel="noopener noreferrer" className={styles.link}>
+    <ExternalLink href={url} className={styles.link}>
       {/* height as a style: the global reset's `img { height: auto }` would override the attribute */}
       <img src={BADGE_SRC} alt="Get it on Google Play" style={{ height }} className={styles.badge} />
-    </a>
+    </ExternalLink>
     {showLegal && <p className={styles.legal}>{GOOGLE_PLAY_TRADEMARK}</p>}
   </div>
 );

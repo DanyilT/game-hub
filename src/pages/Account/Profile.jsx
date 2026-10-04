@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useParams, useSearchParams } from 'react-router';
-import { PiDotsThreeVertical, PiFlag, PiProhibit, PiUserCheck, PiUserMinus, PiUserPlus } from 'react-icons/pi';
+import {
+  PiBookmarkSimple, PiDotsThreeVertical, PiFlag, PiGameController, PiHeart, PiLockSimple, PiProhibit, PiStar, PiUserCheck,
+  PiUserMinus, PiUserPlus, PiUsers,
+} from 'react-icons/pi';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLibrary } from '../../contexts/LibraryContext';
 import { gamesById } from '../../data/games';
 import { supabase } from '../../lib/supabase';
-import { USERNAME_PATTERN } from '../../lib/account';
+import { PROFILE_COLUMNS, USERNAME_PATTERN } from '../../lib/account';
 import { AUDIENCES, fetchMyPrivacy, fetchPlayed, playTime, timeAgo, usePlayingNow } from '../../lib/activity';
 import { blockPlayer, fetchIsBlocked, unblockPlayer } from '../../lib/blocks';
 import { askToConfirm } from '../../lib/confirm';
@@ -21,8 +24,6 @@ import Button from '../../components/common/Button/Button';
 import Menu from '../../components/common/Menu/Menu';
 import RatingSlider from '../../components/layout/game/RatingSlider/RatingSlider';
 import styles from './Account.module.scss';
-
-const PUBLIC_COLUMNS = 'id, username, display_name, avatar_url, created_at';
 
 /**
  * Runs something that loads, keeping { loaded, data, error } for it. `reload` runs it again.
@@ -441,12 +442,14 @@ const Played = ({ played, isMe, privacy }) => {
   if (!played.loaded) return <p className={styles.muted}>Loading…</p>;
   if (played.error) return <p className={styles.error} role="alert">Couldn&rsquo;t load the games played.</p>;
   const audience = privacy.data && AUDIENCES.find(({ value }) => value === privacy.data.show_played);
+  const historyOff = privacy.data?.record_played === false;
   return (
     <>
       {isMe && (
         <p className={styles.muted}>
-          Games you&rsquo;ve played for a minute or more.
-          {audience && ` ${audience.value === 'nobody' ? 'Only you see them' : `${audience.label} can see them`}`}
+          {historyOff
+            ? 'Your play history is off: nothing new is recorded, and only you see what was kept before'
+            : `Games you’ve played for a minute or more.${audience ? ` ${audience.value === 'nobody' ? 'Only you see them' : `${audience.label} can see them`}` : ''}`}
           {' '}(<Link to="/settings" className={styles.textLink}>Settings → Privacy</Link>).
         </p>
       )}
@@ -474,7 +477,70 @@ const useFavorites = (player, isMe) => useLoad(
 );
 
 /**
- * The tabs under the profile header: public ones for everyone, private ones on your own
+ * A row of tabs (with the usual keys: the arrows, Home and End), each with an icon. A private tab has a lock on its
+ * icon, which says so on hover (and to screen readers, as the tab's description).
+ * @param {string} label - the row's name
+ * @param {string} idPrefix - for the tabs' ids: `${idPrefix}-${tab.id}`
+ * @param {object[]} tabs - { id, label, icon, count?, alert?: { count, text }, private? }
+ * @param {string} selected - the id of the tab that's showing
+ * @param {function} onSelect - gets a tab's id
+ * @param {string} panelId - the panel the tabs show
+ * @param {boolean} [small] - sub-tabs, inside a tab's panel
+ */
+const TabRow = ({ label, idPrefix, tabs, selected, onSelect, panelId, small = false }) => {
+  const refs = useRef({});
+  const onKeyDown = (e) => {
+    const at = tabs.findIndex(({ id }) => id === selected);
+    const next = { ArrowRight: at + 1, ArrowLeft: at - 1, Home: 0, End: tabs.length - 1 }[e.key];
+    if (next === undefined) return;
+    e.preventDefault();
+    const { id } = tabs[(next + tabs.length) % tabs.length];
+    onSelect(id);
+    refs.current[id]?.focus();
+  };
+  return (
+    <div className={`${styles.tabs} ${small ? styles.subTabs : ''}`} role="tablist" aria-label={label} onKeyDown={onKeyDown}>
+      {tabs.map(({ id, label: tabLabel, icon: Icon, count, alert, private: isPrivate }) => (
+        <button
+          key={id}
+          ref={(element) => { refs.current[id] = element; }}
+          type="button"
+          role="tab"
+          id={`${idPrefix}-${id}`}
+          aria-selected={selected === id}
+          aria-controls={panelId}
+          aria-describedby={isPrivate ? `${idPrefix}-${id}-private` : undefined}
+          tabIndex={selected === id ? 0 : -1}
+          className={`${styles.tab} ${selected === id ? styles.active : ''}`}
+          onClick={() => onSelect(id)}
+        >
+          <span className={styles.tabIcon}>
+            <Icon aria-hidden="true" />
+            {isPrivate && (
+              <>
+                <PiLockSimple className={styles.tabLock} aria-hidden="true" />
+                <span id={`${idPrefix}-${id}-private`} role="tooltip" className={styles.tabTip}>
+                  Private: only you see this tab
+                </span>
+              </>
+            )}
+          </span>
+          {tabLabel}
+          {count !== undefined && <span className={styles.tabCount}>{count}</span>}
+          {alert?.count > 0 && (
+            <span className={`${styles.tabCount} ${styles.alert}`}>
+              {alert.count}<span className="visually-hidden"> {alert.text}</span>
+            </span>
+          )}
+        </button>
+      ))}
+    </div>
+  );
+};
+
+/**
+ * The tabs under the profile header: public ones for everyone, private ones on your own. Your friends tab has your
+ * friend requests in it, as a tab of its own.
  * @param {boolean} blocked - you've blocked this player: no friend buttons, but Unblock
  * @param {function} onUnblock
  */
@@ -485,42 +551,67 @@ const ProfileTabs = ({ player, isMe, blocked, onUnblock }) => {
   const friends = useLoad(() => fetchFriends(player.id), [player.id]);
   const played = useLoad(() => fetchPlayed(player.id), [player.id]);
   const myPrivacy = useLoad(isMe ? fetchMyPrivacy : null, [player.id, isMe]);
-  const tabRefs = useRef({});
 
   const favorites = isMe ? { loaded: library.loaded, data: newestFirst(library.favorites) } : theirFavorites;
+  const requestAlert = { count: isMe ? library.requestCount : 0, text: library.requestCount === 1 ? 'friend request' : 'friend requests' };
   const tabs = [
-    { id: 'favorites', label: 'Favorites', count: favorites.data?.length },
     // Another player's only when they let you see some (yours always)
-    ...(isMe || played.data?.length ? [{ id: 'played', label: 'Played', count: played.data?.length }] : []),
-    { id: 'friends', label: 'Friends', count: friends.data?.length },
+    ...(isMe || played.data?.length ? [{ id: 'played', label: 'Played', icon: PiGameController, count: played.data?.length }] : []),
+    { id: 'friends', label: 'Friends', icon: PiUsers, count: friends.data?.length, alert: requestAlert },
+    { id: 'favorites', label: 'Favorites', icon: PiHeart, count: favorites.data?.length },
     ...(isMe ? [
-      { id: 'bookmarks', label: 'Bookmarks', count: library.bookmarks.size, private: true },
-      { id: 'ratings', label: 'Ratings', count: library.ratings.size, private: true },
-      { id: 'requests', label: 'Requests', count: library.requestCount || undefined, private: true, alert: library.requestCount > 0 },
+      { id: 'bookmarks', label: 'Bookmarks', icon: PiBookmarkSimple, count: library.bookmarks.size, private: true },
+      { id: 'ratings', label: 'Ratings', icon: PiStar, count: library.ratings.size, private: true },
     ] : []),
   ];
+  // The tab is in the address (?tab=ratings; ?tab=requests is the friends tab's requests), so it can be linked to.
+  // The first tab needs none.
   const requested = searchParams.get('tab');
-  const tab = tabs.some(({ id }) => id === requested) ? requested : 'favorites';
+  const showRequests = isMe && requested === 'requests';
+  const wanted = showRequests ? 'friends' : requested;
+  const tab = tabs.some(({ id }) => id === wanted) ? wanted : tabs[0].id;
 
-  // The tab is in the address (?tab=ratings), so it can be linked to; changing it keeps the scroll
-  const select = (id, focus = false) => {
-    setSearchParams(id === 'favorites' ? {} : { tab: id }, { replace: true, state: { keepScroll: true } });
-    if (focus) tabRefs.current[id]?.focus();
-  };
-
-  // Arrow keys move between the tabs (the usual tab keys), Home and End to the ends
-  const onKeyDown = (e) => {
-    const at = tabs.findIndex(({ id }) => id === tab);
-    const next = { ArrowRight: at + 1, ArrowLeft: at - 1, Home: 0, End: tabs.length - 1 }[e.key];
-    if (next === undefined) return;
-    e.preventDefault();
-    select(tabs[(next + tabs.length) % tabs.length].id, true);
+  // Changing it keeps the scroll
+  const select = (id) => {
+    setSearchParams(id === tabs[0].id ? {} : { tab: id }, { replace: true, state: { keepScroll: true } });
   };
 
   const reloadFriends = friends.reload;
 
+  // Another player's tabs wait to know whether there's a Played tab, which comes first
+  if (!isMe && !played.loaded) {
+    return <section className={styles.card}><p className={styles.muted}>Loading…</p></section>;
+  }
+
   let panel;
-  if (tab === 'favorites') {
+  if (tab === 'played') {
+    panel = <Played played={played} isMe={isMe} privacy={myPrivacy} />;
+  } else if (tab === 'friends') {
+    panel = isMe ? (
+      <>
+        <TabRow
+          label="Friends and requests"
+          idPrefix="profile-friends-tab"
+          panelId="profile-friends-panel"
+          small
+          tabs={[
+            { id: 'list', label: 'Your friends', icon: PiUsers, count: friends.data?.length },
+            { id: 'requests', label: 'Requests', icon: PiUserPlus, alert: requestAlert, private: true },
+          ]}
+          selected={showRequests ? 'requests' : 'list'}
+          onSelect={(id) => select(id === 'requests' ? 'requests' : 'friends')}
+        />
+        <div
+          id="profile-friends-panel"
+          role="tabpanel"
+          aria-labelledby={`profile-friends-tab-${showRequests ? 'requests' : 'list'}`}
+          className={styles.tabPanel}
+        >
+          {showRequests ? <Requests onChange={reloadFriends} /> : <Friends friends={friends} isMe />}
+        </div>
+      </>
+    ) : <Friends friends={friends} isMe={false} />;
+  } else if (tab === 'favorites') {
     panel = favorites.error
       ? <p className={styles.error} role="alert">Couldn&rsquo;t load the favorites.</p>
       : favorites.loaded && (
@@ -532,10 +623,6 @@ const ProfileTabs = ({ player, isMe, blocked, onUnblock }) => {
           />
         </>
       );
-  } else if (tab === 'played') {
-    panel = <Played played={played} isMe={isMe} privacy={myPrivacy} />;
-  } else if (tab === 'friends') {
-    panel = <Friends friends={friends} isMe={isMe} />;
   } else if (tab === 'bookmarks') {
     panel = (
       <>
@@ -543,10 +630,8 @@ const ProfileTabs = ({ player, isMe, blocked, onUnblock }) => {
         <GameTiles entries={newestFirst(library.bookmarks)} empty="No bookmarks yet. Bookmark games from the games list or their pages." />
       </>
     );
-  } else if (tab === 'ratings') {
-    panel = <Ratings />;
   } else {
-    panel = <Requests onChange={reloadFriends} />;
+    panel = <Ratings />;
   }
 
   return (
@@ -556,27 +641,8 @@ const ProfileTabs = ({ player, isMe, blocked, onUnblock }) => {
           {blocked ? <BlockedNote onUnblock={onUnblock} /> : <FriendButton player={player} onChange={reloadFriends} />}
         </div>
       )}
-      <div className={styles.tabs} role="tablist" aria-label="Profile" onKeyDown={onKeyDown}>
-        {tabs.map(({ id, label, count, alert }) => (
-          <button
-            key={id}
-            ref={(element) => { tabRefs.current[id] = element; }}
-            type="button"
-            role="tab"
-            id={`profile-tab-${id}`}
-            aria-selected={tab === id}
-            aria-controls="profile-panel"
-            tabIndex={tab === id ? 0 : -1}
-            className={`${styles.tab} ${tab === id ? styles.active : ''}`}
-            onClick={() => select(id)}
-          >
-            {label}
-            {count !== undefined && <span className={`${styles.tabCount} ${alert ? styles.alert : ''}`}>{count}</span>}
-          </button>
-        ))}
-      </div>
+      <TabRow label="Profile" idPrefix="profile-tab" panelId="profile-panel" tabs={tabs} selected={tab} onSelect={select} />
       <div id="profile-panel" role="tabpanel" aria-labelledby={`profile-tab-${tab}`} className={styles.tabPanel}>
-        {tabs.find(({ id }) => id === tab)?.private && <p className={styles.privateNote}>Private: only you see this tab</p>}
         {panel}
       </div>
     </section>
@@ -674,7 +740,7 @@ const Profile = () => {
   useEffect(() => {
     if (!isAvailable || !valid || isOwn) return undefined;
     let active = true;
-    supabase.from('profiles').select(PUBLIC_COLUMNS).eq('username', lookup).maybeSingle()
+    supabase.from('profiles').select(PROFILE_COLUMNS).eq('username', lookup).maybeSingle()
       .then(({ data, error }) => {
         if (active) setResult({ lookup, data, error });
       });

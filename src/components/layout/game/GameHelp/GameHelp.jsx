@@ -6,16 +6,10 @@ import { useLibrary } from '../../../../contexts/LibraryContext';
 import { gameBugReportUrl, hubBugReportUrl } from '../../../../lib/support';
 import { showToast } from '../../../../lib/toast';
 import Button from '../../../common/Button/Button';
+import ExternalLink from '../../../common/ExternalLink/ExternalLink';
 import Modal from '../../../common/Modal/Modal';
 import { FEEDBACK_MAX } from '../RateGame/RateGame';
 import styles from './GameHelp.module.scss';
-
-const NewTab = () => (
-  <>
-    <span aria-hidden="true"> ↗</span>
-    <span className="visually-hidden"> (opens in a new tab)</span>
-  </>
-);
 
 /** "Send us a message": private feedback about the game, from signed-in players */
 const MessageForm = ({ game, onDone, onBack }) => {
@@ -148,10 +142,10 @@ const GameHelp = ({ game, onReset, connected, onClose }) => {
 
         <section className={styles.group} aria-labelledby="help-bugs">
           <h3 id="help-bugs" className={styles.groupTitle}>Something not working?</h3>
-          <a href={gameBugReportUrl(game)} target="_blank" rel="noopener noreferrer" className={styles.item}>
+          <ExternalLink href={gameBugReportUrl(game)} className={styles.item}>
             <PiGithubLogo aria-hidden="true" />
-            <span>Report a bug on GitHub<NewTab /></span>
-          </a>
+            <span>Report a bug on GitHub<span aria-hidden="true"> ↗</span></span>
+          </ExternalLink>
           {isAvailable && (
             signedIn ? (
               <button type="button" className={styles.item} onClick={() => setView('message')}>
@@ -197,10 +191,10 @@ const GameHelp = ({ game, onReset, connected, onClose }) => {
 
         <section className={styles.group} aria-labelledby="help-other">
           <h3 id="help-other" className={styles.groupTitle}>Anything else</h3>
-          <a href={hubBugReportUrl()} target="_blank" rel="noopener noreferrer" className={styles.item}>
+          <ExternalLink href={hubBugReportUrl()} className={styles.item}>
             <PiGithubLogo aria-hidden="true" />
-            <span>A problem with GameHub itself? Report it on GitHub<NewTab /></span>
-          </a>
+            <span>A problem with GameHub itself? Report it on GitHub<span aria-hidden="true"> ↗</span></span>
+          </ExternalLink>
           <p className={styles.muted}>
             <Link to="/about" onClick={onClose}>About GameHub</Link>
             {' · '}

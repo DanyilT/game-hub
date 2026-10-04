@@ -1,6 +1,7 @@
 import { useId, useState } from 'react';
 import {
-  PiArrowCounterClockwise, PiCheckCircleFill, PiClockFill, PiCloudSlashFill, PiPauseFill, PiPlayFill, PiStarFill, PiXCircleFill,
+  PiArrowCounterClockwise, PiCheckCircleFill, PiClockFill, PiCloudSlashFill, PiHourglassMediumFill, PiPauseFill, PiPlayFill,
+  PiStarFill, PiXCircleFill,
 } from 'react-icons/pi';
 import { playTime, timeAgo } from '../../../../lib/activity';
 import { clockTime, formatValue } from '../../../../lib/gameStatus';
@@ -8,9 +9,11 @@ import { usePlayed } from '../../../../lib/playTime';
 import { runSeconds } from '../../../../lib/runs';
 import Button from '../../../common/Button/Button';
 import styles from './GameProgress.module.scss';
+import InfoTip from "../../../common/InfoTip/InfoTip.jsx";
 
 const SPEEDS = [1, 2, 4];
 const SHOWN_RUNS = 3; // the newest; the rest behind "Show all"
+const DAY = 24 * 60 * 60 * 1000;
 const OUTCOMES = { won: 'Won', lost: 'Lost' }; // a game that's simply over says nothing
 
 // How a signed-in player's run did on GameHub's server (src/lib/checks.js), as a badge with a note
@@ -38,11 +41,11 @@ const CHECKS = {
 };
 
 /** A run's result, as the list shows it: "Score 40", "Level Expert · Time 2:05" (once checked, the server's) */
-const RunResult = ({ run, check }) => {
+const RunResult = ({ run, check, id }) => {
   const checked = check?.state === 'checked';
   const outcome = checked ? check.outcome : run.outcome;
   return (
-    <span className={styles.runResult}>
+    <span id={id} className={styles.runResult}>
       {OUTCOMES[outcome] && <span className={`${styles.outcome} ${styles[outcome]}`}>{OUTCOMES[outcome]}</span>}
       {(checked ? check.result : run.result).map((item) => (
         <span key={item.label} className={styles.resultItem}>
@@ -55,7 +58,7 @@ const RunResult = ({ run, check }) => {
 
 /** A badge on a run: its icon, with its label sliding out of it on hover (or while the row has the keyboard's focus) */
 const Badge = ({ Icon, label, note = null, className }) => (
-  <span className={`${styles.badge} ${className}`}>
+  <span className={`${styles.badge} ${className}`} title={note ?? undefined}>
     <Icon aria-hidden="true" />
     <span className={styles.badgeLabel}><span>{label}</span></span>
     {note && <span className="visually-hidden">: {note}</span>}
@@ -154,6 +157,65 @@ const ReplayBar = ({ replay, state, onControl, onAgain, onStop }) => {
   );
 };
 
+/**
+ * How long a run's moves are still kept on GameHub's server, in days (at least 1: they go at the first tidy-up after
+ * that), as a countdown next to its check
+ */
+const KeptFor = ({ until }) => {
+  const days = Math.max(1, Math.ceil((until - Date.now()) / DAY));
+  const text = `Its replay is kept on GameHub’s server for ${days} more ${days === 1 ? 'day' : 'days'}, in any browser.`;
+  return (
+    <span className={styles.keptFor} title={text}>
+      <PiHourglassMediumFill aria-hidden="true" />
+      <span aria-hidden="true">{days}d</span>
+      <span className="visually-hidden">{text}</span>
+    </span>
+  );
+};
+
+/**
+ * One run in the list: its play button (the one way to watch it), its result, then its badges (its record star, its
+ * check and, kept on the server, for how long), length and when
+ * @param {object} row - { key, endedAt, run, check, keepUntil? } (src/lib/runs.js, src/lib/checks.js)
+ * @param {boolean} watching - it's the one being watched
+ * @param {boolean} isRecord - it holds the player's record on its level
+ */
+const RunRow = ({ row, watching, isRecord, signedIn, onWatch }) => {
+  const { endedAt, run, check, keepUntil } = row;
+  const badge = check && CHECKS[check.state];
+  const id = useId();
+  return (
+    <li className={styles.run} aria-current={watching ? 'true' : undefined}>
+      <button
+        type="button"
+        className={styles.runPlay}
+        onClick={() => onWatch(row)}
+        aria-describedby={`${id}-result ${id}-when`}
+        title="Watch again"
+      >
+        <PiPlayFill aria-hidden="true" />
+        <span className="visually-hidden">Watch again</span>
+      </button>
+      <RunResult run={run} check={check} id={`${id}-result`} />
+      <span className={styles.runMeta}>
+        {isRecord && (
+          <Badge
+            Icon={PiStarFill}
+            label={signedIn ? 'Record' : 'Best'}
+            note={signedIn ? 'Your record on this level: kept on GameHub’s server while it is one.' : null}
+            className={styles.best}
+          />
+        )}
+        {keepUntil && <KeptFor until={keepUntil} />}
+        {badge && <Badge Icon={badge.Icon} label={badge.text} note={badge.note} className={`${styles.check} ${styles[check.state]}`} />}
+        {/* How long it lasted, unless its result says (a game's own clock: Minesweeper's time) */}
+        {!run.result.some((item) => item.format === 'time') && <span>{clockTime(runSeconds(run))}</span>}
+        <span id={`${id}-when`} className={styles.runWhen}>{timeAgo(endedAt)}</span>
+      </span>
+    </li>
+  );
+};
+
 /** The player's runs of the game, newest first, to watch again */
 const Replays = ({ runs, records, replay, onWatch, signedIn }) => {
   const [showAll, setShowAll] = useState(false);
@@ -162,37 +224,27 @@ const Replays = ({ runs, records, replay, onWatch, signedIn }) => {
   const watching = replay?.row.key ?? null;
   const record = recordKeys(runs, records, signedIn);
 
-  const row = ({ key, endedAt, run, check }) => {
-    const badge = check && CHECKS[check.state];
-    return (
-      <li key={key}>
-        <button
-          type="button"
-          className={styles.run}
-          onClick={() => onWatch({ key, endedAt, run, check })}
-          aria-current={watching === key ? 'true' : undefined}
-          title={badge?.note}
-        >
-          <span className={styles.runPlay} aria-hidden="true"><PiPlayFill /></span>
-          <span className="visually-hidden">Watch again: </span>
-          <RunResult run={run} check={check} />
-          <span className={styles.runMeta}>
-            {badge && (
-              <Badge Icon={badge.Icon} label={badge.text} note={badge.note} className={`${styles.check} ${styles[check.state]}`} />
-            )}
-            {record.has(key) && <Badge Icon={PiStarFill} label={signedIn ? 'Record' : 'Best'} className={styles.best} />}
-            {/* How long it lasted, unless its result says (a game's own clock: Minesweeper's time) */}
-            {!run.result.some((item) => item.format === 'time') && <span>{clockTime(runSeconds(run))}</span>}
-            <span className={styles.runWhen}>{timeAgo(endedAt)}</span>
-          </span>
-        </button>
-      </li>
-    );
-  };
+  const row = (item) => (
+    <RunRow
+      key={item.key}
+      row={item}
+      watching={watching === item.key}
+      isRecord={record.has(item.key)}
+      signedIn={signedIn}
+      onWatch={onWatch}
+    />
+  );
 
   return (
     <section className={styles.replays} aria-labelledby={headingId}>
-      <h3 id={headingId}>Replays</h3>
+      <div className={styles.replaysHeader}>
+        <h2>Your runs</h2>
+        <InfoTip label={"How your runs are kept"}>
+          {signedIn
+            ? 'Runs are kept in this browser: the moves you made, not a video. Games played on a ticket also go to GameHub’s server, which plays them again: only those count in your account, and you can watch them in any browser for 30 days (your records for as long as they are ones).'
+            : 'Runs are kept in this browser: the moves you made, not a video.'}
+        </InfoTip>
+      </div>
       {runs.length === 0 ? (
         <p className={styles.note}>Finish a game, and you can watch it again here.</p>
       ) : (
@@ -216,11 +268,6 @@ const Replays = ({ runs, records, replay, onWatch, signedIn }) => {
           )}
         </>
       )}
-      <p className={styles.note}>
-        {signedIn
-          ? 'Replays are kept in this browser: the moves you made, not a video. Games played on a ticket also go to GameHub’s server, which plays them again: only those count in your account.'
-          : 'Replays are kept in this browser: the moves you made, not a video.'}
-      </p>
     </section>
   );
 };
@@ -230,13 +277,15 @@ const Replays = ({ runs, records, replay, onWatch, signedIn }) => {
  * behind More), how long they've played it, and their runs to watch again. Shown once there's something in it.
  * @param {object|null} status - the game's numbers (useGameBridge's gameStatus: { main, more, ongoing })
  * @param {object} played - the time played (usePlayTime)
- * @param {object[]|null} runs - the player's runs of the game (useRuns), null when there are none to show
+ * @param {object[]|null} runs - the player's runs of the game (useRuns, with the server's: mergeRuns), null when there
+ *   are none to show
  * @param {object[]|null} records - the signed-in player's checked records in the game (useRecords)
  * @param {boolean} canReplay - the game records runs (gamehub.js version 3)
  * @param {boolean} signedIn
  * @param {object|null} replay - the replay being watched: { row, speed, key }
  * @param {object|null} replayState - how it's going (useGameBridge's replayState)
- * @param {function} onWatch - watches a run: gets its { key, endedAt, run }
+ * @param {function} onWatch - watches a run: gets its row ({ key, endedAt, run, check }, and for a run kept on the
+ *   server, serverId and keepUntil; its run has no inputs when this browser doesn't keep it)
  * @param {function} onControlReplay - pauses, resumes or changes the speed (useGameBridge's controlReplay)
  * @param {function} onReplayAgain - watches the same run again from the start
  * @param {function} onStopReplay - back to the game

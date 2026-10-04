@@ -1,5 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { CHECKED_GAMES } from '../../worker/games/list.js';
+import { cleanItems } from './gameStatus';
 import { keepRun, setRunCheck, waitingRuns } from './runs';
 import { supabase } from './supabase';
 
@@ -18,6 +19,8 @@ import { supabase } from './supabase';
 //   (src/lib/runs.js keeps it, with how its check went). A run without a ticket (offline, once they've
 //   run out) stays on this device.
 // - Records: the player's best checked runs in a game (my_records()).
+// - In any browser: a checked run's moves are kept on the server too (30 days, or while it's a record), so the
+//   player can watch it again anywhere (my_runs(), my_run_inputs()).
 
 const TICKETS_KEY = 'gamehub:tickets'; // { [userId]: { [gameId]: [{ id, seed, expiresAt }] } }
 const TAKEN_KEY = 'gamehub:tickets-taken'; // { [userId]: [ids] }: tickets taken offline, to tell the server
@@ -250,4 +253,89 @@ export const useRecords = (userId, gameId, changed) => {
     };
   }, [key, gameId, changed]);
   return records.key === key ? records.list : null;
+};
+
+// ==========================================
+// Runs kept on the server
+// ==========================================
+// The runs a signed-in player played on a ticket are kept on GameHub's server too: their moves for 30 days after
+// they're checked, or as long as the run is the player's record (supabase/migrations/*_checked_runs.sql). So the panel
+// under the game lists them in any browser (*_runs_on_any_browser.sql), with the ones this browser keeps, and a run's
+// moves come from the server when it's watched.
+
+// A run from my_runs(), as runs.js keeps them, but its moves (fetchRunInputs), with `serverId`, and `keepUntil`: when
+// its moves go from the server (ms), or null for a record (kept while it's one)
+const serverRow = (row) => ({
+  key: `server:${row.run_id}`,
+  endedAt: Date.parse(row.checked_at),
+  run: {
+    v: 1,
+    id: row.run_id,
+    ticket: row.ticket_id,
+    seed: Number(row.seed),
+    mode: row.mode,
+    tick: row.tick,
+    length: Number(row.length),
+    inputs: null,
+    outcome: row.outcome ?? 'over',
+    result: cleanItems(row.claimed, 3),
+    best: false,
+  },
+  check: row.status === 'checked'
+    ? { state: 'checked', outcome: row.outcome, result: cleanItems(row.result, 3), best: row.record }
+    : { state: 'refused', reason: row.reason },
+  serverId: row.run_id,
+  keepUntil: row.keep_until ? Date.parse(row.keep_until) : null,
+});
+
+/**
+ * The signed-in player's runs of a game kept on the server, newest first, as runs.js keeps them (see serverRow), read
+ * again when `changed` changes; or null (none to show: signed out, the game's runs aren't checked, or not loaded)
+ * @param {string|null} userId
+ * @param {string} gameId
+ * @param {*} changed - anything that changes when they may have (this browser's runs)
+ */
+export const useServerRuns = (userId, gameId, changed) => {
+  const [runs, setRuns] = useState({ key: null, list: null });
+  const key = userId && canCheck(gameId) ? `${userId}:${gameId}` : null;
+  useEffect(() => {
+    if (!key || !supabase) return undefined;
+    let active = true;
+    supabase.rpc('my_runs', { p_game: gameId }).then(({ data, error }) => {
+      if (active && !error) setRuns({ key, list: data.map(serverRow) });
+    });
+    return () => {
+      active = false;
+    };
+  }, [key, gameId, changed]);
+  return runs.key === key ? runs.list : null;
+};
+
+/**
+ * This browser's runs of a game with the ones kept on the server (useServerRuns), newest first: one row for each run
+ * (by its ticket), this browser's if it has it, with the server's word on its check and when its moves go
+ * @param {object[]|null} local - useRuns'
+ * @param {object[]|null} server - useServerRuns'
+ */
+export const mergeRuns = (local, server) => {
+  if (!server) return local;
+  const byTicket = new Map(server.map((row) => [row.run.ticket, row]));
+  const merged = (local ?? []).map((row) => {
+    const kept = row.run.ticket ? byTicket.get(row.run.ticket) : null;
+    if (!kept) return row;
+    byTicket.delete(row.run.ticket);
+    return { ...row, check: kept.check, serverId: kept.serverId, keepUntil: kept.keepUntil };
+  });
+  return [...merged, ...byTicket.values()].sort((a, b) => b.endedAt - a.endedAt);
+};
+
+/**
+ * A run's moves, from the server (for a run this browser doesn't keep)
+ * @param {string} serverId - the run's, from useServerRuns
+ * @return {Promise<Array|null>} - null once they're no longer kept
+ */
+export const fetchRunInputs = async (serverId) => {
+  const { data, error } = await supabase.rpc('my_run_inputs', { p_run: serverId });
+  if (error) throw error;
+  return Array.isArray(data) && data.length > 0 ? data : null;
 };

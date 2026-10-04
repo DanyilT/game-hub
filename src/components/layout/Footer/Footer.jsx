@@ -1,15 +1,16 @@
 import { Link } from 'react-router';
 import { developer } from '../../../data/games';
+import ExternalLink from '../../common/ExternalLink/ExternalLink';
 import styles from './Footer.module.scss';
 
 // Links out from the catalogue's `developer` section (src/data/games.json)
 const LinkItems = ({ links }) =>
   links.map(({ label, url, Icon }) => (
     <li key={url}>
-      <a href={url} target="_blank" rel="noopener noreferrer">
+      <ExternalLink href={url}>
         {Icon && <Icon aria-hidden="true" />}
         {label}
-      </a>
+      </ExternalLink>
     </li>
   ));
 
@@ -32,13 +33,6 @@ const Footer = () => (
           <li><Link to="/about">About</Link></li>
           <li><Link to="/terms">Terms & Conditions</Link></li>
           <li><Link to="/privacy">Privacy Policy</Link></li>
-          {/*{developer.repo && (*/}
-          {/*  <li>*/}
-          {/*    <a href={developer.repo} target="_blank" rel="noopener noreferrer">*/}
-          {/*      Source Code*/}
-          {/*    </a>*/}
-          {/*  </li>*/}
-          {/*)}*/}
         </ul>
       </section>
 
@@ -65,7 +59,7 @@ const Footer = () => (
       <p>
         <strong>
           &copy; 2025-{new Date().getFullYear()}{' '}
-          <a href={developer.url} target="_blank" rel="noopener noreferrer"><b>{developer.name}</b></a>.
+          <ExternalLink href={developer.url}><b>{developer.name}</b></ExternalLink>.
         </strong>{' '}
         All rights reserved.
       </p>

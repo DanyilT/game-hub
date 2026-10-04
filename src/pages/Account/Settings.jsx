@@ -11,14 +11,16 @@ import {
   describeProfileError,
   nextUsernameChange,
 } from '../../lib/account';
-import { AUDIENCES, fetchMyPrivacy, setPrivacy } from '../../lib/activity';
+import { AUDIENCES, deletePlayHistory, fetchMyPrivacy, setPrivacy } from '../../lib/activity';
 import { fetchMyBlocks, unblockPlayer } from '../../lib/blocks';
+import { askToConfirm } from '../../lib/confirm';
 import { fullDate } from '../../lib/dates';
 import { setPreference, usePreferences } from '../../lib/preferences';
 import Avatar from '../../components/common/Avatar/Avatar';
 import Button from '../../components/common/Button/Button';
 import UsernameField, { useUsernameCheck } from '../../components/account/UsernameField/UsernameField';
 import styles from './Account.module.scss';
+import InfoTip from "../../components/common/InfoTip/InfoTip.jsx";
 
 // The picture Google / Discord gave at the last sign-in (the only one a profile may use)
 const providerPicture = (user) => {
@@ -53,11 +55,12 @@ const useSave = () => {
   return [state, run];
 };
 
-const SaveStatus = ({ state }) => (
-  <p className={`${styles.status} ${state.error ? styles.error : styles.ok}`} role="status">
-    {state.error ?? state.ok}
-  </p>
-);
+// The message under a form: nothing (and no room for it) until there is one, which slides down into view
+const SaveStatus = ({ state }) => {
+  const message = state.error ?? state.ok;
+  if (!message) return null;
+  return <p className={`${styles.status} ${state.error ? styles.error : styles.ok}`} role="status">{message}</p>;
+};
 
 /**
  * The profile picture, with its one action on hover or focus: remove it, or, when there's none,
@@ -126,24 +129,22 @@ const ProfileSection = ({ profile, user }) => {
           />
           <div className={`${styles.field} ${styles.grow}`}>
             <label htmlFor="settings-display-name" className={styles.label}>Display name</label>
-            <input
-              id="settings-display-name"
-              className={styles.input}
-              value={displayName}
-              onChange={(e) => setNameDraft(e.target.value)}
-              maxLength={DISPLAY_NAME_MAX}
-              placeholder={profile.username}
-              autoComplete="nickname"
-            />
+            <div className={styles.inputRow}>
+              <input
+                id="settings-display-name"
+                className={styles.input}
+                value={displayName}
+                onChange={(e) => setNameDraft(e.target.value)}
+                maxLength={DISPLAY_NAME_MAX}
+                placeholder={profile.username}
+                autoComplete="nickname"
+              />
+              <Button type="submit" disabled={!dirty || save.busy}>
+                {save.busy && save.what === 'name' ? 'Saving…' : 'Save profile'}
+              </Button>
+            </div>
             <p className={styles.muted}>Shown on your profile instead of your username. Leave it empty to use @{profile.username}.</p>
           </div>
-        </div>
-
-        <div className={styles.actions}>
-          <Button type="submit" disabled={!dirty || save.busy}>
-            {save.busy && save.what === 'name' ? 'Saving…' : 'Save profile'}
-          </Button>
-          <Button as={Link} to={`/u/${profile.username}`} variant="outline">View profile</Button>
         </div>
         <SaveStatus state={save} />
       </form>
@@ -218,9 +219,8 @@ const AccountSection = ({ user, onSignOutProblem }) => {
       <h2 id="settings-account" className={styles.cardTitle}>Account</h2>
       <p>
         Signed in with {providers.join(' and ') || 'a sign-in provider'}
-        {user.email && <> as <strong>{user.email}</strong></>}.
+        {user.email && <> as <strong>{user.email}</strong></>}. <InfoTip label="Private email address">Only you can see your email address.</InfoTip>
       </p>
-      <p className={styles.muted}>Only you can see your email address.</p>
       <div className={styles.actions}>
         <Button variant="outline" onClick={() => signOut()} disabled={busy}>Sign out</Button>
         <Button variant="outline" onClick={signOutEverywhere} disabled={busy}>Sign out on all devices</Button>
@@ -306,12 +306,74 @@ const PreferencesSection = () => {
   );
 };
 
-// What the Privacy section asks about (supabase/migrations/*_play_activity.sql)
-const PRIVACY_CHOICES = [
+// What the Privacy section asks about (supabase/migrations/*_play_activity.sql and *_activity_controls.sql): whether
+// GameHub keeps a history of what you play, recorded only while it's on (the server keeps to that), and while it does,
+// who sees each thing that comes from it
+const HISTORY = {
+  on: 'Which games you play, when, and for how long: your profile’s Played tab, your play time, the recent activity, and what you’re playing now.',
+  off: 'Nothing is recorded while you play, and no one sees what you’re playing now. What was kept before stays, and only you see it, until you delete it.',
+};
+const HISTORY_AUDIENCES = [
   { key: 'show_played', label: "Games you've played", text: 'On your profile: when you last played each game, and for how long.' },
+  { key: 'show_activity', label: 'Recent activity', text: 'Your plays in the recent activity on the games page, once each is over.' },
   { key: 'show_playing', label: "What you're playing now", text: 'On your profile and in friends lists, while you play.' },
-  { key: 'show_activity', label: 'Recent activity', text: 'Your plays in the recent activity on the games page.' },
 ];
+
+/** Who sees one kind of activity: everyone, friends or only you */
+const AudienceChoice = ({ choiceKey, label, text, value, onChoose }) => (
+  <div className={styles.audienceGroup} role="radiogroup" aria-labelledby={`privacy-${choiceKey}`}>
+    <span className={styles.audienceLabel}>
+      <span id={`privacy-${choiceKey}`} className={styles.label}>{label}</span>
+      <InfoTip label={`Who sees ${label.toLowerCase()}`}>{text}</InfoTip>
+    </span>
+    <span className={styles.audienceOptions}>
+      {AUDIENCES.map(({ value: audience, label: audienceLabel }) => (
+        <label key={audience} className={`${styles.audienceOption} ${value === audience ? styles.chosenAudience : ''}`}>
+          <input
+            type="radio"
+            className="visually-hidden"
+            name={`privacy-${choiceKey}`}
+            value={audience}
+            checked={value === audience}
+            onChange={() => onChoose(choiceKey, audience)}
+          />
+          {audienceLabel}
+        </label>
+      ))}
+    </span>
+  </div>
+);
+
+/** Deletes the play history, after asking */
+const DeleteHistory = () => {
+  const [state, setState] = useState({ busy: false, done: null, error: null });
+
+  const remove = async () => {
+    const yes = await askToConfirm({
+      title: 'Delete your play history?',
+      message: 'Every game you’ve played, when and for how long, goes for good: your profile’s Played tab, your play time, and your plays in the recent activity.',
+      confirmLabel: 'Delete',
+      danger: true,
+    });
+    if (!yes) return;
+    setState({ busy: true, done: null, error: null });
+    try {
+      const count = await deletePlayHistory();
+      setState({ busy: false, done: count === 0 ? 'There was nothing to delete.' : 'Your play history is deleted.', error: null });
+    } catch {
+      setState({ busy: false, done: null, error: "Couldn't delete it. Check your connection and try again." });
+    }
+  };
+
+  return (
+    <div className={styles.historyActions}>
+      <Button variant="danger" onClick={remove} disabled={state.busy}>
+        {state.busy ? 'Deleting…' : 'Delete my play history'}
+      </Button>
+      <SaveStatus state={{ ok: state.done, error: state.error }} />
+    </div>
+  );
+};
 
 /** The players you've blocked (from the ⋯ on their profiles), each with Unblock */
 const BlockedPlayers = () => {
@@ -374,7 +436,7 @@ const BlockedPlayers = () => {
   );
 };
 
-/** Who sees what you play, saved to your account as you choose; and who you've blocked */
+/** What GameHub records as you play, and who sees it, saved to your account as you choose; and who you've blocked */
 const PrivacySection = () => {
   const [choices, setChoices] = useState(null);
   const [error, setError] = useState(null);
@@ -389,6 +451,8 @@ const PrivacySection = () => {
       active = false;
     };
   }, []);
+
+  const historyOn = choices?.record_played !== false; // (a database from before the switch doesn't say: on)
 
   const choose = async (key, value) => {
     const before = choices;
@@ -406,32 +470,31 @@ const PrivacySection = () => {
     <section className={styles.card} aria-labelledby="settings-privacy">
       <h2 id="settings-privacy" className={styles.cardTitle}>Privacy</h2>
       <p className={styles.muted}>
-        Who sees what you play. Your favorite games and friends list are public; your ratings, bookmarks and
-        progress are only yours.
+        What GameHub records as you play, and who sees it. Your favorite games and friends list are public; your
+        ratings, bookmarks and progress are only yours.
       </p>
-      {choices && PRIVACY_CHOICES.map(({ key, label, text }) => (
-        <div key={key} className={styles.audienceGroup} role="radiogroup" aria-labelledby={`privacy-${key}`}>
-          <span className={styles.audienceText}>
-            <span id={`privacy-${key}`} className={styles.label}>{label}</span>
-            <span className={styles.muted}>{text}</span>
-          </span>
-          <span className={styles.audienceOptions}>
-            {AUDIENCES.map(({ value, label: audience }) => (
-              <label key={value} className={`${styles.audienceOption} ${choices[key] === value ? styles.chosenAudience : ''}`}>
-                <input
-                  type="radio"
-                  className="visually-hidden"
-                  name={`privacy-${key}`}
-                  value={value}
-                  checked={choices[key] === value}
-                  onChange={() => choose(key, value)}
-                />
-                {audience}
-              </label>
-            ))}
-          </span>
+      {choices && (
+        <div className={styles.activityGroup}>
+          <label className={styles.switchRow}>
+            <input
+              type="checkbox"
+              role="switch"
+              className={styles.switch}
+              checked={historyOn}
+              onChange={(e) => choose('record_played', e.target.checked)}
+            />
+            <span className={styles.audienceText}>
+              <span className={styles.label}>Keep a history of what I play</span>
+              <span className={styles.muted}>{historyOn ? HISTORY.on : HISTORY.off}</span>
+            </span>
+          </label>
+          {/* Off, the choices go with it (they're kept for when it's back on) */}
+          {historyOn && HISTORY_AUDIENCES.map(({ key, label, text }) => (
+            <AudienceChoice key={key} choiceKey={key} label={label} text={text} value={choices[key]} onChoose={choose} />
+          ))}
+          <DeleteHistory />
         </div>
-      ))}
+      )}
       {!choices && !error && <p className={styles.muted}>Loading…</p>}
       {error && <p className={styles.error} role="alert">{error}</p>}
       <BlockedPlayers />
@@ -445,6 +508,14 @@ const DeleteSection = ({ profile, onDelete }) => {
 
   const submit = async (e) => {
     e.preventDefault();
+    const yes = await askToConfirm({
+      title: 'Delete your account?',
+      message: `@${profile.username} and everything tied to it go for good: your profile, saves, ratings, favorites, `
+        + 'bookmarks, friends, runs and play history. It can’t be undone.',
+      confirmLabel: 'Delete my account',
+      danger: true,
+    });
+    if (!yes) return;
     setState({ busy: true, error: null });
     try {
       await onDelete();
@@ -502,7 +573,11 @@ const Settings = () => {
 
   const page = (content) => (
     <div className={styles.page}>
-      <h1 className={styles.title}>Settings</h1>
+      <div className={styles.profileHeader}>
+        <h1 className={styles.title}>Settings</h1>
+        {/* Only once there's a profile: signed out, loading, or a site without accounts has none */}
+        {profile && <Button as={Link} to={`/u/${profile.username}`} variant="outline">View profile</Button>}
+      </div>
       {content}
     </div>
   );

@@ -19,7 +19,7 @@ import styles from './GameCard.module.scss';
 const ActionButton = ({ icon: Icon, label, gameTitle, variant, onClick, to, href, ...rest }) => {
   const props = {
     title: label,
-    'aria-label': `${gameTitle}: ${label}`,
+    'aria-label': `${gameTitle}: ${label}${href ? ' (opens in a new tab)' : ''}`,
     className: `${styles.actionButton} ${styles[variant] ?? ''}`,
     ...rest,
   };

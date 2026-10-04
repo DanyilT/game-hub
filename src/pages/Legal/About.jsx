@@ -1,15 +1,9 @@
 import { Link } from 'react-router';
 import { version } from '../../../package.json';
 import { developer, games, getEmbedUrl } from '../../data/games.js';
-import { HUB_ISSUES_URL, HUB_REPO_URL, hubBugReportUrl } from '../../lib/support.js';
+import ExternalLink from '../../components/common/ExternalLink/ExternalLink';
+import { GAMES_REPO_URL, HUB_ISSUES_URL, HUB_REPO_URL, hubBugReportUrl } from '../../lib/support.js';
 import styles from './Legal.module.scss';
-
-const GAMES_REPO_URL = 'https://github.com/DanyilT/dt-games';
-
-const NewTab = () => <span className="visually-hidden"> (opens in a new tab)</span>;
-const Out = ({ href, children }) => (
-  <a href={href} target="_blank" rel="noopener noreferrer">{children}<NewTab /></a>
-);
 
 /** /about: what GameHub is, how saving works, and where the code and bug reports live */
 const About = () => {
@@ -21,7 +15,7 @@ const About = () => {
         <h1>About GameHub</h1>
 
         <p className={styles.intro}>
-          GameHub is a small arcade of browser games made by <Out href={developer.url}>{developer.name}</Out>:{' '}
+          GameHub is a small arcade of browser games made by <ExternalLink href={developer.url}>{developer.name}</ExternalLink>:{' '}
           {inHub} games to play right here{elsewhere > 0 && `, and ${elsewhere} more to try on their own sites`}. No
           downloads, no ads, and no account needed to play. The hub is free and we are not collecting or selling your data.
         </p>
@@ -61,7 +55,7 @@ const About = () => {
             <li>Offline, games wait on your device and are checked once you&rsquo;re back online. When the tickets run out offline, the games you play after that stay on your device only: they can&rsquo;t be checked, so they don&rsquo;t count. Back online, GameHub gets you new tickets.</li>
             <li>Under each game, your finished games say whether they count, and <strong>More</strong> shows your checked records.</li>
           </ul>
-          <p>No check can stop everything (a good enough bot plays like a person), so odd results get a closer look, and cheating is against the <Link to="/terms">Terms</Link>. Found a way around it? Please tell the developer on <Out href={HUB_ISSUES_URL}>GitHub issues</Out>.</p>
+          <p>No check can stop everything (a good enough bot plays like a person), so odd results get a closer look, and cheating is against the <Link to="/terms">Terms</Link>. Found a way around it? Please tell the developer on <ExternalLink href={HUB_ISSUES_URL}>GitHub issues</ExternalLink>.</p>
         </section>
 
         <section className={styles.section}>
@@ -78,9 +72,9 @@ const About = () => {
         <section className={styles.section}>
           <h2>Found a bug?</h2>
           <p>
-            Report it on GitHub: problems with a game go to <Out href={`${GAMES_REPO_URL}/issues`}>the games&rsquo; repo</Out>,
-            and anything about the site to <Out href={hubBugReportUrl()}>GameHub&rsquo;s</Out> (see what&rsquo;s{' '}
-            <Out href={HUB_ISSUES_URL}>already reported</Out>). No GitHub account? Sign in, and use the <strong>?</strong> button
+            Report it on GitHub: problems with a game go to <ExternalLink href={`${GAMES_REPO_URL}/issues`}>the games&rsquo; repo</ExternalLink>,
+            and anything about the site to <ExternalLink href={hubBugReportUrl()}>GameHub&rsquo;s</ExternalLink> (see what&rsquo;s{' '}
+            <ExternalLink href={HUB_ISSUES_URL}>already reported</ExternalLink>). No GitHub account? Sign in, and use the <strong>?</strong> button
             on the game&rsquo;s page to send a message instead.
           </p>
         </section>
@@ -88,8 +82,8 @@ const About = () => {
         <section className={styles.section}>
           <h2>Open source</h2>
           <p>
-            The code is on GitHub: <Out href={HUB_REPO_URL}>the site</Out> (React, Vite, Supabase, on Cloudflare) and{' '}
-            <Out href={GAMES_REPO_URL}>the games</Out>, a branch per game. Fonts: Doto and Chakra Petch. Icons: react-icons.
+            The code is on GitHub: <ExternalLink href={HUB_REPO_URL}>the site</ExternalLink> (React, Vite, Supabase, on Cloudflare) and{' '}
+            <ExternalLink href={GAMES_REPO_URL}>the games</ExternalLink>, a branch per game. Fonts: Doto and Chakra Petch. Icons: react-icons.
           </p>
         </section>
 

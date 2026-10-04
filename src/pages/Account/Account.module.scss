@@ -1,5 +1,6 @@
 @use '../../styles/abstracts/variables' as *;
 @use '../../styles/abstracts/forms';
+@use '../../styles/abstracts/mixins';
 
 // Shared by the account pages: AuthCallback, Me, Players, Profile, Settings (sign-in is a modal:
 // components/account). Square-cornered and see-through, like the legal pages and the neon windows.
@@ -75,8 +76,17 @@
 }
 
 // Messages
+// A form's message, shown only once there is one: it slides down into view
 .status {
   @include forms.form-status;
+  animation: status-in $transition-fast ease-out;
+}
+
+@keyframes status-in {
+  from {
+    opacity: 0;
+    transform: translateY(-0.5em);
+  }
 }
 
 .ok {
@@ -113,6 +123,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: space-between;
   gap: $spacing-lg;
 }
 
@@ -471,6 +482,60 @@
   }
 }
 
+// A tab's icon, with a lock at its bottom right when the tab is private; hovering it says so
+.tabIcon {
+  position: relative;
+  display: inline-flex;
+  font-size: 1.25em;
+
+  &:hover .tabTip {
+    display: block;
+  }
+}
+
+.tabLock {
+  position: absolute;
+  right: -0.3em;
+  bottom: -0.2em;
+  padding: 1px;
+  border-radius: $radius-full;
+  background: $color-black-light;
+  color: $color-secondary;
+  font-size: 0.6em;
+}
+
+.tabTip {
+  @include mixins.popup;
+  display: none;
+  left: 0;
+  right: auto;
+  top: calc(100% + 8px);
+  padding: $spacing-xs $spacing-sm;
+  color: $color-text-primary;
+  font-family: $font-secondary;
+  font-size: $font-size-xs;
+  text-transform: none;
+}
+
+// The tabs inside a tab (your friends, and your friend requests): smaller, as pills
+.subTabs {
+  gap: $spacing-xs;
+  border-bottom: none;
+
+  .tab {
+    margin-bottom: 0;
+    padding: $spacing-xs $spacing-sm;
+    border: 1px solid color-mix(in srgb, $color-primary 60%, transparent);
+    border-radius: $radius-full;
+    text-transform: none;
+
+    &.active {
+      border-color: $color-secondary;
+      background: color-mix(in srgb, $color-secondary 12%, transparent);
+    }
+  }
+}
+
 .tabCount {
   min-width: 1.6em;
   padding: 0 $spacing-xs;
@@ -492,15 +557,6 @@
   display: flex;
   flex-direction: column;
   gap: $spacing-md;
-}
-
-.privateNote {
-  align-self: flex-start;
-  padding: 0 $spacing-sm;
-  border: 1px dashed $color-text-secondary;
-  color: $color-text-secondary;
-  font-family: $font-secondary;
-  font-size: $font-size-xs;
 }
 
 .subTitle {
@@ -600,7 +656,72 @@
   }
 }
 
-// Privacy: who sees each kind of activity, as a row of three choices
+// Settings → Privacy: each kind of activity, with its on/off switch and, while on, who sees it
+.activityGroup {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+  padding: $spacing-md 0;
+  border-top: 1px solid color-mix(in srgb, $color-primary 40%, transparent);
+}
+
+.switchRow {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-md;
+  cursor: pointer;
+}
+
+// A checkbox drawn as a switch: a track, and a knob that slides across when it's on
+.switch {
+  flex-shrink: 0;
+  position: relative;
+  width: 44px;
+  height: 24px;
+  margin-top: 2px;
+  border: 1px solid $color-primary-light;
+  border-radius: $radius-full;
+  background: transparent;
+  appearance: none;
+  cursor: pointer;
+  transition: background $transition-fast ease, border-color $transition-fast ease;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 16px;
+    height: 16px;
+    border-radius: $radius-full;
+    background: $color-primary-light;
+    transition: transform $transition-fast ease, background $transition-fast ease;
+  }
+
+  &:checked {
+    border-color: $color-accent-light;
+    background: color-mix(in srgb, $color-accent-light 25%, transparent);
+
+    &::after {
+      transform: translateX(20px);
+      background: $color-accent-light;
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid $color-primary-light;
+    outline-offset: 2px;
+  }
+}
+
+.historyActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-sm $spacing-md;
+}
+
+// Who sees one kind of activity, as a row of three choices
 .audienceGroup {
   display: flex;
   flex-wrap: wrap;
@@ -615,6 +736,12 @@
   flex-direction: column;
   gap: $spacing-xs;
   max-width: 24rem;
+}
+
+.audienceLabel {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
 }
 
 .audienceOptions {

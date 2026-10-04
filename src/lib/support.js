@@ -2,6 +2,8 @@
 // the repo their `sourceCode` link names (DanyilT/dt-games), anything else to the hub's own.
 
 export const HUB_REPO_URL = 'https://github.com/DanyilT/game-hub';
+/** The games' repo (DanyilT/dt-games, a branch per game) */
+export const GAMES_REPO_URL = 'https://github.com/DanyilT/dt-games';
 
 /** The repo a GitHub link is in ("https://github.com/DanyilT/dt-games/tree/snake" → its repo URL), or null */
 const githubRepo = (url) => {
@@ -55,3 +57,5 @@ export const hubBugReportUrl = () => newIssueUrl(HUB_REPO_URL, '', [
 
 /** The hub's list of issues, to see what's already reported */
 export const HUB_ISSUES_URL = `${HUB_REPO_URL}/issues`;
+/** The games' list of issues */
+export const GAMES_ISSUES_URL = `${GAMES_REPO_URL}/issues`;

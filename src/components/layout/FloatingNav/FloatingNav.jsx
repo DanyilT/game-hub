@@ -50,6 +50,8 @@ const FloatingNav = ({ corner = 'right' }) => {
   const isInner = (item) => ['profile', 'sign-in'].includes(item.key);
   const inner = [...nav.main, ...nav.user.filter(isInner), ...nav.footer.filter(isInner)];
   const outer = [...nav.user.filter((item) => !isInner(item)), ...nav.footer.filter((item) => !isInner(item))];
+  const innerAngles = ringAngles(inner.length, true);
+  const outerAngles = ringAngles(outer.length, false);
   const waiting = [...inner, ...outer].reduce((sum, item) => sum + (item.badge ?? 0), 0);
   const side = corner === 'left' ? 1 : -1; // which way "across" is
 
@@ -116,9 +118,9 @@ const FloatingNav = ({ corner = 'right' }) => {
         }}
       >
         <nav id={menuId} aria-label="Site navigation" onKeyDown={onMenuKeyDown} inert={!open || undefined}>
-          <ul className={styles.ring}>{inner.map((item, i) => renderItem(item, i, ringAngles(inner.length, true)[i], 'inner'))}</ul>
+          <ul className={styles.ring}>{inner.map((item, i) => renderItem(item, i, innerAngles[i], 'inner'))}</ul>
           <ul className={styles.ring}>
-            {outer.map((item, i) => renderItem(item, inner.length + i, ringAngles(outer.length, false)[i], 'outer'))}
+            {outer.map((item, i) => renderItem(item, inner.length + i, outerAngles[i], 'outer'))}
           </ul>
         </nav>
         <button

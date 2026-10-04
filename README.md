@@ -80,6 +80,17 @@ Requires **Node 22.22+**.
    ```
    With the local Supabase, the sign-in window offers an email link instead of Google; the emails land in the local inbox at http://127.0.0.1:54324.
 
+## 🧩 Storybook
+
+Every page and part of the site, drawn by the site's own code, with the world outside the page faked: a pretend Supabase with made-up players, and the game in the frame reporting what the story says.
+
+```bash
+npm run storybook        # http://localhost:6006
+npm run storybook:build  # a static copy in dev/storybook/dist
+```
+
+The toolbar switches between signed in, a new player, a guest and a site without accounts; online and offline; a fast, slow, failing or silent server; and the sidebar or the floating button. Each page story has controls for what's on it (the game page: the game, its panel, the save and download, offline tickets, a replay, a message at the bottom of the screen). Everything for it is in `dev/storybook/`, apart from the site's code and build: see its README.
+
 ## 💾 Saving progress
 
 Games keep their progress in the browser, and in the player's account when they play in the hub signed in. The game never talks to Supabase, and never gets the player's sign-in:
@@ -99,8 +110,8 @@ Under a game played in the hub, a panel shows the player's progress (`src/compon
 
 1. **The game's numbers:** the game says what to show with `GameHub.status({ main, more, ongoing })`, whenever they change: up to 4 shown large (the score now, the best), and sections behind **More** (wins and best times per level: the rest of what it saves). The hub checks them (`src/lib/gameStatus.js`), since they come from another site: labels with numbers or short texts, never markup. With the numbers comes the time played (below).
 2. **Runs:** a game records each game it plays, from start to end: `GameHub.startRun({ mode, tick })` gives it random numbers from a seed (`run.random()`, mulberry32), and it records each input that changes the game with the step it came after (games that move by themselves: Snake, Tetris) or its time (games that wait for the player: Minesweeper, Sudoku). Never pictures: a run is a few KB. When the game ends, the run goes to the hub, which keeps it in the browser (IndexedDB, `src/lib/runs.js`), with that player's runs of the game: the latest 20, and their 5 newest best ones however old. A guest's runs are the guest's. Resetting the game's progress deletes them too.
-3. **Replays:** watching a run reloads the game with `#gamehub-replay` at the end of its address. The game then saves nothing and records nothing, and plays the run itself: `gamehub.js` gives it the run's seed and calls it with each input at its step or time (1×, 2× or 4×, and long waits between a game's inputs cut to 2 s). Back to the game reloads it as it was. Starting a replay while a game is under way (`ongoing`) asks first.
-4. A signed-in player's runs played on a ticket also go to the server to be checked: see "Checked runs" below.
+3. **Replays:** a run's ▶ button (only that: not the rest of its row) reloads the game with `#gamehub-replay` at the end of its address. The game then saves nothing and records nothing, and plays the run itself: `gamehub.js` gives it the run's seed and calls it with each input at its step or time (1×, 2× or 4×, and long waits between a game's inputs cut to 2 s). Back to the game reloads it as it was. Starting a replay while a game is under way (`ongoing`) asks first.
+4. A signed-in player's runs played on a ticket also go to the server to be checked, and are kept there, so they can be watched in any browser: see "Checked runs" below.
 
 ## ✅ Checked runs and records
 
@@ -109,14 +120,15 @@ Saves are in the player's browser and can say anything, so records come only fro
 1. **Tickets:** a signed-in player's game takes one for each run: a seed the server chose (`issue_tickets()`, 10 ready per game, good for 14 days). The hub keeps them in the browser and hands them to the game (`gamehub:tickets`); a game that starts a run as it loads waits for them (`GameHub.ready()`). So games played offline get them too. The server hears a ticket was taken as its run starts (`start_ticket()`, which also starts that run's clock), or once back online (`take_tickets()`).
 2. **Checking:** when a run on a ticket ends, the hub sends it to the site's Worker (`POST /api/verify-run`, `worker/verify-run.js`), or keeps it until back online. The Worker plays it again from the ticket's seed with the game's own rules (`worker/games/`, one file per game, written to match the game's code exactly) and records what *its* replay gave (`record_run()`, with the secret key): never the game's claim. A ticket is good for one run, and a run can't have lasted longer than the time since its ticket was started (online) or issued, plus 30 s. Runs that don't play out are kept as refused; ones whose game said otherwise, or whose inputs came too fast, count but are flagged for a look. Inputs are kept 30 days, or while a run is a record (`private.tidy_runs()`, daily).
 3. **What players see:** under the game, each run says whether it counts, is waiting to be checked, didn't count, or stays on the device (played without a ticket, offline once they ran out: the hub warns as the last one goes, and says so while offline). Back online, the hub gets new tickets for the downloaded games and checks the runs that waited (`MainLayout`), with a note. **More** shows the player's checked records (`my_records()`).
-4. **When a game changes:** its checker in `worker/games/` must change with it, or its runs stop checking out. `npm run test:worker` replays runs recorded from the games (`worker/games/fixtures.json`); record new ones when the rules change.
-5. **Locally:** `npm run dev:local` runs the same checker in the dev server (with the local project's secret key). Against the hosted project, set `SUPABASE_SECRET_KEY` in `.env.local` (not `VITE_`) to check runs; without it, they wait.
+4. **In any browser** (`supabase/migrations/*_runs_on_any_browser.sql`): the list joins the runs kept on the server (`my_runs()`: those whose inputs are still kept, records first, 100 at most) to this browser's, one row per ticket, with the server's word on each check. Each one kept there shows the days left before its inputs go (none for a record); one this browser doesn't have gets its inputs from the server when it's watched (`my_run_inputs()`).
+5. **When a game changes:** its checker in `worker/games/` must change with it, or its runs stop checking out. `npm run test:worker` replays runs recorded from the games (`worker/games/fixtures.json`); record new ones when the rules change.
+6. **Locally:** `npm run dev:local` runs the same checker in the dev server (with the local project's secret key). Against the hosted project, set `SUPABASE_SECRET_KEY` in `.env.local` (not `VITE_`) to check runs; without it, they wait.
 
 ## ⏱ Play activity
 
 The hub counts how long players play each game (`src/lib/playTime.js`); the games aren't involved. A second counts while the game's page is on screen, the player has pressed a key or tapped in the game in the last 2 minutes (the bridge says when), and no replay is playing. A guest's time is kept in the browser only, for the panel. A signed-in player's goes to their account, while online: a play session starts at the first such second, and reports go up about once a minute (`report_play()`), when the page is hidden, and when it's left. The server never adds more time than has really passed, and a session counts as a play from a minute.
 
-From it come a profile's **Played** tab, **playing now** (on profiles and friends lists) and the games page's **Recent activity**. Each player picks who sees each of the three in Settings → Privacy: everyone, friends, or only them (out of the box: everyone, friends, everyone). The database applies those choices itself (`supabase/migrations/*_play_activity.sql`): the sessions are only read through its functions.
+From the sessions come a profile's **Played** tab, the play time, the games page's **Recent activity** (each play once it's over), and **Playing now** on profiles and friends lists (a session reported in the last 2 minutes). In Settings → Privacy each player can turn their play history off: then nothing is recorded (`start_play()` and `report_play()` store nothing, whatever the site sends), what was kept is only theirs, and no one sees what they're playing now. While it's on, they pick who sees each of the three (everyone, friends, or only them; out of the box: everyone for played games and recent activity, friends for playing now). They can also delete their play history (`delete_my_play_history()`). The database applies all of it itself (`supabase/migrations/*_play_activity.sql`, `*_activity_controls.sql`): the tables are only read through its functions.
 
 **Blocking and reporting** (`supabase/migrations/*_blocks_and_reports.sql`): the ⋯ on another player's profile blocks them or reports them. Blocking ends a friendship (and drops a request either way), stops friend requests between the two, and hides each one's activity from the other, whatever their choices say; the blocked player isn't told. Settings → Privacy lists the players you've blocked. A report (cheating, with the game if known, or something else, with what happened) can't be read back: read them in Supabase's Table Editor → `player_reports`, and for cheating, the player's checked games in `game_runs`. At most one report a day about the same player, and 10 a day in all.
 
@@ -172,6 +184,7 @@ The build checks the list (`npm run check:catalog` checks `games.json` on its ow
 - **Embedded games** get the in-hub player. The games live in [`DanyilT/dt-games`](https://github.com/DanyilT/dt-games), a branch per game, and Cloudflare Pages serves each branch at its own address (`https://<game>.dt-games.pages.dev/`). Those are the only sites the hub will put in an iframe (`EMBED_ORIGINS` in `scripts/check-catalog.mjs`).
 - **Everything else** gets a details page with its picture and links out. Android apps get the official "Get it on Google Play" badge.
 - **Platform chips and the Platform filter** come from `platforms`, so a `website` doesn't make an Android game count as "web".
+- **Filter links:** the games list keeps the chips picked in its filter box in the address (`/?tag=easy&tag=arcade`), so a reload keeps them and the link can be shared. A game's page lets players pick its genres, difficulty, platforms and tags, and opens the list filtered to the games that have them all.
 - **Icons** (`icon` on platforms and links) are [react-icons](https://react-icons.github.io/react-icons) names, like `CiGlobe` or `FaGithub`. The build bundles only the icons the catalogue names, and the check rejects a name react-icons doesn't have. Without an `icon`, a web platform shows `CiShare1`, Android shows `CiMobile3` and source code shows a floppy disk (`CiFloppyDisk`).
 - **`sourceCode`** is one link or a list of links, each `{ "url": "…", "label": "…", "icon": "…" }`. `label` and `icon` are optional for a single link; a list needs a `label` on each link, so they can be told apart ("View Code" otherwise).
 - **`developer`**: who made the game, `{ "name": "…", "url": "https://…" }` (`url` is optional). The game page shows it with the release date ("Released 24 April 2025 by Dany"), linking to `url`, and so does the card's info panel. It isn't the developer section below, which is about the site's owner.
@@ -233,6 +246,7 @@ Each list is optional, and every link needs a `label`. A new game on another sit
 ```
 game-hub/
 ├── public/                  # copied as-is into dist/: hub-bridge.js (the game bridge, run in the game's page), favicon.ico/.svg, apple-touch-icon.png, manifest.json, icons/
+├── dev/storybook/           # Storybook: its config (.storybook/), the stand-ins for Supabase, the game bridge, replays and installing (mocks/), and the stories (`npm run storybook`)
 ├── scripts/
 │   ├── check-catalog.mjs    # checks the game list (`npm run check:catalog`: src/data/games.json)
 │   ├── catalog-source.mjs   # where the build gets the game list: the Supabase games table, or games.json
@@ -242,7 +256,7 @@ game-hub/
 ├── src/
 │   ├── components/account/  # SignInModal, UsernameDialog (new players pick a username), UsernameField (🎲), ReportPlayer (the ⋯ → Report window)
 │   ├── components/install/  # installing as an app: the steps for iPhone/iPad, the banner on phones, useInstall()
-│   ├── components/common/   # Avatar, Button, ConfirmDialog ("Sign out?"), ErrorBoundary, GooglePlayBadge, InfoTip, Menu (a ⋯ button with actions), Modal (the neon window), Toasts
+│   ├── components/common/   # Avatar, Button, ConfirmDialog ("Sign out?"), ErrorBoundary, ExternalLink (a link that opens a new tab), GooglePlayBadge, InfoTip, Menu (a ⋯ button with actions), Modal (the neon window), Toasts
 │   ├── components/layout/   # Header, Footer, MainLayout, RecentActivity (the games page); the navigation: Sidebar or FloatingNav, both from useNavItems.js
 │   ├── components/layout/game/  # GameCard, GameList, GameControls, GameReactions (favorites, bookmarks), DownloadGame (offline), GameProgress (the panel under the game, replays), RatingSlider, RateGame, GameHelp (the ? window)
 │   ├── contexts/            # AuthContext (the signed-in player, useAuth()), LibraryContext (their favorites, bookmarks, ratings, friend requests: useLibrary())

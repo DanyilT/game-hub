@@ -37,6 +37,11 @@ export const getStorePlatforms = (game) => game.platforms.filter((p) => p.type =
 /** Platform names used for the chips and the Platform filter, e.g. ['web'] or ['android'] */
 export const getPlatformTypes = (game) => [...new Set(game.platforms.map((p) => p.type))];
 
+// The games list with some of its filter chips picked (a game's genres, difficulty, platforms and tags): they're in the
+// address, /?tag=easy&tag=action, so a reload keeps them and the link can be shared
+export const TAG_PARAM = 'tag';
+export const gamesWithTags = (tags) => `/?${new URLSearchParams(tags.map((tag) => [TAG_PARAM, tag]))}`;
+
 /** The icon for a link to a platform: the one it names, or its type's */
 export const getPlatformIcon = (platform) => catalogIcons[platform.icon] ?? PLATFORM_ICONS[platform.type];
 

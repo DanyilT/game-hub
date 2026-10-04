@@ -243,4 +243,3 @@ export const useGameStats = (gameId) => {
   return result.gameId === gameId ? result.stats : null;
 };
 
-export default LibraryProvider;

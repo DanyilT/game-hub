@@ -26,36 +26,41 @@ const Moved = ({ to }) => {
   return <Navigate to={`${typeof to === 'function' ? to(params) : to}${search}${hash}`} replace />;
 };
 
+/** The site's pages, inside the layout (also how Storybook shows them, under a router of its own: dev/storybook) */
+export const AppRoutes = () => (
+  <Routes>
+    {/* Main Layout Routes. A new page also goes in PAGES in vite.config.js: the build writes
+        a file for each, and on Cloudflare any path without one is a 404. */}
+    <Route path="/" element={<MainLayout />}>
+      <Route index element={<Games />} />
+      <Route path="g/:gameId" element={<GamePage />} />
+      <Route path="players" element={<Players />} />
+      <Route path="u/:username" element={<Profile />} />
+      {/* Your own profile, without knowing your username. No player can be called "me":
+          usernames have at least 3 characters. */}
+      <Route path="me" element={<Me />} />
+      <Route path="u/me" element={<Me />} />
+      <Route path="settings" element={<Settings />} />
+      <Route path="auth/callback" element={<AuthCallback />} />
+      <Route path="about" element={<About />} />
+      <Route path="terms" element={<Terms />} />
+      <Route path="privacy" element={<Privacy />} />
+      {/* Old addresses */}
+      <Route path="games" element={<Moved to="/" />} />
+      <Route path="games/:gameId" element={<Moved to={({ gameId }) => `/g/${gameId}`} />} />
+      <Route path="users" element={<Moved to="/players" />} />
+      <Route path="users/:username" element={<Moved to={({ username }) => `/u/${username}`} />} />
+      <Route path="players/:username" element={<Moved to={({ username }) => `/u/${username}`} />} />
+      {/* Unknown paths */}
+      <Route path="*" element={<ErrorPage status={404} />} />
+    </Route>
+  </Routes>
+);
+
 function App() {
   return (
     <Router basename={basename}>
-      <Routes>
-        {/* Main Layout Routes. A new page also goes in PAGES in vite.config.js: the build writes
-            a file for each, and on Cloudflare any path without one is a 404. */}
-        <Route path="/" element={<MainLayout />}>
-          <Route index element={<Games />} />
-          <Route path="g/:gameId" element={<GamePage />} />
-          <Route path="players" element={<Players />} />
-          <Route path="u/:username" element={<Profile />} />
-          {/* Your own profile, without knowing your username. No player can be called "me":
-              usernames have at least 3 characters. */}
-          <Route path="me" element={<Me />} />
-          <Route path="u/me" element={<Me />} />
-          <Route path="settings" element={<Settings />} />
-          <Route path="auth/callback" element={<AuthCallback />} />
-          <Route path="about" element={<About />} />
-          <Route path="terms" element={<Terms />} />
-          <Route path="privacy" element={<Privacy />} />
-          {/* Old addresses */}
-          <Route path="games" element={<Moved to="/" />} />
-          <Route path="games/:gameId" element={<Moved to={({ gameId }) => `/g/${gameId}`} />} />
-          <Route path="users" element={<Moved to="/players" />} />
-          <Route path="users/:username" element={<Moved to={({ username }) => `/u/${username}`} />} />
-          <Route path="players/:username" element={<Moved to={({ username }) => `/u/${username}`} />} />
-          {/* Unknown paths */}
-          <Route path="*" element={<ErrorPage status={404} />} />
-        </Route>
-      </Routes>
+      <AppRoutes />
     </Router>
   );
 }

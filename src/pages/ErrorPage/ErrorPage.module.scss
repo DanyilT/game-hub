@@ -3,7 +3,6 @@
 @use '../../styles/abstracts/buttons'; // %button-filled, %button-outline
 
 .errorPage {
-  @include mixins.panel;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -11,6 +10,7 @@
   max-width: 640px;
   margin: $spacing-xl auto;
   padding: $spacing-xl;
+  border: 1px solid $color-primary;
   text-align: center;
 
   h1 {

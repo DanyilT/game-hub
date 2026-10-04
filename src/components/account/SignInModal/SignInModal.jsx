@@ -5,6 +5,7 @@ import { FaDiscord } from 'react-icons/fa6';
 import { useAuth } from '../../../contexts/AuthContext';
 import { LOCAL_EMAILS_URL, fetchAuthSettings, isLocalSupabase } from '../../../lib/supabase';
 import { safeReturnPath } from '../../../lib/account';
+import ExternalLink from '../../common/ExternalLink/ExternalLink';
 import Modal from '../../common/Modal/Modal';
 import styles from '../AccountModal.module.scss';
 
@@ -115,7 +116,7 @@ const SignInModal = () => {
                 {isLocalSupabase && (
                   <span className={styles.hint}>
                     Local testing: the email lands at{' '}
-                    <a href={LOCAL_EMAILS_URL} target="_blank" rel="noopener noreferrer">{LOCAL_EMAILS_URL.replace('http://', '')}</a>
+                    <ExternalLink href={LOCAL_EMAILS_URL}>{LOCAL_EMAILS_URL.replace('http://', '')}</ExternalLink>
                   </span>
                 )}
               </div>
@@ -127,9 +128,9 @@ const SignInModal = () => {
           {sentTo && isLocalSupabase && (
             <p className={styles.text}>
               Local testing: open{' '}
-              <a href={LOCAL_EMAILS_URL} target="_blank" rel="noopener noreferrer" className={styles.switchButton}>
+              <ExternalLink href={LOCAL_EMAILS_URL} className={styles.switchButton}>
                 {LOCAL_EMAILS_URL.replace('http://', '')}
-              </a>
+              </ExternalLink>
               {' '}and click the link in the email.
             </p>
           )}
@@ -150,7 +151,7 @@ const SignInModal = () => {
                 onClick={() => start(id)}
                 disabled={soon || Boolean(busy) || enabled === false || Boolean(enabled && !enabled[id])}
               >
-                <Icon className={`${styles.providerIcon}`} aria-hidden="true" />
+                <Icon className={styles.providerIcon} aria-hidden="true" />
                 <span className={styles.providerLabel}>{busy === id ? `Opening ${name}…` : `Continue with ${name}`}</span>
                 {soon && <span className={styles.soonBadge}><span className="visually-hidden">: coming </span>soon</span>}
               </button>

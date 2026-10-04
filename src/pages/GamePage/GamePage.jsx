@@ -1,15 +1,19 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router';
-import { CiCircleQuestion, CiGlobe, CiMaximize1, CiMaximize2, CiMinimize1, CiSquareChevLeft } from 'react-icons/ci';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { Link, useLocation, useNavigate, useParams } from 'react-router';
+import {
+  CiCircleQuestion, CiFilter, CiGlobe, CiMaximize1, CiMaximize2, CiMinimize1, CiSquareChevLeft,
+} from 'react-icons/ci';
 import { LuChevronsLeftRight, LuChevronsRightLeft } from 'react-icons/lu';
 import { PiResizeDuotone, PiStarFill } from 'react-icons/pi';
 import {
-  games, getEmbedUrl, getPlatformIcon, getPlatformTypes, getSourceLinks, getStorePlatforms, getWebPlatform,
+  games, gamesWithTags, getEmbedUrl, getPlatformIcon, getPlatformTypes, getSourceLinks, getStorePlatforms, getWebPlatform,
 } from '../../data/games.js';
+import Button from '../../components/common/Button/Button';
+import ExternalLink from '../../components/common/ExternalLink/ExternalLink';
 import GooglePlayBadge, { GOOGLE_PLAY_TRADEMARK } from '../../components/common/GooglePlayBadge/GooglePlayBadge.jsx';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGameStats } from '../../contexts/LibraryContext';
-import { useRecords, useTicketsLeft } from '../../lib/checks';
+import { fetchRunInputs, mergeRuns, useRecords, useServerRuns, useTicketsLeft } from '../../lib/checks';
 import { askToConfirm } from '../../lib/confirm';
 import { calendarDate } from '../../lib/dates';
 import { useGameBridge } from '../../lib/gameBridge';
@@ -155,30 +159,51 @@ const RatingChip = ({ stats }) => {
   );
 };
 
-/** The game's genre, difficulty and platforms, in the Tags card above the tags */
-const MetaChips = ({ game }) => (
-  <div className={styles.gameMeta}>
-    <span className={`${styles.metaChip} ${styles.genre}`} title="Genre">{game.genre.join(', ')}</span>
-    {game.difficulty && (
-      <span className={`${styles.metaChip} ${styles[game.difficulty]}`} title="Difficulty">{game.difficulty}</span>
-    )}
-    {getPlatformTypes(game).map((platform) => (
-      <span key={platform} className={`${styles.metaChip} ${styles.platform}`} title="Platform">{platform}</span>
-    ))}
-  </div>
-);
-
-// Screen-reader note for links that open a new tab (the ↗ arrow itself is hidden from them)
-const NewTabNote = () => (
-  <>
-    <span aria-hidden="true"> ↗</span>
-    <span className="visually-hidden"> (opens in a new tab)</span>
-  </>
-);
+/**
+ * The Tags card: the game's genres, difficulty and platforms, then its tags. Each can be picked, and with some picked,
+ * a button opens the games list filtered to the games that have them all (the list's own chips: GameList).
+ */
+const GameTags = ({ game }) => {
+  const [picked, setPicked] = useState([]);
+  const toggle = (tag) => setPicked((current) => (current.includes(tag) ? current.filter((t) => t !== tag) : [...current, tag]));
+  // A chip, by kind (its title says which; a plain tag has none)
+  const chip = (tag, className, kind = null) => (
+    <button
+      key={`${kind}:${tag}`}
+      type="button"
+      className={`${className} ${picked.includes(tag) ? styles.picked : ''}`}
+      title={kind ?? undefined}
+      aria-pressed={picked.includes(tag)}
+      onClick={() => toggle(tag)}
+    >
+      {kind && <span className="visually-hidden">{kind}: </span>}
+      {tag}
+    </button>
+  );
+  return (
+    <div className={styles.tagsCard} role="group" aria-label="Pick tags to find games that have them all">
+      <div className={styles.gameMeta}>
+        {game.genre.map((genre) => chip(genre, `${styles.metaChip} ${styles.genre}`, 'Genre'))}
+        {game.difficulty && chip(game.difficulty, `${styles.metaChip} ${styles[game.difficulty]}`, 'Difficulty')}
+        {getPlatformTypes(game).map((platform) => chip(platform, `${styles.metaChip} ${styles.platform}`, 'Platform'))}
+      </div>
+      <div className={styles.tagsContainer}>{game.tags.map((tag) => chip(tag, styles.tag))}</div>
+      {picked.length > 0 && (
+        <div className={styles.tagsFind}>
+          <Button as={Link} to={gamesWithTags(picked)} variant="outline">
+            <CiFilter aria-hidden="true" />
+            {picked.length === 1 ? `Find games tagged ${picked[0]}` : `Find games with these ${picked.length}`}
+          </Button>
+          <button type="button" className={styles.textButton} onClick={() => setPicked([])}>Clear</button>
+        </div>
+      )}
+    </div>
+  );
+};
 
 /** Who made the game: their name, linking to their page when the catalogue has one */
 const DeveloperName = ({ developer }) => (developer.url ? (
-  <a href={developer.url} target="_blank" rel="noopener noreferrer">{developer.name}<NewTabNote /></a>
+  <ExternalLink href={developer.url} arrow>{developer.name}</ExternalLink>
 ) : developer.name);
 
 /**
@@ -312,10 +337,13 @@ const GamePageContent = ({ gameId }) => {
   }
   if (frameId && replay) frameId += `:replay${replay.key}`;
 
-  // The player's runs of the game, to watch again (kept in this browser: src/lib/runs.js), and their
-  // records: their best runs that GameHub's server has checked (src/lib/checks.js)
-  const runs = useRuns(player, gameId);
-  const records = useRecords(user?.id ?? null, gameId, runs);
+  // The player's runs of the game, to watch again: the ones kept in this browser (src/lib/runs.js), and
+  // a signed-in player's kept on GameHub's server, from any browser; and their records: their best
+  // runs that the server has checked (src/lib/checks.js). Both are read again as runs here change.
+  const localRuns = useRuns(player, gameId);
+  const serverRuns = useServerRuns(user?.id ?? null, gameId, localRuns);
+  const runs = useMemo(() => mergeRuns(localRuns, serverRuns), [localRuns, serverRuns]);
+  const records = useRecords(user?.id ?? null, gameId, localRuns);
 
   // Offline, a signed-in player's games are checked once back online, on the tickets they have left:
   // using the last one says so (a run without one can't go to their account)
@@ -342,8 +370,24 @@ const GamePageContent = ({ gameId }) => {
       });
       if (!yes) return;
     }
+    // A run this browser doesn't keep: its moves come from the server first
+    let watched = row;
+    if (!row.run.inputs) {
+      let inputs = null;
+      try {
+        inputs = await fetchRunInputs(row.serverId);
+      } catch {
+        showToast('Couldn’t load that replay. Check your connection and try again.', { tone: 'error' });
+        return;
+      }
+      if (!inputs) {
+        showToast('That replay is no longer kept on GameHub’s server.');
+        return;
+      }
+      watched = { ...row, run: { ...row.run, inputs } };
+    }
     replayCountRef.current += 1;
-    setReplay((current) => ({ row, speed: current?.speed ?? 1, key: replayCountRef.current }));
+    setReplay((current) => ({ row: watched, speed: current?.speed ?? 1, key: replayCountRef.current }));
   };
   const watchAgain = () => {
     replayCountRef.current += 1;
@@ -608,8 +652,6 @@ const GamePageContent = ({ gameId }) => {
   const WebIcon = webPlatform && getPlatformIcon(webPlatform);
   const storePlatforms = getStorePlatforms(game);
   const sourceLinks = getSourceLinks(game);
-  // The keys, mouse buttons and gestures the game uses: small in the info column at first, or
-  // every device under the game (or its picture)
   // When it came out, and who made it: with the features (or under the description, for entries without any)
   const credits = (game.released || game.developer) && (
     <p className={styles.credits}>
@@ -617,6 +659,8 @@ const GamePageContent = ({ gameId }) => {
       {game.developer && <>{game.released ? ' by ' : 'By '}<DeveloperName developer={game.developer} /></>}
     </p>
   );
+  // The keys, mouse buttons and gestures the game uses: small in the info column at first, or
+  // every device under the game (or its picture)
   const showControlsExpanded = maximized ? controlsExpandedMaximized : controlsExpanded;
   const controls = game.controls && (
     <GameControls
@@ -829,16 +873,16 @@ const GamePageContent = ({ gameId }) => {
                 <GooglePlayBadge key={store.url} url={store.url} />
               ))}
               {webPlatform && (
-                <a href={webPlatform.url} className={styles.openButton} target="_blank" rel="noopener noreferrer">
+                <ExternalLink href={webPlatform.url} className={styles.openButton} arrow>
                   <WebIcon aria-hidden="true" />
-                  Open {game.title}<NewTabNote />
-                </a>
+                  Open {game.title}
+                </ExternalLink>
               )}
               {game.website && (
-                <a href={game.website} className={styles.openButton} target="_blank" rel="noopener noreferrer">
+                <ExternalLink href={game.website} className={styles.openButton} arrow>
                   <CiGlobe aria-hidden="true" />
-                  Visit website<NewTabNote />
-                </a>
+                  Visit website
+                </ExternalLink>
               )}
             </div>
             {storePlatforms.length > 0 && <p className={styles.storeLegal}>{GOOGLE_PLAY_TRADEMARK}</p>}
@@ -857,8 +901,8 @@ const GamePageContent = ({ gameId }) => {
                     className={styles.toggleFeaturesBtn}
                     onClick={() => setShowFeatures((shown) => !shown)}
                     aria-expanded={showFeatures}
-                    aria-label={showFeatures ? "Hide features" : "Show features"}
-                    title={showFeatures ? "Hide features" : "Show features"}
+                    aria-label={showFeatures ? 'Hide features' : 'Show features'}
+                    title={showFeatures ? 'Hide features' : 'Show features'}
                   >
                     <span aria-hidden="true">▼</span>
                   </button>
@@ -916,27 +960,23 @@ const GamePageContent = ({ gameId }) => {
 
           <section>
             <h2>Tags</h2>
-            <MetaChips game={game} />
-            <div className={styles.tagsContainer}>
-              {game.tags.map((tag) => (
-                <span key={tag} className={styles.tag}>{tag}</span>
-              ))}
-            </div>
+            {/* A new game, new picks */}
+            <GameTags key={game.id} game={game} />
           </section>
 
           {(embedUrl || sourceLinks.length > 0) && (
             <section className={styles.gameLinks}>
               {embedUrl && (
-                <a href={embedUrl} className={styles.playButton} target="_blank" rel="noopener noreferrer">
+                <ExternalLink href={embedUrl} className={styles.playButton} arrow>
                   <WebIcon aria-hidden="true" />
-                  Play Directly<NewTabNote />
-                </a>
+                  Play Directly
+                </ExternalLink>
               )}
               {sourceLinks.map(({ url, label, Icon }) => (
-                <a key={url} href={url} className={styles.sourceLink} target="_blank" rel="noopener noreferrer">
+                <ExternalLink key={url} href={url} className={styles.sourceLink} arrow>
                   <Icon aria-hidden="true" />
-                  {label ?? 'View Source Code'}<NewTabNote />
-                </a>
+                  {label ?? 'View Source Code'}
+                </ExternalLink>
               ))}
             </section>
           )}

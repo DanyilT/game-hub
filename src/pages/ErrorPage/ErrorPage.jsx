@@ -1,5 +1,7 @@
 import { Link } from 'react-router';
+import ExternalLink from '../../components/common/ExternalLink/ExternalLink';
 import styles from './ErrorPage.module.scss';
+import Button from "../../components/common/Button/Button.jsx";
 
 // What each status says (the picture comes from http.cat)
 const ERRORS = {
@@ -27,17 +29,15 @@ const ErrorPage = ({ status, title, text }) => {
           <img src={`https://http.cat/${status}`} alt={`A cat acting out error ${status}`} width="750" height="600" />
         </div>
         <figcaption>
-          Cat by <a href="https://http.cat" target="_blank" rel="noopener noreferrer">http.cat</a>
+          Cat by <ExternalLink href="https://http.cat">http.cat</ExternalLink>
         </figcaption>
       </figure>
 
       <div className={styles.actions}>
+        <Button as={Link} to="/" variant="outline">Back to the games</Button>
         {status === 500 && (
-          <button type="button" className={styles.primary} onClick={() => window.location.reload()}>
-            Reload
-          </button>
+          <Button onClick={() => window.location.reload()}>Reload</Button>
         )}
-        <Link to="/" className={status === 500 ? styles.secondary : styles.primary}>Back to Games</Link>
       </div>
     </div>
   );

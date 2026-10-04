@@ -161,13 +161,20 @@ $line: color-mix(in srgb, $color-white 10%, transparent);
   }
 }
 
+.replaysHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-xs $spacing-sm;
+}
+
 .runList {
   display: flex;
   flex-direction: column;
   gap: $spacing-xs;
 }
 
-// One run: play it, its result, then its best star, length and when
+// One run: its play button (the one way to watch it), its result, then its badges, length and when
 .run {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
@@ -181,10 +188,6 @@ $line: color-mix(in srgb, $color-white 10%, transparent);
   font-size: $font-size-sm;
   text-align: left;
   transition: background $transition-fast ease;
-
-  &:hover {
-    background: color-mix(in srgb, $color-primary 25%, transparent);
-  }
 
   // The one being watched
   &[aria-current='true'] {
@@ -203,10 +206,17 @@ $line: color-mix(in srgb, $color-white 10%, transparent);
   background: $color-primary;
   color: $color-text-primary;
   font-size: 0.8rem;
-  transition: transform $transition-fast ease;
+  cursor: pointer;
+  transition: transform $transition-fast ease, background $transition-fast ease;
 
-  .run:hover & {
+  &:hover {
     transform: scale(1.1);
+    background: color-mix(in srgb, $color-primary 80%, $color-primary-light);
+  }
+
+  &:focus-visible {
+    outline: 2px solid $color-primary-light;
+    outline-offset: 2px;
   }
 }
 
@@ -264,8 +274,8 @@ $line: color-mix(in srgb, $color-white 10%, transparent);
   opacity: 0.85;
 }
 
-// A run's badges are icons. A badge's label slides out of its icon on hover, or for the whole row while it has the
-// keyboard's focus. It comes out to the left, so the icon stays where it is.
+// A run's badges are icons. A badge's label slides out of its icon on hover, or for the whole row while its play button
+// has the keyboard's focus. It comes out to the left, so the icon stays where it is.
 .badge {
   display: inline-flex;
   flex-direction: row-reverse;
@@ -295,7 +305,7 @@ $line: color-mix(in srgb, $color-white 10%, transparent);
 }
 
 .badge:hover,
-.run:focus-visible .badge {
+.run:has(:focus-visible) .badge {
   gap: 3px;
 
   .badgeLabel {
@@ -307,6 +317,19 @@ $line: color-mix(in srgb, $color-white 10%, transparent);
 // The player's record
 .best {
   color: $color-gold;
+}
+
+// How much longer a run's moves are kept on GameHub's server: a countdown in days
+.keptFor {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  gap: 2px;
+  font-weight: $font-weight-semibold;
+
+  svg {
+    flex-shrink: 0;
+  }
 }
 
 // How a signed-in player's run did on GameHub's server

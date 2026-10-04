@@ -1,8 +1,9 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { CiCircleRemove, CiFilter } from 'react-icons/ci';
 import { CgChevronDown } from 'react-icons/cg';
 import GameCard from '../GameCard/GameCard';
-import { getPlatformTypes } from '../../../../data/games';
+import { TAG_PARAM, getPlatformTypes } from '../../../../data/games';
 import styles from './GameList.module.scss';
 
 // Filter groups: each narrows the chips to one kind of tag
@@ -49,11 +50,21 @@ const useChipRows = (chips) => {
       rows.style.width = `${wideEnough}px`;
     };
     layOut();
-    // The box changes size with the window and sidebar, the chips when the web font arrives
-    const observer = new ResizeObserver(layOut);
+    // The box changes size with the window and sidebar, the chips when the web font arrives: laid out again on
+    // the next frame, after the ResizeObserver round (doing it inside one resizes what it's still observing)
+    let frame = null;
+    const observer = new ResizeObserver(() => {
+      if (frame === null) frame = requestAnimationFrame(() => {
+        frame = null;
+        layOut();
+      });
+    });
     observer.observe(box);
     observer.observe(rows);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      if (frame !== null) cancelAnimationFrame(frame);
+    };
   }, [chips]);
 
   return boxRef;
@@ -64,10 +75,14 @@ const useChipRows = (chips) => {
  * @param {object[]} games - catalogue entries (src/data/games.json)
  */
 const GameList = ({ games }) => {
-  const [filtersOpen, setFiltersOpen] = useState(false);
+  // The chips picked, from the address (/?tag=easy&tag=action: data/games.js), so a reload keeps them
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tagParams = searchParams.getAll(TAG_PARAM).join('\n'); // the same list stays the same array
+  const selectedTags = useMemo(() => (tagParams ? [...new Set(tagParams.split('\n'))] : []), [tagParams]);
+  // Open from the start when the address picks some, to show which
+  const [filtersOpen, setFiltersOpen] = useState(selectedTags.length > 0);
   const [openCount, setOpenCount] = useState(0); // the chips shoot in again on every opening
   const [filterGroup, setFilterGroup] = useState(null); // a FILTER_GROUPS key, or null for every chip
-  const [selectedTags, setSelectedTags] = useState([]);
 
   // Chips for each group, from what's in the catalogue
   const chipGroups = useMemo(() => {
@@ -100,8 +115,18 @@ const GameList = ({ games }) => {
     [games, selectedTags],
   );
 
+  // Picking a chip changes the address in place: no new history entry, and the page stays where it is
+  const setSelectedTags = (tags) => {
+    setSearchParams((params) => {
+      const next = new URLSearchParams(params);
+      next.delete(TAG_PARAM);
+      tags.forEach((tag) => next.append(TAG_PARAM, tag));
+      return next;
+    }, { replace: true, state: { keepScroll: true } });
+  };
+
   const toggleTag = (tag) => {
-    setSelectedTags((current) => (current.includes(tag) ? current.filter((t) => t !== tag) : [...current, tag]));
+    setSelectedTags(selectedTags.includes(tag) ? selectedTags.filter((t) => t !== tag) : [...selectedTags, tag]);
   };
 
   const clearFilters = () => {

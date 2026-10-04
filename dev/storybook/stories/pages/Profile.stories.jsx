@@ -1,0 +1,86 @@
+import { AppRoutes } from '../../../../src/App';
+
+/**
+ * Player profiles: /u/<username>. The tabs: Played (another player's only when they let you see it), Friends,
+ * Favorites, and on your own the private ones (a lock on the icon): Bookmarks, Ratings, and your friend requests
+ * inside Friends. Someone else's has the friend buttons and the ⋯ menu (block, report). The made-up players are in
+ * dev/storybook/mocks/data.js.
+ */
+export default {
+  title: 'Pages/Profile',
+  component: AppRoutes,
+  render: () => <AppRoutes />,
+  parameters: { route: '/u/dany' },
+};
+
+/** Your own: the Played tab first */
+export const YourProfile = {};
+export const YourFriends = { parameters: { route: '/u/dany?tab=friends' } };
+/** Your friend requests: a tab inside Friends (the address is still ?tab=requests) */
+export const YourFriendRequests = { parameters: { route: '/u/dany?tab=requests' } };
+export const YourFavorites = { parameters: { route: '/u/dany?tab=favorites' } };
+export const YourBookmarks = { parameters: { route: '/u/dany?tab=bookmarks' } };
+export const YourRatings = { parameters: { route: '/u/dany?tab=ratings' } };
+
+/** A private tab's lock, hovered */
+export const PrivateTabTip = {
+  play: async ({ canvas, userEvent }) => {
+    const tab = await canvas.findByRole('tab', { name: /Bookmarks/ });
+    await userEvent.hover(tab.querySelector('span'));
+  },
+};
+
+/** A friend, playing Tetris right now */
+export const AFriend = { parameters: { route: '/u/cosmic_narwhal42' } };
+
+/** Someone you could add */
+export const SomeoneElse = { parameters: { route: '/u/turbo_taco19' } };
+
+/** You asked them; they haven't answered */
+export const RequestSent = { parameters: { route: '/u/mystic_yeti88' } };
+
+/** They asked you */
+export const TheyAsked = { parameters: { route: '/u/mega_muffin31' } };
+
+/** Someone you've blocked */
+export const Blocked = { parameters: { route: '/u/silly_goblin46' } };
+
+/** The ⋯ menu on someone else's profile */
+export const PlayerMenu = {
+  parameters: { route: '/u/turbo_taco19' },
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(await canvas.findByRole('button', { name: 'More for Taco Tim' }));
+  },
+};
+
+/** Report… from the ⋯ menu */
+export const ReportWindow = {
+  parameters: { route: '/u/turbo_taco19' },
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(await canvas.findByRole('button', { name: 'More for Taco Tim' }));
+    await userEvent.click(await canvas.findByRole('menuitem', { name: 'Report…' }));
+  },
+};
+
+/** Block from the ⋯ menu: it asks first */
+export const BlockQuestion = {
+  parameters: { route: '/u/turbo_taco19' },
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(await canvas.findByRole('button', { name: 'More for Taco Tim' }));
+    await userEvent.click(await canvas.findByRole('menuitem', { name: 'Block' }));
+  },
+};
+
+/** Someone's profile, signed out */
+export const SignedOutVisitor = { parameters: { route: '/u/cosmic_narwhal42' }, globals: { account: 'guest' } };
+
+export const NoSuchPlayer = { parameters: { route: '/u/nobody_here' } };
+
+/** /me, signed out: it offers sign-in (signed in, it opens your profile) */
+export const MeSignedOut = { parameters: { route: '/me' }, globals: { account: 'guest' } };
+
+/** Loading (the server never answers) */
+export const Loading = { parameters: { route: '/u/cosmic_narwhal42' }, globals: { server: 'never' } };
+
+/** The server is down */
+export const CantLoad = { parameters: { route: '/u/cosmic_narwhal42' }, globals: { server: 'down' } };

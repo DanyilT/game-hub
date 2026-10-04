@@ -8,6 +8,9 @@ export const DISPLAY_NAME_MAX = 40;
 
 export const PROVIDER_NAMES = { google: 'Google', discord: 'Discord' };
 
+/** A profile's public columns (the `profiles` table): what anyone can read about a player */
+export const PROFILE_COLUMNS = 'id, username, display_name, avatar_url, created_at';
+
 // Word lists from the first GameHub rewrite. Keep them in step with private.random_username()
 // in supabase/migrations/*_accounts.sql, which names new players the same way.
 const ADJECTIVES = ['fluffy', 'speedy', 'sneaky', 'mighty', 'lazy', 'crazy', 'happy', 'grumpy',

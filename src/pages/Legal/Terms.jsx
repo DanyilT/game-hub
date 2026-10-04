@@ -1,11 +1,11 @@
 import { Link } from 'react-router';
-import { HUB_ISSUES_URL, HUB_REPO_URL, hubBugReportUrl } from '../../lib/support';
+import ExternalLink from '../../components/common/ExternalLink/ExternalLink';
+import { GAMES_ISSUES_URL, HUB_ISSUES_URL, HUB_REPO_URL, hubBugReportUrl } from '../../lib/support';
 import styles from './Legal.module.scss';
 
 // Change this whenever the terms text changes
 const LAST_UPDATED = '4 October 2026';
 
-const GAMES_ISSUES_URL = 'https://github.com/DanyilT/dt-games/issues';
 
 const Terms = () => (
   <div className={styles.page}>
@@ -19,7 +19,7 @@ const Terms = () => (
 
       <section className={styles.section}>
         <h2>2. Intellectual Property</h2>
-        <p>GameHub is open source. Its code is © 2025-2026 Danyil Tymchuk, under the MIT License: you can read it, copy it and build on it, as long as you keep the copyright and license notice. It&rsquo;s on <a href={HUB_REPO_URL} target="_blank" rel="noopener noreferrer">GitHub<span className="visually-hidden"> (opens in a new tab)</span></a>.</p>
+        <p>GameHub is open source. Its code is © 2025-2026 Danyil Tymchuk, under the MIT License: you can read it, copy it and build on it, as long as you keep the copyright and license notice. It&rsquo;s on <ExternalLink href={HUB_REPO_URL}>GitHub</ExternalLink>.</p>
         <p>Each game belongs to whoever made it: its page says who, and links to its code when that&rsquo;s open source. GameHub only shows the games; it doesn&rsquo;t own them.</p>
         <p>The fonts (Doto and Chakra Petch, from Google Fonts) and the icons (react-icons) are used under their own open licenses. Google Play and the Google Play logo are trademarks of Google LLC.</p>
       </section>
@@ -44,7 +44,7 @@ const Terms = () => (
         </ul>
         <p>Games that don&rsquo;t check out are kept for a while, and so are odd ones. If we have reason to think an account cheats or tampers with GameHub&rsquo;s data, we&rsquo;ll look into it, and may remove its games and records, suspend it, or delete it for good (a permanent ban).</p>
         <p>Think another player cheats? Report them with the <strong>⋯</strong> on their profile (signed in). Only the developer reads reports, and the player isn&rsquo;t told who sent one. Please only report what you really think happened: reports made to get at someone break these Terms too.</p>
-        <p>Found a way to cheat, fake a record, or get past the checks? Please don&rsquo;t use it: tell the developer on <a href={HUB_ISSUES_URL} target="_blank" rel="noopener noreferrer">GitHub issues<span className="visually-hidden"> (opens in a new tab)</span></a>, or, if it&rsquo;s serious, privately with the <strong>?</strong> button on a game&rsquo;s page (signed in), so it can be fixed before anyone else finds it. The same goes for any bug: reporting it keeps GameHub fair for everyone. Thank you!</p>
+        <p>Found a way to cheat, fake a record, or get past the checks? Please don&rsquo;t use it: tell the developer on <ExternalLink href={HUB_ISSUES_URL}>GitHub issues</ExternalLink>, or, if it&rsquo;s serious, privately with the <strong>?</strong> button on a game&rsquo;s page (signed in), so it can be fixed before anyone else finds it. The same goes for any bug: reporting it keeps GameHub fair for everyone. Thank you!</p>
       </section>
 
       <section className={styles.section}>
@@ -59,8 +59,8 @@ const Terms = () => (
         <h2>6. Reporting bugs and problems</h2>
         <p>Found a bug, or something that doesn't work the way it should? Please tell us, it's how GameHub gets better:</p>
         <ul>
-          <li>a problem with a game: <a href={GAMES_ISSUES_URL} target="_blank" rel="noopener noreferrer">report it on GitHub<span className="visually-hidden"> (opens in a new tab)</span></a>, in the games' repo</li>
-          <li>a problem with the site itself (accounts, saving, pages): <a href={hubBugReportUrl()} target="_blank" rel="noopener noreferrer">report it on GitHub<span className="visually-hidden"> (opens in a new tab)</span></a> (and see <a href={HUB_ISSUES_URL} target="_blank" rel="noopener noreferrer">what's already reported<span className="visually-hidden"> (opens in a new tab)</span></a>)</li>
+          <li>a problem with a game: <ExternalLink href={GAMES_ISSUES_URL}>report it on GitHub</ExternalLink>, in the games' repo</li>
+          <li>a problem with the site itself (accounts, saving, pages): <ExternalLink href={hubBugReportUrl()}>report it on GitHub</ExternalLink> (and see <ExternalLink href={HUB_ISSUES_URL}>what's already reported</ExternalLink>)</li>
           <li>no GitHub account? Sign in, and use the <strong>?</strong> button on the game's page to send a message</li>
         </ul>
         <p>Issues on GitHub are public, so don't put personal details in them. Messages sent from the site are private: only the developer reads them. For anything about your personal data, see the <Link to="/privacy">Privacy Policy</Link>.</p>

@@ -1,20 +1,22 @@
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { fetchPlayed } from './activity';
+import { fetchMyPrivacy, fetchPlayed } from './activity';
 import { rpcWithKeepalive, supabase } from './supabase';
 
 // ==========================================
 // Play time
 // ==========================================
 // How long a player plays each game. A signed-in player's goes to their account, for the activity on profiles and the
-// games page (supabase/migrations/*_play_activity.sql; who sees it is their choice, Settings → Privacy). A guest's is
-// kept in this browser only (GUEST_KEY), and never goes anywhere. Both show in the panel under the game. The hub
-// measures it, and the game isn't involved:
+// games page, and what they're playing now (supabase/migrations/*_play_activity.sql), unless they've turned their play
+// history off (*_activity_controls.sql: it, and who sees what, are their choice in Settings → Privacy). Off, nothing is
+// counted, and the server records nothing whatever it's sent. A guest's time is kept in this browser only (GUEST_KEY),
+// and never goes anywhere. The panel under the game shows the time. The hub measures it, and the game isn't involved:
 // - a second counts while the game's page is on screen and the player pressed a key or tapped in the game in the last
 //   2 minutes (the bridge says when: useGameBridge's activity), and never while a replay plays. A signed-in player's
 //   counts only online, since it goes to their account.
 // - signed in, a play session starts at the first second that counts (start_play), and its time goes up about once a
 //   minute (report_play), once more when the page is hidden, and a last time when it's left. The server adds no more
-//   than the time that has really passed, and a session counts as a play once it reaches a minute.
+//   than the time that has really passed, and a session counts as a play once it reaches a minute. A session reported
+//   on in the last 2 minutes is what the player is playing now (which they can keep to themselves).
 
 const IDLE_AFTER = 2 * 60_000; // ms without a key or tap in the game before the time stops
 const REPORT_EVERY = 60; // seconds counted between reports
@@ -122,15 +124,21 @@ export const usePlayTime = ({ gameId, session, activity, paused = false }) => {
 
     if (!supabase) return undefined;
     let active = true;
-    // The time already in their account (none yet, if it's under a minute)
-    fetchPlayed(userId).then(
-      (rows) => {
+    // The time already in their account (none yet, if it's under a minute), and whether they keep a play history at
+    // all: with it off, nothing is counted, and no time shows
+    let off = false;
+    Promise.all([fetchMyPrivacy(), fetchPlayed(userId)]).then(
+      ([privacy, rows]) => {
         if (!active) return;
+        if (privacy?.record_played === false) { // (a database from before the switch doesn't say: on)
+          off = true;
+          return;
+        }
         const row = rows.find((r) => r.game_id === gameId);
         base = { seconds: row?.seconds ?? 0, plays: row?.plays ?? 0, lastPlayed: row?.last_played ?? null, where: 'account' };
         show();
       },
-      () => {}, // offline: the panel shows no time
+      () => {}, // offline: the panel shows no time (and the server says, at the start, if the history is off)
     );
 
     let playId = null; // the session, once started
@@ -149,6 +157,12 @@ export const usePlayTime = ({ gameId, session, activity, paused = false }) => {
         pending = 0;
         return;
       }
+      if (!data) { // the history is off (turned off since the page opened, or it couldn't say then)
+        off = true;
+        base = null;
+        show();
+        return;
+      }
       playId = data;
     };
 
@@ -165,13 +179,19 @@ export const usePlayTime = ({ gameId, session, activity, paused = false }) => {
         return;
       }
       reporting = true;
-      const { error } = await supabase.rpc('report_play', body);
+      const { data, error } = await supabase.rpc('report_play', body);
       reporting = false;
-      if (error && !end) pending += body.p_seconds; // tried again with the next report
+      if (error) {
+        if (!end) pending += body.p_seconds; // tried again with the next report
+      } else if (data === null && playId === body.p_session) {
+        // The session takes no more (6 hours old, deleted with the history, or the history is off): a new one starts,
+        // or start_play says it's off
+        playId = null;
+      }
     };
 
     const tick = () => {
-      if (!navigator.onLine || !isPlaying()) return;
+      if (off || !navigator.onLine || !isPlaying()) return;
       pending = Math.min(pending + 1, 10 * REPORT_EVERY);
       counted += 1;
       show();

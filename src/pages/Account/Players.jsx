@@ -2,12 +2,12 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
+import { PROFILE_COLUMNS } from '../../lib/account';
 import { monthYear } from '../../lib/dates';
 import Avatar from '../../components/common/Avatar/Avatar';
 import Button from '../../components/common/Button/Button';
 import styles from './Account.module.scss';
 
-const PUBLIC_COLUMNS = 'id, username, display_name, avatar_url, created_at';
 const PAGE_SIZE = 24;
 const SORTS = [
   { id: 'newest', label: 'Newest', column: 'created_at', ascending: false },
@@ -43,7 +43,7 @@ const Players = () => {
     const { column, ascending } = SORTS.find(({ id }) => id === sort);
     let request = supabase
       .from('profiles')
-      .select(PUBLIC_COLUMNS, { count: 'exact' })
+      .select(PROFILE_COLUMNS, { count: 'exact' })
       .order(column, { ascending })
       .order('id') // ties in a fixed order, so "Show more" never repeats or skips anyone
       .range(0, shown - 1);

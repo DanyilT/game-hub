@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { rememberReturnPath } from '../lib/account';
+import { PROFILE_COLUMNS, rememberReturnPath } from '../lib/account';
 import { flushSaves } from '../lib/gameBridge';
 
 // ==========================================
@@ -11,8 +11,6 @@ import { flushSaves } from '../lib/gameBridge';
 // Without Supabase settings (src/lib/supabase.js) everyone is a guest and `isAvailable` is false.
 
 const AuthContext = createContext(null);
-
-export const PROFILE_COLUMNS = 'id, username, display_name, avatar_url, created_at';
 
 const requireSupabase = () => {
   if (!supabase) throw new Error('Accounts are not available on this site.');
@@ -201,4 +199,3 @@ export const useAuth = () => {
   return context;
 };
 
-export default AuthProvider;

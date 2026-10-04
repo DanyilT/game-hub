@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { supabase } from './supabase';
 
-// Play activity (supabase/migrations/*_play_activity.sql; the time is counted by playTime.js): the
-// games a player has played, what they're playing now, and the games page's recent activity. The
-// server shows each only as far as the player lets the viewer see it (Settings → Privacy), so these
-// just ask.
+// Play activity (supabase/migrations/*_play_activity.sql and *_activity_controls.sql; the time is counted by
+// playTime.js): the games a player has played, what they're playing now, and the games page's recent activity. Each
+// player chooses whether GameHub records their history and what they're playing now at all, and who sees each
+// (Settings → Privacy); the server keeps to it, so these just ask.
 
 const call = async (fn, args) => {
   const { data, error } = await supabase.rpc(fn, args);
@@ -36,15 +36,22 @@ export const fetchPlayingNow = async (playerIds) => {
 /** The latest plays across the site: [{ user_id, username, display_name, avatar_url, game_id, played_at, seconds }] */
 export const fetchRecentActivity = (limit = 12) => call('recent_activity', { p_limit: limit });
 
-/** The signed-in player's choices: { show_played, show_playing, show_activity } */
+/**
+ * The signed-in player's choices: { show_played, show_playing, show_activity } (who sees each), and record_played
+ * (whether GameHub keeps their play history at all: what they're playing now comes from it too)
+ */
 export const fetchMyPrivacy = async () => (await call('my_privacy'))?.[0] ?? null;
 
-/** Changes some of the signed-in player's choices, e.g. { show_playing: 'nobody' } */
+/** Changes some of the signed-in player's choices, e.g. { show_playing: 'nobody' } or { record_played: false } */
 export const setPrivacy = (changes) => call('set_privacy', {
   p_show_played: changes.show_played ?? null,
   p_show_playing: changes.show_playing ?? null,
   p_show_activity: changes.show_activity ?? null,
+  p_record_played: changes.record_played ?? null,
 });
+
+/** Deletes all of the signed-in player's play history; resolves to how many plays went */
+export const deletePlayHistory = () => call('delete_my_play_history');
 
 /**
  * What these players are playing now, kept up to date while the page is open (every minute, like

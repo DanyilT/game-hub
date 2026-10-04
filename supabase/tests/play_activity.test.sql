@@ -102,11 +102,15 @@ reset role;
 -- ---------------------------------------------------------------------------
 -- Who sees the games a player has played
 -- ---------------------------------------------------------------------------
--- The player has played snake (a001 and a003, both over now), and is playing tetris right now
+-- The player has played snake (a001 and a003, both over now) and tetris (a005, just over), and is
+-- playing tetris again right now (a006: since the activity controls migration, a play still going
+-- shows only as playing now)
 update public.play_sessions set ended_at = now() where id = '00000000-0000-4000-8000-00000000a003';
-insert into public.play_sessions (id, user_id, game_id, started_at, last_seen_at, seconds) values
+insert into public.play_sessions (id, user_id, game_id, started_at, last_seen_at, seconds, ended_at) values
   ('00000000-0000-4000-8000-00000000a005', '00000000-0000-4000-8000-0000000007a1', 'tetris',
-   now() - interval '5 minutes', now() - interval '30 seconds', 70);
+   now() - interval '5 minutes', now() - interval '30 seconds', 70, now() - interval '30 seconds'),
+  ('00000000-0000-4000-8000-00000000a006', '00000000-0000-4000-8000-0000000007a1', 'tetris',
+   now() - interval '20 seconds', now() - interval '10 seconds', 10, null);
 
 set local role anon;
 select set_config('request.jwt.claims', '{"role":"anon"}', true);
@@ -160,7 +164,7 @@ select is((select count(*) from public.playing_now(array['00000000-0000-4000-800
   '...and visitors');
 reset role;
 update public.play_sessions set last_seen_at = now() - interval '3 minutes'
-where id = '00000000-0000-4000-8000-00000000a005';
+where id = '00000000-0000-4000-8000-00000000a006';
 set local role anon;
 select set_config('request.jwt.claims', '{"role":"anon"}', true);
 select is((select count(*) from public.playing_now(array['00000000-0000-4000-8000-0000000007a1'::uuid])), 0::bigint,

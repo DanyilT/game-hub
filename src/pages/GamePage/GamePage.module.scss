@@ -123,19 +123,53 @@ $shadow: 0 4px 20px rgba($color-black, 0.2);
   gap: $spacing-md;
 }
 
+// The Tags card's chips can be picked (GameTags): picked, they have a ring, and a button finds the games with them all
+.tagsCard {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
 .metaChip {
   padding: $spacing-sm $spacing-md;
+  border: 2px solid transparent;
   border-radius: $radius-full;
   background: $color-surface;
   font-size: 0.9rem;
   font-weight: $font-weight-semibold;
-  cursor: help;
+  cursor: pointer;
+  transition: border-color $transition-fast ease, transform $transition-fast ease;
 
   &.genre { background: $color-genre; }
   &.easy { background: $color-easy; }
   &.medium { background: $color-medium; }
   &.hard { background: $color-hard; }
   &.platform { background: $color-platform; }
+}
+
+.metaChip,
+.tag {
+  &:hover {
+    transform: translateY(-1px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid $color-primary-light;
+    outline-offset: 2px;
+  }
+
+  &.picked {
+    border-color: $color-secondary;
+    box-shadow: 0 0 0 1px $color-secondary;
+  }
+}
+
+.tagsFind {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-sm $spacing-md;
+  animation: global(fade-in) $transition-fast ease;
 }
 
 // The players' average rating, a pill like the favorite and bookmark buttons beside it
@@ -542,6 +576,8 @@ $shadow: 0 4px 20px rgba($color-black, 0.2);
   border: 1px solid color-mix(in srgb, $color-white 20%, transparent);
   border-radius: $radius-xl;
   font-size: 0.9rem;
+  cursor: pointer;
+  transition: border-color $transition-fast ease, transform $transition-fast ease;
 }
 
 .gameLinks {

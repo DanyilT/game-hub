@@ -4,6 +4,7 @@ import { useAuth } from '../../../../contexts/AuthContext';
 import { useLibrary } from '../../../../contexts/LibraryContext';
 import { gameBugReportUrl } from '../../../../lib/support';
 import Button from '../../../common/Button/Button';
+import ExternalLink from '../../../common/ExternalLink/ExternalLink';
 import InfoTip from '../../../common/InfoTip/InfoTip';
 import RatingSlider, { SCORES } from '../RatingSlider/RatingSlider';
 import styles from './RateGame.module.scss';
@@ -119,9 +120,7 @@ const RateGame = ({ game, stats }) => {
         />
         <p className={styles.muted}>
           Only the developer reads this. Found a bug?{' '}
-          <a href={gameBugReportUrl(game)} target="_blank" rel="noopener noreferrer" className={styles.link}>
-            Report it on GitHub<span className="visually-hidden"> (opens in a new tab)</span>
-          </a>
+          <ExternalLink href={gameBugReportUrl(game)} className={styles.link}>Report it on GitHub</ExternalLink>
           , or use the <strong>?</strong> button at the top.
         </p>
         <div className={styles.actions}>

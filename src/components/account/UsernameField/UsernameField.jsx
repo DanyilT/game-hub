@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { GiPerspectiveDiceSixFacesRandom } from "react-icons/gi";
+import { GiPerspectiveDiceSixFacesRandom } from 'react-icons/gi';
 import { useAuth } from '../../../contexts/AuthContext';
 import { USERNAME_HINT, USERNAME_PATTERN, randomUsername } from '../../../lib/account';
 import styles from './UsernameField.module.scss';
@@ -89,9 +89,11 @@ const UsernameField = ({ id, label = 'Username', value, onChange, status, disabl
           <GiPerspectiveDiceSixFacesRandom aria-hidden="true" />
         </button>
       </div>
-      <p id={`${id}-status`} className={`${styles.status} ${styles[status] ?? ''}`} aria-live="polite">
-        {!disabled && messages[status]}
-      </p>
+      {!disabled && (
+        <p id={`${id}-status`} className={`${styles.status} ${styles[status] ?? ''}`} aria-live="polite">
+          {messages[status]}
+        </p>
+      )}
     </div>
   );
 };

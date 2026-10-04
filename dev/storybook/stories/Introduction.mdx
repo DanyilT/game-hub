@@ -1,0 +1,41 @@
+import { Meta } from '@storybook/addon-docs/blocks';
+
+<Meta title="Introduction" />
+
+# GameHub in Storybook
+
+Every page and part of the site, drawn by the site's own code. Only the world outside the page is pretend:
+
+- **Supabase** (accounts, friends, ratings, play time, records) answers from a made-up world of players
+  (`dev/storybook/mocks/data.js`). What you change in a story (a favorite, a block, a rating) lasts until the story is
+  drawn again.
+- **The game in the frame** is the real game, from its own site, but it can't talk to Storybook: what it would report
+  (connected, its numbers, the save, the download, a replay) comes from the story's controls instead.
+- **Replays** come from the story, not from this browser's storage.
+
+## The toolbar
+
+| | |
+|---|---|
+| **Account** | Signed in (Dany), a new player (no username picked yet: the welcome window asks), a guest, or a site without accounts. |
+| **Network** | Online or offline, as the site sees it (`navigator.onLine`): offline toasts, tickets left, dimmed games. |
+| **Server** | How the pretend Supabase answers: fast, slow (2 s), down (every request fails), or never (everything keeps loading). |
+| **Navigation** | The sidebar, or the floating button in either corner (Settings → Preferences). |
+
+The viewport button (top left of the toolbar) shows any story at a phone or tablet width.
+
+## Where to look
+
+- **Pages**: the whole site, layout and all, at each address. Their controls change what's on them: the game page's
+  controls set the game, its panel, the save and download, offline tickets, a replay, and a message at the bottom of
+  the screen.
+- **Layout, Game, Account, Common**: each part on its own, with its states.
+- Stories that open something (a menu, a window, the filters) do it by clicking, like a player would: see the
+  **Interactions** tab.
+- The **Accessibility** tab checks each story.
+
+## Adding a story
+
+Stories live in `dev/storybook/stories`, never next to the site's code. A page story renders `<AppRoutes />` with
+`parameters.route`; `parameters.scenario` (an object, or a function of the story's controls) sets what the pretend
+world says. See `dev/storybook/README.md`.

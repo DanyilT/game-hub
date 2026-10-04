@@ -1,4 +1,5 @@
 import { Link } from 'react-router';
+import ExternalLink from '../../components/common/ExternalLink/ExternalLink';
 import { developer } from '../../data/games';
 import styles from './Legal.module.scss';
 
@@ -13,7 +14,7 @@ const Privacy = () => (
 
       <p className={styles.intro}>
         GameHub is a hobby project by{' '}
-        <a href={developer.url} target="_blank" rel="noopener noreferrer">{developer.name}</a>.
+        <ExternalLink href={developer.url}>{developer.name}</ExternalLink>.
         This page explains what the site stores about you, why, and how to get rid of it, and which other sites your browser contacts while you use it.
       </p>
 
@@ -47,16 +48,17 @@ const Privacy = () => (
           <li><strong>Your friends.</strong> Your friends list is public, on your profile. A friend request is only seen by the two of you until it's accepted.</li>
           <li><strong>Who you&rsquo;ve blocked.</strong> Private: only you see it (Settings → Privacy lists them). The player isn&rsquo;t told, though they can&rsquo;t send you a friend request.</li>
           <li><strong>Reports you send</strong> about a player: who it&rsquo;s about, why (cheating or something else), the game and what you wrote. Only the developer reads them, and the player isn&rsquo;t told who sent one. A report is kept until your account or the reported player&rsquo;s is deleted, and so is one about you.</li>
-          <li><strong>Your checked games and records.</strong> When you finish a game on a ticket (a random seed GameHub&rsquo;s server picked for it), the game goes to the server to be checked: the moves you made, with their timing, and the result the game showed. The server plays it again, and keeps what that gave as your result, so your records come only from checked games. The moves are deleted after 30 days, unless that game is one of your records. Games that don&rsquo;t check out are kept the same way, in case they need a closer look (see the <Link to="/terms">Terms</Link> on cheating). Your tickets are kept until they&rsquo;re used, or for a month after they run out. Private: only you see your records, and the developer, when looking into cheating.</li>
-          <li><strong>What you play, and for how long.</strong> Each time you play a game here: which game, when, and how many seconds you played (counted only while you're pressing keys or tapping in the game, not while it's just open). From it come the games on your profile, &ldquo;playing now&rdquo;, and the games page&rsquo;s recent activity. You choose who sees each of those in Settings → Privacy: everyone, your friends, or only you. Out of the box, played games and recent activity are for everyone, and what you&rsquo;re playing now is for your friends.</li>
+          <li><strong>Your checked games and records.</strong> When you finish a game on a ticket (a random seed GameHub&rsquo;s server picked for it), the game goes to the server to be checked: the moves you made, with their timing, and the result the game showed. The server plays it again, and keeps what that gave as your result, so your records come only from checked games. The moves are deleted after 30 days, unless that game is one of your records; until then, you can watch it again in any browser you sign in on (each shows the days left). Games that don&rsquo;t check out are kept the same way, in case they need a closer look (see the <Link to="/terms">Terms</Link> on cheating). Your tickets are kept until they&rsquo;re used, or for a month after they run out. Private: only you see your records, and the developer, when looking into cheating.</li>
+          <li><strong>What you play, and for how long</strong>, unless you turn it off. Each time you play a game here: which game, when, and how many seconds you played (counted only while you're pressing keys or tapping in the game, not while it's just open). From it come the games on your profile, your play time, the games page&rsquo;s recent activity, and what you&rsquo;re playing right now (a game you played in the last 2 minutes). It&rsquo;s kept until you delete it (Settings → Privacy) or your account.</li>
           <li><strong>Messages you send us</strong>, after rating a game or from its help: what you wrote, the game, the rating you gave, and, if you tick the box, your browser's name and version. Only the developer reads them.</li>
         </ul>
+        <p>In Settings → Privacy you choose whether your play history is recorded at all (when it&rsquo;s off, nothing is recorded, what was kept before is only yours, and no one sees what you&rsquo;re playing now), and while it is, who sees your played games, your recent activity and what you&rsquo;re playing now (everyone, your friends, or only you). You can also delete your play history. Out of the box it&rsquo;s on; your played games and recent activity are for everyone, and what you&rsquo;re playing now is for your friends.</p>
         <p>You can take back any rating, favorite, bookmark, friend or block at any time, and a message or report goes when your account does.</p>
       </section>
 
       <section className={styles.section}>
         <h2>4. Where it's stored</h2>
-        <p>Accounts and profiles are stored with <a href="https://supabase.com/privacy" target="_blank" rel="noopener noreferrer">Supabase</a>, in its data centre in the EU. The site itself is served by <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener noreferrer">Cloudflare</a>, which handles technical data such as your IP address to deliver pages and protect the site from abuse.</p>
+        <p>Accounts and profiles are stored with <ExternalLink href="https://supabase.com/privacy">Supabase</ExternalLink>, in its data centre in the EU. The site itself is served by <ExternalLink href="https://www.cloudflare.com/privacypolicy/">Cloudflare</ExternalLink>, which handles technical data such as your IP address to deliver pages and protect the site from abuse.</p>
       </section>
 
       <section className={styles.section}>
@@ -76,7 +78,7 @@ const Privacy = () => (
       <section className={styles.section}>
         <h2>6. Cookies and storage on your device</h2>
         <p>GameHub has no ads, no analytics and no tracking cookies. Besides those settings, games save things like your high score or progress in your browser, each under its own address. When you play in GameHub signed in, that progress is also saved to your account (section 3). On a shared browser each player keeps a copy of their own there, so one player&rsquo;s progress never shows for another, and progress made without signing in stays with the browser, never going into an account.</p>
-        <p>The games you finish are kept as replays in your browser, so you can watch them again under the game: the moves you made and the random numbers the game used, not a video. Each player on a browser has their own. A guest&rsquo;s never leave the browser; signed in, a game played on a ticket also goes to GameHub&rsquo;s server to be checked (section 3). Resetting a game&rsquo;s progress deletes its replays in the browser.</p>
+        <p>The games you finish are kept as replays in your browser, so you can watch them again under the game: the moves you made and the random numbers the game used, not a video. Each player on a browser has their own. A guest&rsquo;s never leave the browser; signed in, a game played on a ticket also goes to GameHub&rsquo;s server to be checked, and can be watched again from there in any browser while its moves are kept (section 3). Resetting a game&rsquo;s progress deletes its replays in the browser.</p>
         <p>Signed in, your browser also keeps a few tickets for each game you play or download (random seeds from GameHub&rsquo;s server, so games played offline can be checked later), and the games played offline until they&rsquo;re checked.</p>
         <p>When you sign in, your browser keeps a sign-in token in its local storage, so you stay signed in. Signing out removes it.</p>
       </section>
@@ -88,7 +90,7 @@ const Privacy = () => (
 
       <section className={styles.section}>
         <h2>8. Your rights</h2>
-        <p>You can see and change your profile in Settings at any time, and delete your account there. If you live in the EU or UK, the GDPR also lets you ask for a copy of your data, or ask questions about how it's used. To do that, or for anything else about your privacy, contact {developer.name} through <a href={developer.url} target="_blank" rel="noopener noreferrer">GitHub</a>.</p>
+        <p>You can see and change your profile in Settings at any time, and delete your account there. If you live in the EU or UK, the GDPR also lets you ask for a copy of your data, or ask questions about how it's used. To do that, or for anything else about your privacy, contact {developer.name} through <ExternalLink href={developer.url}>GitHub</ExternalLink>.</p>
       </section>
 
       <section className={styles.section}>
