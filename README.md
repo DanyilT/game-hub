@@ -21,7 +21,8 @@ v2 is a **static site**: `npm run build` turns it into plain HTML/CSS/JS files i
 - **Game saves** reach the account through the game bridge (see "Saving progress" below): `public/hub-bridge.js` runs inside the game's page, and `src/lib/gameBridge.js` answers it in the hub.
 - **Offline:** the site's service worker (`src/service-worker.js`, built into `/sw.js`) keeps the app on the device, so GameHub opens without a network, and downloaded games play offline (see "Offline play" below).
 - **Security headers:** the build also writes `dist/_headers` (see `vite.config.js`), so Cloudflare sends a Content-Security-Policy that allows only the sites the pages use.
-- **Files at the root:** the build writes the usual ones from the catalogue (their text is in `scripts/site-files.mjs`): `robots.txt`, `sitemap.xml`, `llms.txt` (for AI assistants), `humans.txt` and `.well-known/security.txt`. For full URLs they use the site's address, `SITE_URL` in `vite.config.js` (https://game-hub.danyt.workers.dev). Change it there if the site moves, e.g. to a domain of its own.
+- **Files at the root:** the build writes the usual ones from the catalogue (their text is in `scripts/site-files.mjs`): `robots.txt`, `sitemap.xml`, `llms.txt` (for AI assistants), `humans.txt` and `.well-known/security.txt`. For full URLs they use the site's address, `SITE_URL` in `vite.config.js` (https://gamehub.foo). Change it there if the site moves.
+- **The address:** the site is at its own domain, **https://gamehub.foo**, the Worker's custom domain (`routes` in `wrangler.jsonc`). Its workers.dev address is off (`"workers_dev": false`, so a deploy doesn't turn it back on).
 - **Installable as an app (a PWA):** `public/manifest.json`. The icons are "GAME" over "HUB" in Doto's dots with the display-name gradient: transparent ones for tabs and desktops, maskable ones on the app's dark background (Android fills its icon shape with them), and a white silhouette for Android's themed icons (`purpose: monochrome`: the launcher recolours it and its background to match the icon theme). At 16 px they say "GH" instead: seven letters can't be read that small (`favicon.ico`'s 16 px frame, and `favicon.svg` switches when it's drawn at 24 px or less). They're in `public/icons/`, plus `favicon.ico`, `favicon.svg` and `apple-touch-icon.png`. Phones and tablets get "Install app" in the menu, and after a couple of games a suggestion floating at the bottom of the games page. It opens the browser's own install dialog where there is one (Chrome, Edge and Samsung Internet, once the site has been used for a bit), and otherwise shows the steps: the browser menu's Add to Home screen on Android, Share → Add to Home Screen on iPhone and iPad. Computers see it only once the browser's dialog is ready (`src/lib/install.js`). Installing needs HTTPS, so try it on the deployed site: a phone opening the dev server over your network (`http://192.168…`) can only add a shortcut.
 
 ## 🚀 Getting Started
@@ -51,7 +52,7 @@ Requires **Node 22.22+**.
    ```bash
    npm run deploy
    ```
-   It prints the site's address, which should match `SITE_URL` in `vite.config.js` (see Hosting).
+   The site is at https://gamehub.foo, `SITE_URL` in `vite.config.js` (see Hosting).
 
    **Database changes go first:** when `supabase/migrations/` has new files, apply them before deploying the site that uses them (it asks for the database password):
    ```bash
@@ -118,10 +119,10 @@ Under a game played in the hub, a panel shows the player's progress (`src/compon
 Saves are in the player's browser and can say anything, so records come only from runs GameHub's server has played again itself (`supabase/migrations/*_checked_runs.sql`, `worker/`, `src/lib/checks.js`):
 
 1. **Tickets:** a signed-in player's game takes one for each run: a seed the server chose (`issue_tickets()`, 10 ready per game, good for 14 days). The hub keeps them in the browser and hands them to the game (`gamehub:tickets`); a game that starts a run as it loads waits for them (`GameHub.ready()`). So games played offline get them too. The server hears a ticket was taken as its run starts (`start_ticket()`, which also starts that run's clock), or once back online (`take_tickets()`).
-2. **Checking:** when a run on a ticket ends, the hub sends it to the site's Worker (`POST /api/verify-run`, `worker/verify-run.js`), or keeps it until back online. The Worker plays it again from the ticket's seed with the game's own rules (`worker/games/`, one file per game, written to match the game's code exactly) and records what *its* replay gave (`record_run()`, with the secret key): never the game's claim. A ticket is good for one run, and a run can't have lasted longer than the time since its ticket was started (online) or issued, plus 30 s. Runs that don't play out are kept as refused; ones whose game said otherwise, or whose inputs came too fast, count but are flagged for a look. Inputs are kept 30 days, or while a run is a record (`private.tidy_runs()`, daily).
+2. **Checking:** when a run on a ticket ends, the hub sends it to the site's Worker (`POST /api/verify-run`, `worker/verify-run.js`), or keeps it until back online. The Worker plays it again from the ticket's seed with the game's own rules (`worker/games/`: a copy of each game's own `js/rules.js`, the same code the game plays with) and records what *its* replay gave (`record_run()`, with the secret key): never the game's claim. A ticket is good for one run, and a run can't have lasted longer than the time since its ticket was started (online) or issued, plus 30 s. Runs that don't play out are kept as refused; ones whose game said otherwise, or whose inputs came too fast, count but are flagged for a look. Inputs are kept 30 days, or while a run is a record (`private.tidy_runs()`, daily).
 3. **What players see:** under the game, each run says whether it counts, is waiting to be checked, didn't count, or stays on the device (played without a ticket, offline once they ran out: the hub warns as the last one goes, and says so while offline). Back online, the hub gets new tickets for the downloaded games and checks the runs that waited (`MainLayout`), with a note. **More** shows the player's checked records (`my_records()`).
 4. **In any browser** (`supabase/migrations/*_runs_on_any_browser.sql`): the list joins the runs kept on the server (`my_runs()`: those whose inputs are still kept, records first, 100 at most) to this browser's, one row per ticket, with the server's word on each check. Each one kept there shows the days left before its inputs go (none for a record); one this browser doesn't have gets its inputs from the server when it's watched (`my_run_inputs()`).
-5. **When a game changes:** its checker in `worker/games/` must change with it, or its runs stop checking out. `npm run test:worker` replays runs recorded from the games (`worker/games/fixtures.json`); record new ones when the rules change.
+5. **When a game's rules change:** pull them again, `npm run games:pull` (`scripts/games-pull.mjs`). It copies each checked game's `js/rules.js` from the games' site into `worker/games/<id>.js` and adds the one line that makes it a module (`--from ~/Projects/dt-games` reads local worktrees instead, to try a change before it's pushed). Then `npm run test:worker` replays runs recorded from the games (`worker/games/fixtures.json`; record new ones when the rules change), and you read the diff and commit it: deploys use the committed copies. The Worker never loads a game's code while it runs (Workers can't run fetched code, and this one holds the secret key). Runs played under the old rules (offline, checked later) may stop checking out.
 6. **Locally:** `npm run dev:local` runs the same checker in the dev server (with the local project's secret key). Against the hosted project, set `SUPABASE_SECRET_KEY` in `.env.local` (not `VITE_`) to check runs; without it, they wait.
 
 ## ⏱ Play activity
@@ -251,6 +252,7 @@ game-hub/
 │   ├── check-catalog.mjs    # checks the game list (`npm run check:catalog`: src/data/games.json)
 │   ├── catalog-source.mjs   # where the build gets the game list: the Supabase games table, or games.json
 │   ├── catalog-pull.mjs     # `npm run catalog:pull`: copies the games table into games.json
+│   ├── games-pull.mjs       # `npm run games:pull`: copies each checked game's js/rules.js into worker/games/
 │   ├── site-files.mjs       # robots.txt, sitemap.xml, llms.txt, humans.txt, security.txt (written by the build)
 │   └── dev-local.mjs        # `npm run dev:local`: the dev server against the local Supabase
 ├── src/
@@ -273,7 +275,7 @@ game-hub/
 │   ├── seed.sql             # 240 mock players, local only (`npm run db:reset`; never pushed)
 │   └── tests/               # database tests (pgTAP), `npm run test:db`
 ├── worker/index.js          # the Worker's script: checks runs (/api/verify-run: verify-run.js), passes other unmatched paths to the files, pings Supabase every 6 hours
-├── worker/games/            # each game's rules, to play a run again on the server (`npm run test:worker`)
+├── worker/games/            # each game's rules, copied from the game (`npm run games:pull`), to play a run again on the server (`npm run test:worker`)
 ├── .env.example             # template for .env.local (Supabase URL + publishable key)
 ├── index.html
 ├── vite.config.js           # also loads the game list (virtual:catalog), writes /catalog.json, the catalogue's icons module, the security headers (dist/_headers), _redirects, the root files and /sw.js; SITE_URL is here

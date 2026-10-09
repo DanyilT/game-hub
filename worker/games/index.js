@@ -4,10 +4,11 @@ import * as snake from './snake.js';
 import * as sudoku from './sudoku.js';
 import * as tetris from './tetris.js';
 
-// The games GameHub can check: each plays a run again from its seed and inputs, the way the game
-// itself does, and gives the result it gets. The game's own claim is never taken: it's only compared,
+// The games GameHub can check: each plays a run again from its seed and inputs with the game's own
+// rules (the files here are copies of each game's js/rules.js, from DanyilT/dt-games: `npm run
+// games:pull`), and gives the result it gets. The game's own claim is never taken: it's only compared,
 // to flag a run whose claim doesn't match for a look (a changed result, or a game that changed
-// without its rules here changing too).
+// without its rules here being pulled again).
 
 const GAMES = { minesweeper, snake, sudoku, tetris }; // the same as CHECKED_GAMES
 

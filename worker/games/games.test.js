@@ -1,7 +1,7 @@
 // The game checkers against real runs (`npm run test:worker`). fixtures.json holds runs recorded from
 // the games themselves (DanyilT/dt-games, gamehub.js version 3, played by a test bot through their
 // own key and click handlers), with what each game said at the end. Record new ones when a game's
-// rules change, and change its checker to match.
+// rules change, and pull its rules again (`npm run games:pull`).
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';

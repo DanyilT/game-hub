@@ -14,6 +14,7 @@
     "preview": "vite preview",
     "check:catalog": "node scripts/check-catalog.mjs",
     "catalog:pull": "node scripts/catalog-pull.mjs",
+    "games:pull": "node scripts/games-pull.mjs",
     "db:start": "supabase start",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",

@@ -1,165 +1,238 @@
-import { refuse, seededRandom, timeline } from './random.js';
-
-// Minesweeper (DanyilT/dt-games, branch minesweeper: js/minesweeper.js), played again from a run:
-// the same rules, click by click, with the same random numbers in the same order. Change it whenever
-// the game changes.
-// - Three levels (the run's mode). The mines go in at the first open, never under it: random rows and
-//   columns, again until there are enough.
-// - Inputs: one number a click, cell × 2 (+ 1 for a flag), cells numbered row by row. Opening a
-//   flagged cell takes the flag off; opening or flagging an open number whose flags are all there
-//   opens the cells around it. An empty cell opens the cells around it too.
-// - Opening a mine loses; opening every other cell wins. The time is from the first open to the
-//   last input (the run's clock, which leaves out time the page was hidden).
-
-const LEVELS = {
-  beginner: { rows: 9, cols: 9, mines: 10, name: 'Beginner' },
-  intermediate: { rows: 16, cols: 16, mines: 40, name: 'Intermediate' },
-  expert: { rows: 16, cols: 30, mines: 99, name: 'Expert' },
-};
+// minesweeper's rules: a copy of the game's own js/rules.js (DanyilT/dt-games, branch minesweeper), made by `npm run games:pull`
+// (worker/games/index.js plays runs again with it). Don't change it here: change the game, then pull again.
+// Source sha-256: bc57a61e217b7a6a78c266f4af383bff93f69d0eb9b9ec1a8efeabccfe862d2c
 
 /**
- * Plays a run of Minesweeper again
- * @param {object} run - { seed, mode (the level), tick, length (ms), inputs (waits in ms) }
- * @return {object} - { ok: true, outcome, timeMs, result } or { ok: false, reason }
+ * Minesweeper: the rules
+ *
+ * Everything a game of Minesweeper needs to play out, and nothing else. js/minesweeper.js plays the game through these
+ * functions, and GameHub's server plays a run again with GameRules.simulate(), so a game plays out the same in both.
+ * - Three levels (a run's mode): Beginner (9 × 9, 10 mines), Intermediate (16 × 16, 40) and Expert (30 × 16, 99).
+ * - The mines go in at the first open, never under it: a random row and column, again until there are enough. The numbers
+ *   come from the run's seed, in that order.
+ * - Inputs: one number a click, cell × 2 (+ 1 for a flag), the cells numbered row by row. Opening a flagged cell takes
+ *   the flag off. Opening or flagging an open number whose flags are all there opens the cells around it (a chord). An
+ *   empty cell opens the cells around it too.
+ * - Opening a mine loses; opening every other cell wins. The time is from the first open to the last input, by the run's
+ *   clock (which leaves out the time the page was hidden).
+ *
+ * GameHub uses this file as it is, and adds `export const { simulate } = GameRules;` after it to make it a module. So it
+ * declares nothing but GameRules, and uses nothing but the language: no page, timers, storage, Math.random or Date.
  */
-export const simulate = ({ seed, mode, tick, inputs }) => {
-  const level = LEVELS[mode];
-  if (!level) return refuse('mode');
-  if (tick !== null) return refuse('tick');
-  const random = seededRandom(seed);
-  const { rows, cols, mines } = level;
+const GameRules = (() => {
+    const LEVELS = Object.freeze({
+        beginner: Object.freeze({ rows: 9, cols: 9, mines: 10, name: 'Beginner' }),
+        intermediate: Object.freeze({ rows: 16, cols: 16, mines: 40, name: 'Intermediate' }),
+        expert: Object.freeze({ rows: 16, cols: 30, mines: 99, name: 'Expert' }),
+    });
 
-  const board = Array.from({ length: rows }, () => Array.from({ length: cols }, () => ({
-    isMine: false, isRevealed: false, isFlagged: false, neighbors: 0,
-  })));
-  let firstClick = true;
-  let gameOver = false;
-  let won = false;
-  let revealedCount = 0;
+    // The run's random numbers: mulberry32 from a 32-bit seed, the same as run.random() in js/gamehub.js
+    function seededRandom(seed) {
+        let state = seed | 0;
+        return function () {
+            state = (state + 0x6D2B79F5) | 0;
+            let t = Math.imul(state ^ (state >>> 15), 1 | state);
+            t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+    }
 
-  const around = (row, col, visit) => {
-    for (let r = Math.max(0, row - 1); r <= Math.min(rows - 1, row + 1); r++) {
-      for (let c = Math.max(0, col - 1); c <= Math.min(cols - 1, col + 1); c++) {
-        if (r !== row || c !== col) {
-          if (visit(r, c) === false) return;
+    // A run's inputs, [wait, code, wait, code, …] (each wait in ms since the input before), as [{ at, code }]
+    function timeline(inputs) {
+        const events = [];
+        let at = 0;
+        for (let i = 0; i < inputs.length; i += 2) {
+            at += inputs[i];
+            events.push({ at, code: inputs[i + 1] });
         }
-      }
+        return events;
     }
-  };
-  const countAround = (row, col, test) => {
-    let count = 0;
-    around(row, col, (r, c) => {
-      if (test(board[r][c])) count++;
-    });
-    return count;
-  };
 
-  const plantMines = (firstRow, firstCol) => {
-    let planted = 0;
-    while (planted < mines) {
-      const r = Math.floor(random() * rows);
-      const c = Math.floor(random() * cols);
-      if ((r !== firstRow || c !== firstCol) && !board[r][c].isMine) {
-        board[r][c].isMine = true;
-        planted++;
-      }
+    // A run that doesn't play out: why
+    function refuse(reason) {
+        return { ok: false, reason };
     }
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
-        if (!board[r][c].isMine) board[r][c].neighbors = countAround(r, c, (cell) => cell.isMine);
-      }
-    }
-  };
 
-  const revealCell = (row, col) => {
-    if (row < 0 || row >= rows || col < 0 || col >= cols || board[row][col].isRevealed || board[row][col].isFlagged) return;
-    board[row][col].isRevealed = true;
-    revealedCount++;
-    if (board[row][col].neighbors === 0) around(row, col, (r, c) => revealCell(r, c));
-  };
+    // A new board at a level ('beginner', 'intermediate' or 'expert'), its mines still to come. random gives the run's
+    // numbers.
+    function newGame(random, level) {
+        const { rows, cols, mines } = LEVELS[level];
+        return {
+            random,
+            level,
+            rows,
+            cols,
+            mines,
+            board: Array.from({ length: rows }, () => Array.from({ length: cols }, () => ({
+                isMine: false,
+                isRevealed: false,
+                isFlagged: false,
+                neighbors: 0, // The mines around it
+            }))),
+            firstClick: true, // No cell opened yet (the mines go in then)
+            firstClickAt: 0, // The time of the first open (ms, the run's clock)
+            revealedCount: 0,
+            over: false,
+            won: false,
+            hit: null, // The mine that went off: { row, col }
+        };
+    }
 
-  const revealUnflaggedNeighbors = (row, col) => {
-    around(row, col, (r, c) => {
-      if (board[r][c].isRevealed || board[r][c].isFlagged) return true;
-      if (board[r][c].isMine) {
-        gameOver = true;
-        return false;
-      }
-      revealCell(r, c);
-      return true;
-    });
-  };
+    // Call visit(r, c) for each cell around a cell, until it returns false
+    function around(game, row, col, visit) {
+        for (let r = Math.max(0, row - 1); r <= Math.min(game.rows - 1, row + 1); r++) {
+            for (let c = Math.max(0, col - 1); c <= Math.min(game.cols - 1, col + 1); c++) {
+                if (r !== row || c !== col) {
+                    if (visit(r, c) === false) return;
+                }
+            }
+        }
+    }
 
-  const checkWinCondition = () => {
-    if (gameOver) return;
-    if (revealedCount === rows * cols - mines) {
-      gameOver = true;
-      won = true;
+    // How many cells around a cell pass a test
+    function countAround(game, row, col, test) {
+        let count = 0;
+        around(game, row, col, (r, c) => {
+            if (test(game.board[r][c])) count++;
+        });
+        return count;
     }
-  };
 
-  // Opening or flagging a number whose flags are all there opens the cells around it
-  const chord = (row, col) => {
-    const cell = board[row][col];
-    if (cell.neighbors > 0 && countAround(row, col, (other) => other.isFlagged) === cell.neighbors) {
-      revealUnflaggedNeighbors(row, col);
-      checkWinCondition();
+    // Put the mines in, never under the first cell opened, and count each cell's neighbours
+    function plantMines(game, firstRow, firstCol) {
+        let planted = 0;
+        while (planted < game.mines) {
+            const r = Math.floor(game.random() * game.rows);
+            const c = Math.floor(game.random() * game.cols);
+            if ((r !== firstRow || c !== firstCol) && !game.board[r][c].isMine) {
+                game.board[r][c].isMine = true;
+                planted++;
+            }
+        }
+        for (let r = 0; r < game.rows; r++) {
+            for (let c = 0; c < game.cols; c++) {
+                if (!game.board[r][c].isMine) game.board[r][c].neighbors = countAround(game, r, c, (cell) => cell.isMine);
+            }
+        }
     }
-  };
 
-  // The game's flagCell() and openCell()
-  const flagCell = (row, col) => {
-    if (gameOver) return;
-    if (board[row][col].isRevealed) {
-      chord(row, col);
-      return;
+    // Open a cell, and the cells around it if it has no mines around (not a flagged one, or one already open)
+    function revealCell(game, row, col) {
+        if (row < 0 || row >= game.rows || col < 0 || col >= game.cols || game.board[row][col].isRevealed || game.board[row][col].isFlagged) return;
+        game.board[row][col].isRevealed = true;
+        game.revealedCount++;
+        if (game.board[row][col].neighbors === 0) around(game, row, col, (r, c) => revealCell(game, r, c));
     }
-    board[row][col].isFlagged = !board[row][col].isFlagged;
-  };
-  let firstClickAt = 0;
-  const openCell = (row, col, at) => {
-    if (gameOver) return;
-    if (board[row][col].isFlagged) {
-      flagCell(row, col);
-      return;
-    }
-    if (firstClick) {
-      firstClick = false;
-      firstClickAt = at;
-      plantMines(row, col);
-    }
-    if (board[row][col].isRevealed && board[row][col].neighbors > 0) {
-      chord(row, col);
-      return;
-    }
-    if (board[row][col].isMine) {
-      gameOver = true;
-      return;
-    }
-    revealCell(row, col);
-    checkWinCondition();
-  };
 
-  const events = timeline(inputs);
-  for (const { at, code } of events) {
-    if (gameOver) return refuse('after-end');
-    if (!Number.isSafeInteger(code) || code < 0 || code >= rows * cols * 2) return refuse('input');
-    const cell = Math.floor(code / 2);
-    const row = Math.floor(cell / cols);
-    const col = cell % cols;
-    if (code % 2) flagCell(row, col);
-    else openCell(row, col, at);
-  }
-  if (!gameOver) return refuse('not-over');
-  const timeMs = won ? events[events.length - 1].at - firstClickAt : null;
-  return {
-    ok: true,
-    outcome: won ? 'won' : 'lost',
-    score: null,
-    timeMs,
-    result: [
-      { label: 'Level', value: level.name, format: null },
-      { label: 'Time', value: Math.floor((events[events.length - 1].at - firstClickAt) / 1000), format: 'time' },
-    ],
-  };
-};
+    // A mine went off: the game is lost
+    function lose(game, row, col) {
+        game.over = true;
+        game.won = false;
+        game.hit = { row, col };
+    }
+
+    // Open the closed, unflagged cells around a cell (a mine among them loses)
+    function revealUnflaggedNeighbors(game, row, col) {
+        around(game, row, col, (r, c) => {
+            if (game.board[r][c].isRevealed || game.board[r][c].isFlagged) return true;
+            if (game.board[r][c].isMine) {
+                lose(game, r, c);
+                return false;
+            }
+            revealCell(game, r, c);
+            return true;
+        });
+    }
+
+    // Every cell but the mines open: the game is won
+    function checkWinCondition(game) {
+        if (game.over) return;
+        if (game.revealedCount === game.rows * game.cols - game.mines) {
+            game.over = true;
+            game.won = true;
+        }
+    }
+
+    // Opening or flagging an open number whose flags are all there opens the cells around it
+    function chord(game, row, col) {
+        const cell = game.board[row][col];
+        if (cell.neighbors > 0 && countAround(game, row, col, (other) => other.isFlagged) === cell.neighbors) {
+            revealUnflaggedNeighbors(game, row, col);
+            checkWinCondition(game);
+        }
+    }
+
+    // Flag or unflag a cell (an open number: a chord)
+    function flagCell(game, row, col) {
+        if (game.over) return;
+        if (game.board[row][col].isRevealed) {
+            chord(game, row, col);
+            return;
+        }
+        game.board[row][col].isFlagged = !game.board[row][col].isFlagged;
+    }
+
+    // Open a cell, at a time (ms, the run's clock): a flagged one loses its flag, the first one puts the mines in, an
+    // open number is a chord, and a mine loses
+    function openCell(game, row, col, at) {
+        if (game.over) return;
+        if (game.board[row][col].isFlagged) {
+            flagCell(game, row, col);
+            return;
+        }
+        if (game.firstClick) {
+            game.firstClick = false;
+            game.firstClickAt = at;
+            plantMines(game, row, col);
+        }
+        if (game.board[row][col].isRevealed && game.board[row][col].neighbors > 0) {
+            chord(game, row, col);
+            return;
+        }
+        if (game.board[row][col].isMine) {
+            lose(game, row, col);
+            return;
+        }
+        revealCell(game, row, col);
+        checkWinCondition(game);
+    }
+
+    /**
+     * Plays a run of Minesweeper again
+     * @param {object} run - { seed, mode (the level), tick, length (ms), inputs (waits in ms) }
+     * @return {object} - { ok: true, outcome, score, timeMs, result } or { ok: false, reason }
+     */
+    function simulate({ seed, mode, tick, inputs }) {
+        const level = LEVELS[mode];
+        if (!level) return refuse('mode');
+        if (tick !== null) return refuse('tick');
+        const game = newGame(seededRandom(seed), mode);
+
+        const events = timeline(inputs);
+        for (const { at, code } of events) {
+            if (game.over) return refuse('after-end');
+            if (!Number.isSafeInteger(code) || code < 0 || code >= game.rows * game.cols * 2) return refuse('input');
+            const cell = Math.floor(code / 2);
+            const row = Math.floor(cell / game.cols);
+            const col = cell % game.cols;
+            if (code % 2) flagCell(game, row, col);
+            else openCell(game, row, col, at);
+        }
+        if (!game.over) return refuse('not-over');
+        const last = events[events.length - 1].at;
+        return {
+            ok: true,
+            outcome: game.won ? 'won' : 'lost',
+            score: null,
+            timeMs: game.won ? last - game.firstClickAt : null,
+            result: [
+                { label: 'Level', value: level.name, format: null },
+                { label: 'Time', value: Math.floor((last - game.firstClickAt) / 1000), format: 'time' },
+            ],
+        };
+    }
+
+    return Object.freeze({ LEVELS, seededRandom, newGame, openCell, flagCell, simulate });
+})();
+
+export const { simulate } = GameRules;
