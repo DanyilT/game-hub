@@ -139,6 +139,18 @@ const readControlsExpanded = () => {
 const askToCenter = (frame) => frame?.contentWindow?.postMessage({ type: 'gamehub:center' }, new URL(frame.src).origin);
 
 /**
+ * Tells an embedded game how it's shown, after each load and whenever its frame goes in or out of full
+ * screen: 'full' while the frame fills the screen (the game shows its whole page), 'frame' otherwise (it
+ * shows only what's needed to play, as it chooses). The game's own gamehub.js answers it, setting
+ * data-gamehub-view on its page; games without it ignore the message.
+ */
+const tellView = (frame) => {
+  if (!frame?.contentWindow) return;
+  const full = (document.fullscreenElement ?? document.webkitFullscreenElement) === frame;
+  frame.contentWindow.postMessage({ type: 'gamehub:view', view: full ? 'full' : 'frame' }, new URL(frame.src).origin);
+};
+
+/**
  * The game's size for a frame `width` pixels wide, from its `dimensions.sizes` (narrowest first): the widest
  * that fits, or the narrowest when none does. A part of a pixel doesn't count.
  * @return {{w: number, h: number}}
@@ -644,6 +656,17 @@ const GamePageContent = ({ gameId }) => {
     (frame?.requestFullscreen ?? frame?.webkitRequestFullscreen)?.call(frame);
   };
 
+  // Full screen, the game shows its whole page; back in its frame, what's needed to play (tellView)
+  useEffect(() => {
+    const onChange = () => tellView(iframeRef.current);
+    document.addEventListener('fullscreenchange', onChange);
+    document.addEventListener('webkitfullscreenchange', onChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', onChange);
+      document.removeEventListener('webkitfullscreenchange', onChange);
+    };
+  }, []);
+
   if (!game) {
     return <ErrorPage status={404} title="Game not found" text="There's no game at this address. Maybe it has a new name?" />;
   }
@@ -740,7 +763,10 @@ const GamePageContent = ({ gameId }) => {
                   className={styles.gameFrame}
                   allowFullScreen
                   allow={FRAME_ALLOW}
-                  onLoad={dimensions?.center ? (e) => askToCenter(e.currentTarget) : undefined}
+                  onLoad={(e) => {
+                    tellView(e.currentTarget);
+                    if (dimensions?.center) askToCenter(e.currentTarget);
+                  }}
                 />
               )}
 

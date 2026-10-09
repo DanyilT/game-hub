@@ -35,6 +35,12 @@
  *   | { …, action: 'speed', speed }, in a game GameHub opened with #gamehub-replay (GameHub.replaying)
  *   game → hub: { type: 'gamehub:replay-state', state, position, length } ('playing', 'paused',
  *   'ended' or 'error'; how far it has got, in ms of the game's time)
+ * Two go from the GameHub page straight to the game's own gamehub.js, not through this file (GamePage.jsx):
+ * - hub → game: { type: 'gamehub:center' } after a load and when the frame changes size, for games with
+ *   `dimensions.center`: the game scrolls its play area (data-play-area) to the middle of the frame
+ * - hub → game: { type: 'gamehub:view', view: 'frame' | 'full' } after each load and when the frame goes
+ *   in or out of full screen: in the frame, the game shows only what's needed to play; full screen, its
+ *   whole page (gamehub.js puts it in data-gamehub-view on the game's <html>)
  * Messages go only to GameHub's address (where this file came from), and only messages from the
  * GameHub page itself are read.
  *
