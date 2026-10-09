@@ -6,9 +6,13 @@
   min-height: 100vh;
 
   // With the floating button: what floats at the bottom of the screen (installing the app, messages)
-  // stays above it, and the footer's last line can scroll clear of it
+  // goes above it, but only where it would cover it. Those are centred and up to 420px wide, and the
+  // button sits 20px from a corner and is 60px wide, so they reach it only on screens under 600px.
+  // (The footer leaves room under its last line for the button by itself.)
   &.floatingNav {
-    --floating-nav-space: 84px;
+    @media (width < 600px) {
+      --floating-nav-space: 84px;
+    }
   }
 }
 

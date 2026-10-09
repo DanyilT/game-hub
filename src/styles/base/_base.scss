@@ -4,6 +4,8 @@
 html {
   font-size: 16px;
   color-scheme: dark;
+  // No blue flash over whatever is tapped (Chrome on phones): buttons and links show their own pressed and focus states
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {

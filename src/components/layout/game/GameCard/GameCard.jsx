@@ -79,6 +79,26 @@ const GameCard = ({ game, index = 0, onTagClick, selectedTags = [] }) => {
     (showInfo ? infoPanelRef : infoButtonRef).current?.focus();
   }, [showInfo]);
 
+  // Touch screens can't hover: a tap on the card opens it (the title, the tags and the buttons' colours, as hovering
+  // does with a mouse), and a tap anywhere else closes it. Hidden, the title and tags take no taps
+  // (GameCard.module.scss), so a first tap can't open a link nobody could see.
+  const [open, setOpen] = useState(false);
+  const cardRef = useRef(null);
+  const pointerRef = useRef('mouse'); // what pressed the card last
+  useEffect(() => {
+    if (!open) return undefined;
+    const onPointerDown = (e) => {
+      if (!cardRef.current?.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [open]);
+  const tapCard = (e) => {
+    // A mouse hovers instead, a key press has the focus ring, and a button or link (or the info panel) does its own thing
+    if (pointerRef.current === 'mouse' || e.detail === 0 || showInfo || e.target.closest('a, button')) return;
+    setOpen((value) => !value);
+  };
+
   const tag = (value, kind, className, attributes) => (
     <TagButton
       key={value}
@@ -93,9 +113,12 @@ const GameCard = ({ game, index = 0, onTagClick, selectedTags = [] }) => {
 
   return (
     <div
-      className={`${styles.gameCard} ${needsInternet ? styles.needsInternet : ''}`}
+      ref={cardRef}
+      className={`${styles.gameCard} ${needsInternet ? styles.needsInternet : ''} ${open ? styles.open : ''}`}
       style={{ '--card-index': index }} // staggers the drop-in animation
       onMouseLeave={() => { if (showInfo) closeInfo(false); }}
+      onPointerDown={(e) => { pointerRef.current = e.pointerType; }}
+      onClick={tapCard}
     >
       <div className={styles.gameImageContainer}>
         {game.thumb ? (

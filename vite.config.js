@@ -125,9 +125,9 @@ const MOVED = [
   ['/players/:name', '/u/:name'],
 ];
 
-// The site's address: the Worker's `name` (wrangler.jsonc) on the account's workers.dev subdomain.
-// sitemap.xml and the other root files use it for full URLs. Change it if the site gets a domain.
-const SITE_URL = 'https://game-hub.danyt.workers.dev';
+// The site's address: its own domain, the Worker's custom domain (wrangler.jsonc). sitemap.xml and the
+// other root files use it for full URLs. Change it here and there if the site moves.
+const SITE_URL = 'https://gamehub.foo';
 
 /**
  * Gives every page of the app a file of its own, so the site stays static and still answers

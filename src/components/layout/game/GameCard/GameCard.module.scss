@@ -18,7 +18,7 @@ $action-colors: (
 // Drop-in delay: one card after another, capped at 1.5s (GameCard.jsx sets --card-index)
 $drop-delay: min(0.1s * (var(--card-index, 0) + 1), 1.5s);
 
-// The card's title, tags and actions showing
+// The card's title, tags and actions showing (hidden, they take no clicks: on a touch screen a tap would land on them unseen)
 @mixin revealed {
   box-shadow: $card-shadow-hover;
 
@@ -28,6 +28,13 @@ $drop-delay: min(0.1s * (var(--card-index, 0) + 1), 1.5s);
   .actionButton,
   .bookmarkButton {
     opacity: 1;
+  }
+
+  .gameHeader h3,
+  .gameTags .gameTag,
+  .actionButton,
+  .bookmarkButton {
+    pointer-events: auto;
   }
 
   .gameHeader,
@@ -50,10 +57,17 @@ $drop-delay: min(0.1s * (var(--card-index, 0) + 1), 1.5s);
   animation: global(card-drop) $duration-card-drop $ease-drop forwards;
   animation-delay: $drop-delay;
 
-  // Hovering or tabbing into the card shows its title, tags and actions. Keyboard focus only
-  // (:focus-visible): a clicked button (the bookmark, a tag) keeps the focus, and the card would
-  // stay open after the pointer has left. Two rules, so a browser without :has() still gets :hover.
-  &:hover {
+  // Hovering or tabbing into the card shows its title, tags and actions, and so does a tap on a touch screen
+  // (.open: GameCard.jsx), where hovering doesn't exist (a tap would leave a :hover that sticks). Keyboard focus only
+  // (:focus-visible): a clicked button (the bookmark, a tag) keeps the focus, and the card would stay open after the
+  // pointer has left. Separate rules, so a browser without :has() still gets the others.
+  @media (hover: hover) {
+    &:hover {
+      @include revealed;
+    }
+  }
+
+  &.open {
     @include revealed;
   }
 
@@ -143,6 +157,7 @@ $drop-delay: min(0.1s * (var(--card-index, 0) + 1), 1.5s);
     align-items: center;
     gap: $spacing-sm;
     opacity: 0;
+    pointer-events: none; // until the card is revealed
     transition: opacity $transition-base ease;
   }
 }
@@ -183,6 +198,7 @@ $drop-delay: min(0.1s * (var(--card-index, 0) + 1), 1.5s);
   backdrop-filter: blur(4px);
   font-size: $font-size-xl;
   opacity: 0;
+  pointer-events: none; // until the card is revealed (touch screens: below)
   transition: opacity $transition-base ease, background $transition-base ease, transform $transition-base ease;
 
   &:hover {
@@ -254,6 +270,7 @@ $drop-delay: min(0.1s * (var(--card-index, 0) + 1), 1.5s);
   color: $color-text-primary;
   font-size: $font-size-xl;
   opacity: 0;
+  pointer-events: none; // until the card is revealed, or bookmarked
   transition: opacity $transition-base ease, background $transition-base ease, transform $transition-base ease;
 
   &:hover {
@@ -263,11 +280,30 @@ $drop-delay: min(0.1s * (var(--card-index, 0) + 1), 1.5s);
 
   &.bookmarked {
     opacity: 1;
+    pointer-events: auto;
     color: $color-accent-light;
   }
 
   @media (hover: none) {
     opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+// Touch screens: the buttons at the bottom always show too, like the bookmark, grey until a tap opens the card, which
+// gives them their colours (and shows the title and tags)
+@media (hover: none) {
+  .gameActions {
+    transform: none;
+  }
+
+  .actionButton {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .gameCard:not(.open) .actionButton {
+    background: color-mix(in srgb, $color-black 45%, transparent);
   }
 }
 
@@ -337,6 +373,7 @@ $drop-delay: min(0.1s * (var(--card-index, 0) + 1), 1.5s);
 
   .gameTag {
     opacity: 0;
+    pointer-events: none; // until the card is revealed
   }
 }
 

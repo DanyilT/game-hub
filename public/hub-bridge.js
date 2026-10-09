@@ -2,7 +2,7 @@
  * GameHub's bridge, running inside a game's page
  *
  * A game's js/gamehub.js (DanyilT/dt-games) adds this script when the game is in a frame on GameHub,
- * from GameHub's own address (e.g. https://game-hub.danyt.workers.dev/hub-bridge.js). It talks to the
+ * from GameHub's own address (https://gamehub.foo/hub-bridge.js). It talks to the
  * GameHub page around the game with postMessage, and attaches to the game's window.GameHub, so the
  * game's saves reach the player's account. The game never sees the player's sign-in.
  *

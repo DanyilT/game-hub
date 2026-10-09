@@ -6,7 +6,7 @@ addons.setConfig({
   theme: create({
     base: 'dark',
     brandTitle: 'GameHub',
-    brandUrl: 'https://game-hub.danyt.workers.dev',
+    brandUrl: 'https://gamehub.foo',
     colorPrimary: '#c054f2',
     colorSecondary: '#662c91',
     appBg: '#151414',
