@@ -24,7 +24,8 @@ export const NothingMatches = {
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(await canvas.findByRole('button', { name: /Filter games/ }));
     const filters = within(await canvas.findByRole('region', { name: 'Filters' }));
+    // Sudoku is the only hard game, and it's no arcade game
     await userEvent.click(filters.getByRole('button', { name: 'hard' }));
-    await userEvent.click(filters.getByRole('button', { name: 'snake' }));
+    await userEvent.click(filters.getByRole('button', { name: 'arcade' }));
   },
 };

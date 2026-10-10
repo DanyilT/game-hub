@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { CiBurger } from 'react-icons/ci';
+import Button from '../../common/Button/Button';
 import styles from './Header.module.scss';
 
 /**
@@ -28,17 +29,19 @@ const Header = ({ onMenuToggle, isMenuOpen = false, menuButtonRef }) => {
   return (
     <header className={`${styles.header} ${isHidden ? styles.hidden : ''}`}>
       {onMenuToggle && (
-        <button
+        <Button
           ref={menuButtonRef}
-          type="button"
+          variant="ghost"
+          tone="neutral"
+          size="lg"
+          icon={CiBurger}
+          label="Open menu"
+          title=""
           className={styles.menuButton}
           onClick={onMenuToggle}
-          aria-label="Open menu"
           aria-expanded={isMenuOpen}
           aria-controls="site-sidebar"
-        >
-          <CiBurger aria-hidden="true" />
-        </button>
+        />
       )}
       <Link to="/" className={styles.titleLogo}>GameHub</Link>
     </header>

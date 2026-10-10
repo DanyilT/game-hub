@@ -75,21 +75,6 @@ $row-hover-bg: rgba($color-white, 0.08);
   min-height: 72px;
 }
 
-.iconButton {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: $radius-md;
-  color: $color-text-secondary;
-  transition: background $transition-fast, color $transition-fast;
-
-  &:hover {
-    background: $row-hover-bg;
-    color: $color-text-primary;
-  }
-}
 
 .toggleIcon {
   width: 28px;
@@ -200,31 +185,20 @@ $row-hover-bg: rgba($color-white, 0.08);
   flex-shrink: 0;
 }
 
+// (a dot Badge, ringed in the sidebar's colour)
 .dot {
   display: none;
   position: absolute;
   top: -2px;
   right: -2px;
-  width: 10px;
-  height: 10px;
   border: 2px solid $color-black-light;
-  border-radius: $radius-full;
-  background: $color-secondary;
 }
 
-// How many are waiting (friend requests on Profile)
-.countBadge {
+// How many are waiting (a count Badge: friend requests on Profile), and "soon" (an outline Badge), after the label;
+// the collapsed rail hides both (above)
+.countBadge,
+.soonBadge {
   flex-shrink: 0;
-  min-width: 1.5em;
-  padding: 0 $spacing-xs;
-  border-radius: $radius-full;
-  background: $color-secondary;
-  color: $color-black;
-  font-family: $font-secondary;
-  font-size: $font-size-xs;
-  font-weight: $font-weight-bold;
-  line-height: 1.6;
-  text-align: center;
 }
 
 .navLabel {
@@ -233,16 +207,6 @@ $row-hover-bg: rgba($color-white, 0.08);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.soonBadge {
-  flex-shrink: 0;
-  padding: 0 $spacing-sm;
-  border: 1px solid color-mix(in srgb, $color-secondary 60%, transparent);
-  border-radius: $radius-full;
-  color: $color-secondary;
-  font-size: $font-size-xs;
-  line-height: 1.6;
 }
 
 .navDivider {

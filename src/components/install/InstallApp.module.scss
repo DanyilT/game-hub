@@ -1,4 +1,5 @@
 @use '../../styles/abstracts/variables' as *;
+@use '../../styles/abstracts/surfaces';
 
 // The suggestion and the steps float over the page at the bottom of the screen: square, with the
 // neon window's edge and background, but no dimmed backdrop, so the page stays usable. Over the
@@ -14,16 +15,7 @@
   margin-inline: auto; // centred once it reaches max-width
   padding: $spacing-lg;
   overflow-y: auto;
-  background: linear-gradient(235deg, rgba($color-black, 0.95), rgba($color-black-light, 0.92));
-  backdrop-filter: blur(10px);
-  border: 2px solid $color-primary;
-  box-shadow: 0 0 24px rgba($color-black, 0.8), 0 0 12px rgba($color-primary-light, 0.25);
-  color: $color-text-primary;
-  transition: border-color $transition-fast ease;
-
-  &:hover {
-    border-color: $color-secondary;
-  }
+  @include surfaces.window;
 }
 
 // The suggestion
@@ -47,30 +39,11 @@
   text-shadow: 0 0 10px rgba($color-primary-light, 0.5);
 }
 
-// The ×, like the neon window's
+// The close button (a Button), in the top-right corner
 .close {
   position: absolute;
   top: 8px;
   right: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: 1px solid $color-primary-light;
-  color: $color-primary-light;
-  font-size: 20px; // the icon's size
-  transition: color $transition-fast, border-color $transition-fast;
-
-  &:hover {
-    color: $color-secondary;
-    border-color: $color-secondary;
-  }
-
-  &:focus-visible {
-    outline: 2px solid $color-primary-light;
-    outline-offset: 2px;
-  }
 }
 
 .text {

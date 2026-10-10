@@ -1,7 +1,7 @@
-import { Link } from 'react-router';
+import Button from '../../components/common/Button/Button';
 import ExternalLink from '../../components/common/ExternalLink/ExternalLink';
+import PageTitle from '../../components/common/PageTitle/PageTitle';
 import styles from './ErrorPage.module.scss';
-import Button from "../../components/common/Button/Button.jsx";
 
 // What each status says (the picture comes from http.cat)
 const ERRORS = {
@@ -21,7 +21,7 @@ const ErrorPage = ({ status, title, text }) => {
   return (
     <div className={styles.errorPage}>
       <p className={styles.code}>Error {status}</p>
-      <h1>{title ?? error.title}</h1>
+      <PageTitle align="center">{title ?? error.title}</PageTitle>
       <p className={styles.text}>{text ?? error.text}</p>
 
       <figure className={styles.cat}>
@@ -34,7 +34,7 @@ const ErrorPage = ({ status, title, text }) => {
       </figure>
 
       <div className={styles.actions}>
-        <Button as={Link} to="/" variant="outline">Back to the games</Button>
+        <Button to="/" variant="outline">Back to the games</Button>
         {status === 500 && (
           <Button onClick={() => window.location.reload()}>Reload</Button>
         )}

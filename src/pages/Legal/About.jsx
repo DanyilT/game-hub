@@ -3,6 +3,7 @@ import { version } from '../../../package.json';
 import { developer, games, getEmbedUrl } from '../../data/games.js';
 import ExternalLink from '../../components/common/ExternalLink/ExternalLink';
 import { GAMES_REPO_URL, HUB_ISSUES_URL, HUB_REPO_URL, hubBugReportUrl } from '../../lib/support.js';
+import PageTitle from '../../components/common/PageTitle/PageTitle';
 import styles from './Legal.module.scss';
 
 /** /about: what GameHub is, how saving works, and where the code and bug reports live */
@@ -12,7 +13,7 @@ const About = () => {
   return (
     <div className={styles.page}>
       <div className={styles.container}>
-        <h1>About GameHub</h1>
+        <PageTitle align="center" className={styles.title}>About GameHub</PageTitle>
 
         <p className={styles.intro}>
           GameHub is a small arcade of browser games made by <ExternalLink href={developer.url}>{developer.name}</ExternalLink>:{' '}

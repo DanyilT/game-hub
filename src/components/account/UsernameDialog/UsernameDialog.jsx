@@ -2,6 +2,8 @@ import { useRef, useState } from 'react';
 import { useLocation } from 'react-router';
 import { useAuth } from '../../../contexts/AuthContext';
 import { USERNAME_COOLDOWN_DAYS, describeProfileError, hasChosenUsername } from '../../../lib/account';
+import Button from '../../common/Button/Button';
+import Message from '../../common/Message/Message';
 import Modal from '../../common/Modal/Modal';
 import UsernameField, { useUsernameCheck } from '../UsernameField/UsernameField';
 import styles from '../AccountModal.module.scss';
@@ -83,20 +85,18 @@ export const WelcomeDialog = ({ profile, onDone, onLater }) => {
       <p className={styles.text}>
         Pick the username other players will see: keep the one you got, type your own, or roll the dice (Magicaze ✨).
       </p>
-      {error && <div className={styles.error} role="alert">{error}</div>}
+      {error && <Message tone="error" boxed className={styles.notice}>{error}</Message>}
 
-      <form onSubmit={save}>
-        <div className={styles.formGroup}>
-          <UsernameField id="welcome-username" value={name} onChange={setName} status={status} inputRef={inputRef} />
-          <span className={styles.hint}>You can change it in Settings {USERNAME_COOLDOWN_DAYS} days after you pick or keep it.</span>
-        </div>
-        <button type="submit" className={styles.submit} disabled={!canSave}>
+      <form className={styles.form} onSubmit={save}>
+        <UsernameField id="welcome-username" value={name} onChange={setName} status={status} inputRef={inputRef} />
+        <Message>You can change it in Settings {USERNAME_COOLDOWN_DAYS} days after you pick or keep it.</Message>
+        <Button type="submit" size="lg" block disabled={!canSave}>
           {saving ? 'Saving…' : `${keeping ? 'Keep' : 'Use'} this name`}
-        </button>
+        </Button>
       </form>
 
       <div className={styles.switch}>
-        <button type="button" className={styles.switchButton} onClick={onLater} disabled={saving}>Decide later</button>
+        <Button variant="text" size="sm" onClick={onLater} disabled={saving}>Decide later</Button>
       </div>
     </Modal>
   );

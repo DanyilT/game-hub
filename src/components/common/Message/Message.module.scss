@@ -1,0 +1,52 @@
+@use '../../../styles/abstracts/variables' as *;
+@use '../../../styles/abstracts/forms';
+
+// In the `components` layer (main.scss): a page's own class on it wins over these
+@layer reset, components;
+
+@layer components {
+  .message {
+    font-family: $font-secondary;
+    font-size: $font-size-sm;
+    line-height: 1.45;
+  }
+
+  .note {
+    color: $color-text-secondary;
+  }
+
+  .error {
+    color: forms.$color-status-error;
+  }
+
+  .warning {
+    color: $color-warning;
+  }
+
+  .success {
+    color: forms.$color-status-ok;
+  }
+
+  .info {
+    color: $color-info;
+  }
+
+  // In a box of its colour, across the window
+  .boxed {
+    padding: $spacing-sm $spacing-md;
+    border: 1px solid color-mix(in srgb, currentcolor 35%, transparent);
+    background: color-mix(in srgb, currentcolor 10%, transparent);
+    text-align: center;
+  }
+
+  .appear {
+    animation: message-in $transition-fast ease-out;
+  }
+
+  @keyframes message-in {
+    from {
+      opacity: 0;
+      transform: translateY(-0.5em);
+    }
+  }
+}

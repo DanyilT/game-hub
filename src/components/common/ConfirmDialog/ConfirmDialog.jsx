@@ -17,7 +17,7 @@ const Question = ({ question }) => {
       {message && <p className={styles.message}>{message}</p>}
       <div className={styles.actions}>
         <Button ref={cancelRef} variant="outline" onClick={no}>Cancel</Button>
-        <Button ref={confirmRef} variant={danger ? 'danger' : 'primary'} onClick={() => answerQuestion(true, id)}>
+        <Button ref={confirmRef} tone={danger ? 'danger' : 'primary'} onClick={() => answerQuestion(true, id)}>
           {confirmLabel}
         </Button>
       </div>

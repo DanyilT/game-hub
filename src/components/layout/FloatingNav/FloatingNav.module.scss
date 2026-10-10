@@ -116,7 +116,7 @@ $edge: 20px; // from the screen's edges
   }
 }
 
-// Friend requests waiting (on the closed button)
+// Friend requests waiting (a dot Badge on the closed button), ringed in the button's colour
 .mainDot {
   position: absolute;
   top: 2px;
@@ -124,8 +124,6 @@ $edge: 20px; // from the screen's edges
   width: 14px;
   height: 14px;
   border: 2px solid $color-black-light;
-  border-radius: $radius-full;
-  background: $color-secondary;
 }
 
 // The rings: every button starts tucked behind the main one and flies out to its place
@@ -224,20 +222,13 @@ $edge: 20px; // from the screen's edges
   white-space: nowrap;
 }
 
+// How many are waiting (a count Badge), on an item's top-right corner
 .badge {
   position: absolute;
   top: -4px;
   right: -4px;
   min-width: 20px;
-  padding: 0 4px;
-  border-radius: $radius-full;
-  background: $color-secondary;
-  color: $color-black;
-  font-family: $font-secondary;
-  font-size: $font-size-xs;
-  font-weight: $font-weight-bold;
   line-height: 20px;
-  text-align: center;
 }
 
 // The page dims towards the corner the menu opens from

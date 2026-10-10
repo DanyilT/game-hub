@@ -2,6 +2,9 @@
 // Global styles. Each component's own styles are a CSS module next to it.
 // ==========================================
 
+// Cascade layers, lowest first (base/reset sets their order): the reset, then the shared components (Button, Tag), then
+// everything else, which isn't in a layer. So a page's own class on a Button always wins over the Button's own look,
+// whatever the specificity.
 @use 'base/reset';
 @use 'base/base';
 @use 'base/animations';

@@ -1,6 +1,4 @@
 @use '../../../../styles/abstracts/variables' as *;
-@use '../../../../styles/abstracts/forms';
-@use '../../../../styles/abstracts/mixins';
 
 // A card in the game page's info column (GamePage.module.scss styles its <section>s the same way)
 .rateGame {
@@ -25,7 +23,6 @@
 }
 
 .toggle {
-  @include mixins.round-toggle;
   margin-left: auto;
 }
 
@@ -45,27 +42,6 @@
   }
 }
 
-.muted {
-  color: $color-text-secondary;
-  font-family: $font-secondary;
-  font-size: $font-size-sm;
-}
-
-.error {
-  color: forms.$color-status-error;
-  font-size: $font-size-sm;
-}
-
-.link {
-  color: $color-primary-light;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-
-  &:hover {
-    color: $color-secondary;
-  }
-}
-
 .thanks {
   color: $color-accent-light;
   font-weight: $font-weight-semibold;
@@ -76,26 +52,6 @@
   display: flex;
   flex-direction: column;
   gap: $spacing-sm;
-}
-
-.question {
-  @include forms.label;
-}
-
-.textarea {
-  @include forms.text-input;
-  min-height: 6rem;
-  resize: vertical;
-  font-family: $font-secondary;
-}
-
-// The players' ratings, opened by the arrow
-.players {
-  @include mixins.collapsible;
-
-  &.open {
-    @include mixins.collapsible-open;
-  }
 }
 
 // The players' ratings: the average, then a bar per score

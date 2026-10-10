@@ -1,4 +1,5 @@
 import { CiFloppyDisk, CiMobile3, CiShare1 } from 'react-icons/ci';
+import { PiAppStoreLogo, PiGooglePlayLogo } from 'react-icons/pi';
 import catalogIcons from 'virtual:catalog-icons';
 import gamesData from 'virtual:catalog';
 
@@ -7,7 +8,10 @@ import gamesData from 'virtual:catalog';
 // Each entry lists where it can be played in `platforms`:
 //   { type: 'web', url, embed: true }   plays inside the hub (iframe)
 //   { type: 'web', url, embed: false }  plays on a site of its own, opened in a new tab
-//   { type: 'android', storeId, url }   Google Play listing
+//   { type: 'android', storeId, url }   Google Play listing (storeId: the app's package name)
+//   { type: 'ios', url }                App Store listing
+// A store platform may add `appLink`: a link the app opens itself with (chillzone://open, or an https App Link), used to
+// open it from the hub once it's installed (src/lib/nativeApps.js).
 // An optional `website` links to a homepage that isn't a way to play (e.g. ChillZone's landing page).
 // `icon` fields name react-icons components; vite.config.js bundles just those (`virtual:catalog-icons`).
 export const games = gamesData.games;
@@ -16,7 +20,13 @@ export const games = gamesData.games;
 export const gamesById = new Map(games.map((game) => [game.id, game]));
 
 // Icons for platforms that don't name one
-const PLATFORM_ICONS = { web: CiShare1, android: CiMobile3 };
+const PLATFORM_ICONS = { web: CiShare1, android: CiMobile3, ios: CiMobile3 };
+
+// The app stores: their name, what their button says, and their logo
+const STORES = {
+  android: { name: 'Google Play', get: 'Get it on Google Play', Icon: PiGooglePlayLogo },
+  ios: { name: 'App Store', get: 'Download on the App Store', Icon: PiAppStoreLogo },
+};
 
 /** Links as the catalogue lists them, each with its `Icon` component (`fallback` when it names none) */
 const withIcons = (links = [], fallback = null) => links.map((link) => ({ ...link, Icon: catalogIcons[link.icon] ?? fallback }));
@@ -31,8 +41,11 @@ export const getEmbedUrl = (game) => game.platforms.find((p) => p.type === 'web'
 /** Where the entry plays in a browser (the embedded game itself, or a site of its own) */
 export const getWebPlatform = (game) => game.platforms.find((p) => p.type === 'web') ?? null;
 
-/** App-store listings (Google Play today) */
-export const getStorePlatforms = (game) => game.platforms.filter((p) => p.type === 'android');
+/** App-store listings (Google Play, the App Store) */
+export const getStorePlatforms = (game) => game.platforms.filter((p) => p.type in STORES);
+
+/** A store listing's store: { name, get (its button's words), Icon (its logo) } */
+export const getStore = (platform) => STORES[platform.type];
 
 /** Platform names used for the chips and the Platform filter, e.g. ['web'] or ['android'] */
 export const getPlatformTypes = (game) => [...new Set(game.platforms.map((p) => p.type))];

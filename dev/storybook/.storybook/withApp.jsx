@@ -19,6 +19,19 @@ import { applyScenario } from '../mocks/supabase';
 // The browser's online state follows the toolbar's Network (the site reads navigator.onLine)
 Object.defineProperty(window.navigator, 'onLine', { configurable: true, get: () => scenario.network !== 'offline' });
 
+// An Android device, when the story asks for one (scenario.device): store apps get Play, which tries the app
+// (src/lib/nativeApps.js reads the platform from navigator.userAgentData, or the user agent)
+const realAgent = { data: window.navigator.userAgentData, text: window.navigator.userAgent };
+const ANDROID_AGENT = 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Mobile Safari/537.36';
+Object.defineProperty(window.navigator, 'userAgentData', {
+  configurable: true,
+  get: () => (scenario.device === 'android' ? { platform: 'Android', mobile: true, brands: [] } : realAgent.data),
+});
+Object.defineProperty(window.navigator, 'userAgent', {
+  configurable: true,
+  get: () => (scenario.device === 'android' ? ANDROID_AGENT : realAgent.text),
+});
+
 // What the site keeps in this browser, cleared for every story (preferences are set from the toolbar)
 const STORED_KEYS = [
   'gamehub:tickets', 'gamehub:tickets-taken', 'gamehub:downloads', 'gamehub:play-time', 'gamehub:sidebar-expanded',
@@ -44,6 +57,7 @@ const scenarioFor = ({ globals, parameters, args }) => {
     emailSignIn: false,
     privacy: {},
     install: { canPrompt: false, platform: null, installed: false, stepsOpen: false, bannerDue: false },
+    device: null,
     ...extra,
     game: { ...GAME_DEFAULTS, ...extra.game },
   };

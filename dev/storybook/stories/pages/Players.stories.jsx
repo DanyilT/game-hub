@@ -12,7 +12,7 @@ export const Default = {};
 
 export const AToZ = {
   play: async ({ canvas, userEvent }) => {
-    await userEvent.click(await canvas.findByRole('button', { name: 'A–Z' }));
+    await userEvent.click(await canvas.findByRole('radio', { name: 'A–Z' }));
   },
 };
 

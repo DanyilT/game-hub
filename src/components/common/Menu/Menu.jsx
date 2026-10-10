@@ -1,15 +1,21 @@
 import { useEffect, useId, useRef, useState } from 'react';
+import Button from '../Button/Button';
+import Popover from '../Popover/Popover';
 import styles from './Menu.module.scss';
 
 /**
- * A button that opens a short list of actions under it (the ⋯ on a profile). The arrow keys, Home and
- * End move through the actions; Escape, Tab or a click elsewhere closes it. Choosing an action puts
- * the focus back on the button first, so a window the action opens hands it back there.
- * @param {string} label - the button's name, for screen readers ("More for Dany")
- * @param {node} icon - what the button shows
+ * A button that opens a short list of actions under it (the ⋯ on a profile, Friends beside it). The arrow keys, Home
+ * and End move through the actions; Escape, Tab or a click elsewhere closes it. Choosing an action puts the focus back
+ * on the button first, so a window the action opens hands it back there.
+ * @param {string} label - the list's name for screen readers ("More for Dany"); also the button's, when it's an icon
+ *   alone
+ * @param {node} icon - what the button shows (before its text, if it has one)
+ * @param {string} [text] - a word on the button ("Friends"), with a ▼ after it
+ * @param {object} [look] - how the button looks: Button's variant and tone (an outline by default)
+ * @param {boolean} [disabled]
  * @param {{ label: string, icon?: node, onSelect: function, danger?: boolean }[]} items
  */
-const Menu = ({ label, icon, items }) => {
+const Menu = ({ label, icon, text, look, disabled = false, items }) => {
   const [open, setOpen] = useState(false);
   const buttonRef = useRef(null);
   const listRef = useRef(null);
@@ -53,11 +59,14 @@ const Menu = ({ label, icon, items }) => {
 
   return (
     <div className={styles.menu}>
-      <button
+      <Button
         ref={buttonRef}
-        type="button"
-        className={styles.button}
-        aria-label={label}
+        variant="outline"
+        {...look}
+        icon={icon}
+        iconEnd={text ? <span className={styles.chevron}>▼</span> : undefined}
+        label={text ? undefined : label}
+        disabled={disabled}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
@@ -69,30 +78,41 @@ const Menu = ({ label, icon, items }) => {
           }
         }}
       >
-        {icon}
-      </button>
-      {open && (
-        <ul ref={listRef} id={menuId} role="menu" aria-label={label} className={styles.list} onKeyDown={onListKeyDown}>
-          {items.map((item) => (
-            <li key={item.label} role="none">
-              <button
-                type="button"
-                role="menuitem"
-                tabIndex={-1}
-                className={`${styles.item} ${item.danger ? styles.danger : ''}`}
-                onClick={() => {
-                  setOpen(false);
-                  buttonRef.current?.focus();
-                  item.onSelect();
-                }}
-              >
-                {item.icon}
-                {item.label}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+        {text}
+      </Button>
+      <Popover
+        open={open}
+        align="end"
+        as="ul"
+        ref={listRef}
+        id={menuId}
+        role="menu"
+        aria-label={label}
+        className={styles.list}
+        onKeyDown={onListKeyDown}
+      >
+        {items.map((item) => (
+          <li key={item.label} role="none">
+            <Button
+              variant="ghost"
+              tone={item.danger ? 'danger' : 'neutral'}
+              font="secondary"
+              block
+              icon={item.icon}
+              role="menuitem"
+              tabIndex={-1}
+              className={styles.item}
+              onClick={() => {
+                setOpen(false);
+                buttonRef.current?.focus();
+                item.onSelect();
+              }}
+            >
+              {item.label}
+            </Button>
+          </li>
+        ))}
+      </Popover>
     </div>
   );
 };

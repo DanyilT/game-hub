@@ -16,11 +16,15 @@ import { fetchMyBlocks, unblockPlayer } from '../../lib/blocks';
 import { askToConfirm } from '../../lib/confirm';
 import { fullDate } from '../../lib/dates';
 import { setPreference, usePreferences } from '../../lib/preferences';
+import UsernameField, { useUsernameCheck } from '../../components/account/UsernameField/UsernameField';
 import Avatar from '../../components/common/Avatar/Avatar';
 import Button from '../../components/common/Button/Button';
-import UsernameField, { useUsernameCheck } from '../../components/account/UsernameField/UsernameField';
+import { RadioGroup, Switch, TextField } from '../../components/common/Field/Field';
+import InfoTip from '../../components/common/InfoTip/InfoTip';
+import Message from '../../components/common/Message/Message';
+import PageTitle from '../../components/common/PageTitle/PageTitle';
+import Status from '../../components/common/Status/Status';
 import styles from './Account.module.scss';
-import InfoTip from "../../components/common/InfoTip/InfoTip.jsx";
 
 // The picture Google / Discord gave at the last sign-in (the only one a profile may use)
 const providerPicture = (user) => {
@@ -59,7 +63,7 @@ const useSave = () => {
 const SaveStatus = ({ state }) => {
   const message = state.error ?? state.ok;
   if (!message) return null;
-  return <p className={`${styles.status} ${state.error ? styles.error : styles.ok}`} role="status">{message}</p>;
+  return <Message tone={state.error ? 'error' : 'success'} role="status" appear>{message}</Message>;
 };
 
 /**
@@ -127,24 +131,22 @@ const ProfileSection = ({ profile, user }) => {
             busy={save.busy}
             onChange={changePicture}
           />
-          <div className={`${styles.field} ${styles.grow}`}>
-            <label htmlFor="settings-display-name" className={styles.label}>Display name</label>
-            <div className={styles.inputRow}>
-              <input
-                id="settings-display-name"
-                className={styles.input}
-                value={displayName}
-                onChange={(e) => setNameDraft(e.target.value)}
-                maxLength={DISPLAY_NAME_MAX}
-                placeholder={profile.username}
-                autoComplete="nickname"
-              />
+          <TextField
+            id="settings-display-name"
+            label="Display name"
+            className={styles.grow}
+            value={displayName}
+            onChange={(e) => setNameDraft(e.target.value)}
+            maxLength={DISPLAY_NAME_MAX}
+            placeholder={profile.username}
+            autoComplete="nickname"
+            hint={`Shown on your profile instead of your username. Leave it empty to use @${profile.username}.`}
+            after={(
               <Button type="submit" disabled={!dirty || save.busy}>
                 {save.busy && save.what === 'name' ? 'Saving…' : 'Save profile'}
               </Button>
-            </div>
-            <p className={styles.muted}>Shown on your profile instead of your username. Leave it empty to use @{profile.username}.</p>
-          </div>
+            )}
+          />
         </div>
         <SaveStatus state={save} />
       </form>
@@ -177,11 +179,11 @@ const UsernameSection = ({ profile }) => {
           status={status}
           disabled={Boolean(nextChange)}
         />
-        <p className={styles.muted}>
+        <Message>
           {nextChange
             ? `You can change it again on ${fullDate(nextChange)}, ${USERNAME_COOLDOWN_DAYS} days after you picked or kept it.`
             : `You can change it once every ${USERNAME_COOLDOWN_DAYS} days. Links to your old profile address stop working.`}
-        </p>
+        </Message>
         {!nextChange && (
           <div className={styles.actions}>
             <Button type="submit" disabled={save.busy || !(status === 'available' || status === 'error')}>
@@ -238,38 +240,6 @@ const CORNERS = [
   { value: 'right', label: 'Bottom right' },
 ];
 
-/**
- * A set of radio buttons as cards, each with a little picture of the choice
- * @param {string} legend
- * @param {string} name - the radio group's name
- * @param {object[]} options - { value, label, text? }
- * @param {string} value - the chosen one
- * @param {function} onChange - gets the new value
- * @param {function} preview - draws the picture for a value
- */
-const ChoiceGroup = ({ legend, name, options, value, onChange, preview }) => (
-  <fieldset className={styles.choices}>
-    <legend className={styles.label}>{legend}</legend>
-    {options.map((option) => (
-      <label key={option.value} className={`${styles.choice} ${value === option.value ? styles.chosen : ''}`}>
-        <input
-          type="radio"
-          className="visually-hidden"
-          name={name}
-          value={option.value}
-          checked={value === option.value}
-          onChange={() => onChange(option.value)}
-        />
-        {preview(option.value)}
-        <span className={styles.choiceText}>
-          <strong>{option.label}</strong>
-          {option.text && <span className={styles.muted}>{option.text}</span>}
-        </span>
-      </label>
-    ))}
-  </fieldset>
-);
-
 // A tiny page with the navigation drawn in: a bar down the side, or a dot in a corner
 const NavPreview = ({ style, corner }) => (
   <span className={`${styles.navPreview} ${styles[style]} ${styles[corner] ?? ''}`} aria-hidden="true">
@@ -283,25 +253,27 @@ const PreferencesSection = () => {
   return (
     <section className={styles.card} aria-labelledby="settings-preferences">
       <h2 id="settings-preferences" className={styles.cardTitle}>Preferences</h2>
-      <ChoiceGroup
-        legend="Navigation"
+      <RadioGroup
+        variant="cards"
+        label="Navigation"
         name="nav-style"
-        options={NAV_STYLES}
+        options={NAV_STYLES.map(({ value, label, text }) => ({
+          value, label, hint: text, picture: <NavPreview style={value} corner={value === 'floating' ? navCorner : null} />,
+        }))}
         value={navStyle}
         onChange={(value) => setPreference('navStyle', value)}
-        preview={(value) => <NavPreview style={value} corner={value === 'floating' ? navCorner : null} />}
       />
       {navStyle === 'floating' && (
-        <ChoiceGroup
-          legend="Floating button corner"
+        <RadioGroup
+          variant="cards"
+          label="Floating button corner"
           name="nav-corner"
-          options={CORNERS}
+          options={CORNERS.map(({ value, label }) => ({ value, label, picture: <NavPreview style="floating" corner={value} /> }))}
           value={navCorner}
           onChange={(value) => setPreference('navCorner', value)}
-          preview={(value) => <NavPreview style="floating" corner={value} />}
         />
       )}
-      <p className={styles.muted}>These are kept on this device only, so each of your devices can have its own.</p>
+      <Message>These are kept on this device only, so each of your devices can have its own.</Message>
     </section>
   );
 };
@@ -321,27 +293,16 @@ const HISTORY_AUDIENCES = [
 
 /** Who sees one kind of activity: everyone, friends or only you */
 const AudienceChoice = ({ choiceKey, label, text, value, onChoose }) => (
-  <div className={styles.audienceGroup} role="radiogroup" aria-labelledby={`privacy-${choiceKey}`}>
-    <span className={styles.audienceLabel}>
-      <span id={`privacy-${choiceKey}`} className={styles.label}>{label}</span>
-      <InfoTip label={`Who sees ${label.toLowerCase()}`}>{text}</InfoTip>
-    </span>
-    <span className={styles.audienceOptions}>
-      {AUDIENCES.map(({ value: audience, label: audienceLabel }) => (
-        <label key={audience} className={`${styles.audienceOption} ${value === audience ? styles.chosenAudience : ''}`}>
-          <input
-            type="radio"
-            className="visually-hidden"
-            name={`privacy-${choiceKey}`}
-            value={audience}
-            checked={value === audience}
-            onChange={() => onChoose(choiceKey, audience)}
-          />
-          {audienceLabel}
-        </label>
-      ))}
-    </span>
-  </div>
+  <RadioGroup
+    variant="segmented"
+    inline
+    label={label}
+    info={<InfoTip label={`Who sees ${label.toLowerCase()}`}>{text}</InfoTip>}
+    name={`privacy-${choiceKey}`}
+    options={AUDIENCES}
+    value={value}
+    onChange={(audience) => onChoose(choiceKey, audience)}
+  />
 );
 
 /** Deletes the play history, after asking */
@@ -367,7 +328,7 @@ const DeleteHistory = () => {
 
   return (
     <div className={styles.historyActions}>
-      <Button variant="danger" onClick={remove} disabled={state.busy}>
+      <Button tone="danger" onClick={remove} disabled={state.busy}>
         {state.busy ? 'Deleting…' : 'Delete my play history'}
       </Button>
       <SaveStatus state={{ ok: state.done, error: state.error }} />
@@ -408,11 +369,11 @@ const BlockedPlayers = () => {
   return (
     <>
       <h3 className={styles.subTitle}>Blocked players</h3>
-      <p className={styles.muted}>
+      <Message>
         They can&rsquo;t add you as a friend, and you don&rsquo;t see each other&rsquo;s activity. Block a player with
         the ⋯ on their profile.
-      </p>
-      {list?.length === 0 && <p className={styles.muted}>You haven&rsquo;t blocked anyone.</p>}
+      </Message>
+      {list?.length === 0 && <Status kind="empty">You haven&rsquo;t blocked anyone.</Status>}
       {list?.length > 0 && (
         <ul className={styles.blockedList}>
           {list.map((player) => {
@@ -422,7 +383,7 @@ const BlockedPlayers = () => {
                 <Link to={`/u/${player.username}`} className={styles.blockedPlayer}>
                   <Avatar url={player.avatar_url} name={name} size={32} />
                   <span>
-                    <span className={styles.blockedName}>{name}</span> <span className={styles.muted}>@{player.username}</span>
+                    <span className={styles.blockedName}>{name}</span> <Message as="span">@{player.username}</Message>
                   </span>
                 </Link>
                 <Button variant="outline" disabled={busy === player.id} onClick={() => unblock(player)}>Unblock</Button>
@@ -431,7 +392,7 @@ const BlockedPlayers = () => {
           })}
         </ul>
       )}
-      {error && <p className={styles.error} role="alert">{error}</p>}
+      {error && <Message tone="error">{error}</Message>}
     </>
   );
 };
@@ -469,25 +430,18 @@ const PrivacySection = () => {
   return (
     <section className={styles.card} aria-labelledby="settings-privacy">
       <h2 id="settings-privacy" className={styles.cardTitle}>Privacy</h2>
-      <p className={styles.muted}>
+      <Message>
         What GameHub records as you play, and who sees it. Your favorite games and friends list are public; your
         ratings, bookmarks and progress are only yours.
-      </p>
+      </Message>
       {choices && (
         <div className={styles.activityGroup}>
-          <label className={styles.switchRow}>
-            <input
-              type="checkbox"
-              role="switch"
-              className={styles.switch}
-              checked={historyOn}
-              onChange={(e) => choose('record_played', e.target.checked)}
-            />
-            <span className={styles.audienceText}>
-              <span className={styles.label}>Keep a history of what I play</span>
-              <span className={styles.muted}>{historyOn ? HISTORY.on : HISTORY.off}</span>
-            </span>
-          </label>
+          <Switch
+            label="Keep a history of what I play"
+            hint={historyOn ? HISTORY.on : HISTORY.off}
+            checked={historyOn}
+            onChange={(e) => choose('record_played', e.target.checked)}
+          />
           {/* Off, the choices go with it (they're kept for when it's back on) */}
           {historyOn && HISTORY_AUDIENCES.map(({ key, label, text }) => (
             <AudienceChoice key={key} choiceKey={key} label={label} text={text} value={choices[key]} onChoose={choose} />
@@ -495,8 +449,8 @@ const PrivacySection = () => {
           <DeleteHistory />
         </div>
       )}
-      {!choices && !error && <p className={styles.muted}>Loading…</p>}
-      {error && <p className={styles.error} role="alert">{error}</p>}
+      {!choices && !error && <Status kind="loading" />}
+      {error && <Message tone="error">{error}</Message>}
       <BlockedPlayers />
     </section>
   );
@@ -531,25 +485,22 @@ const DeleteSection = ({ profile, onDelete }) => {
         This deletes your account and profile straight away, along with anything tied to them. It can't be
         undone. You can always sign up again later with a fresh account.
       </p>
-      <form className={styles.field} onSubmit={submit}>
-        <label htmlFor="settings-delete-confirm" className={styles.label}>
-          Type your username, {profile.username}, to confirm
-        </label>
-        <div className={styles.inputRow}>
-          <input
-            id="settings-delete-confirm"
-            className={styles.input}
-            value={typed}
-            onChange={(e) => setTyped(e.target.value)}
-            autoComplete="off"
-            autoCapitalize="none"
-            spellCheck={false}
-          />
-          <Button type="submit" variant="danger" disabled={typed.trim() !== profile.username || state.busy}>
-            {state.busy ? 'Deleting…' : 'Delete my account'}
-          </Button>
-        </div>
-        {state.error && <p className={styles.error} role="alert">{state.error}</p>}
+      <form onSubmit={submit}>
+        <TextField
+          id="settings-delete-confirm"
+          label={`Type your username, ${profile.username}, to confirm`}
+          value={typed}
+          onChange={(e) => setTyped(e.target.value)}
+          autoComplete="off"
+          autoCapitalize="none"
+          spellCheck={false}
+          error={state.error}
+          after={(
+            <Button type="submit" tone="danger" disabled={typed.trim() !== profile.username || state.busy}>
+              {state.busy ? 'Deleting…' : 'Delete my account'}
+            </Button>
+          )}
+        />
       </form>
     </section>
   );
@@ -574,9 +525,9 @@ const Settings = () => {
   const page = (content) => (
     <div className={styles.page}>
       <div className={styles.profileHeader}>
-        <h1 className={styles.title}>Settings</h1>
+        <PageTitle>Settings</PageTitle>
         {/* Only once there's a profile: signed out, loading, or a site without accounts has none */}
-        {profile && <Button as={Link} to={`/u/${profile.username}`} variant="outline">View profile</Button>}
+        {profile && <Button to={`/u/${profile.username}`} variant="outline">View profile</Button>}
       </div>
       {content}
     </div>
@@ -587,7 +538,7 @@ const Settings = () => {
     return page(
       <section className={styles.card} role="status">
         <p>Your account has been deleted. Thanks for playing!</p>
-        <p><Link to="/" className={styles.textLink}>Back to the games</Link></p>
+        <p><Link to="/">Back to the games</Link></p>
       </section>,
     );
   }
@@ -600,14 +551,14 @@ const Settings = () => {
     );
   }
   if (loading) {
-    return page(<p className={styles.muted} aria-live="polite">Loading…</p>);
+    return page(<Status kind="loading" />);
   }
   if (!user) {
     return page(
       <>
         <PreferencesSection />
         <section className={styles.card}>
-          {signOutProblem && <p className={styles.error} role="alert">{signOutProblem}</p>}
+          {signOutProblem && <Message tone="error">{signOutProblem}</Message>}
           <p>Sign in to change your profile and account settings.</p>
           <div className={styles.actions}>
             <Button onClick={openSignIn}>Sign in</Button>
@@ -620,10 +571,9 @@ const Settings = () => {
     return page(
       <>
         <section className={styles.card}>
-          <p className={styles.error} role="alert">
-            {profileError ? "Couldn't load your profile. Check your connection and try again." : 'Loading…'}
-          </p>
-          {profileError && <div className={styles.actions}><Button onClick={refreshProfile}>Try again</Button></div>}
+          {profileError
+            ? <Status kind="error" onRetry={refreshProfile}>Couldn&rsquo;t load your profile. Check your connection and try again.</Status>
+            : <Status kind="loading" />}
         </section>
         <PreferencesSection />
       </>,

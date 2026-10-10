@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useId } from 'react';
 import {
   PiArrowCounterClockwise, PiCheckCircleFill, PiClockFill, PiCloudSlashFill, PiHourglassMediumFill, PiPauseFill, PiPlayFill,
   PiStarFill, PiXCircleFill,
@@ -7,11 +7,15 @@ import { playTime, timeAgo } from '../../../../lib/activity';
 import { clockTime, formatValue } from '../../../../lib/gameStatus';
 import { usePlayed } from '../../../../lib/playTime';
 import { runSeconds } from '../../../../lib/runs';
+import { useFit } from '../../../../lib/useFit';
 import Button from '../../../common/Button/Button';
+import { Collapsible, DisclosureButton, useDisclosure } from '../../../common/Disclosure/Disclosure';
+import { RadioGroup } from '../../../common/Field/Field';
+import InfoTip from '../../../common/InfoTip/InfoTip';
+import Message from '../../../common/Message/Message';
 import styles from './GameProgress.module.scss';
-import InfoTip from "../../../common/InfoTip/InfoTip.jsx";
 
-const SPEEDS = [1, 2, 4];
+const SPEEDS = [1, 2, 4].map((speed) => ({ value: speed, label: `${speed}×` }));
 const SHOWN_RUNS = 3; // the newest; the rest behind "Show all"
 const DAY = 24 * 60 * 60 * 1000;
 const OUTCOMES = { won: 'Won', lost: 'Lost' }; // a game that's simply over says nothing
@@ -118,40 +122,33 @@ const ReplayBar = ({ replay, state, onControl, onAgain, onStop }) => {
       </p>
       <div className={styles.replayControls}>
         {status === 'ended' ? (
-          <Button variant="outline" className={styles.again} onClick={onAgain}>
-            <PiArrowCounterClockwise aria-hidden="true" />
+          <Button variant="outline" size="sm" font="secondary" icon={PiArrowCounterClockwise} onClick={onAgain}>
             Watch again
           </Button>
         ) : (
-          <button
-            type="button"
-            className={styles.playPause}
+          <Button
+            variant="outline"
+            size="sm"
+            icon={status === 'paused' ? PiPlayFill : PiPauseFill}
+            label={status === 'paused' ? 'Play' : 'Pause'}
             onClick={() => onControl({ action: status === 'paused' ? 'resume' : 'pause' })}
             disabled={!running}
-            aria-label={status === 'paused' ? 'Play' : 'Pause'}
-            title={status === 'paused' ? 'Play' : 'Pause'}
-          >
-            {status === 'paused' ? <PiPlayFill aria-hidden="true" /> : <PiPauseFill aria-hidden="true" />}
-          </button>
+          />
         )}
-        <div className={styles.speeds} role="group" aria-label="Speed">
-          {SPEEDS.map((speed) => (
-            <button
-              key={speed}
-              type="button"
-              aria-pressed={replay.speed === speed}
-              onClick={() => onControl({ action: 'speed', speed })}
-              disabled={status === 'ended' || status === 'error'}
-            >
-              {speed}×
-            </button>
-          ))}
-        </div>
+        <RadioGroup
+          variant="segmented"
+          label="Speed"
+          hideLabel
+          options={SPEEDS}
+          value={replay.speed}
+          onChange={(speed) => onControl({ action: 'speed', speed })}
+          disabled={status === 'ended' || status === 'error'}
+        />
         <div className={styles.progress}>
           <progress max={Math.max(length, 1)} value={Math.min(position, length)} aria-label="How far the replay has got" />
           <span className={styles.times}>{clockTime(position / 1000)} / {clockTime(length / 1000)}</span>
         </div>
-        <Button className={styles.back} onClick={onStop}>Back to the game</Button>
+        <Button size="sm" font="secondary" className={styles.back} onClick={onStop}>Back to the game</Button>
       </div>
     </div>
   );
@@ -186,18 +183,17 @@ const RunRow = ({ row, watching, isRecord, signedIn, onWatch }) => {
   const id = useId();
   return (
     <li className={styles.run} aria-current={watching ? 'true' : undefined}>
-      <button
-        type="button"
-        className={styles.runPlay}
+      <Button
+        size="sm"
+        shape="round"
+        icon={PiPlayFill}
+        label="Watch again"
         onClick={() => onWatch(row)}
         aria-describedby={`${id}-result ${id}-when`}
-        title="Watch again"
-      >
-        <PiPlayFill aria-hidden="true" />
-        <span className="visually-hidden">Watch again</span>
-      </button>
-      <RunResult run={run} check={check} id={`${id}-result`} />
-      <span className={styles.runMeta}>
+      />
+      {/* The result, with the record's star at the right of its line: there too when the rest goes under it */}
+      <span className={styles.runTop}>
+        <RunResult run={run} check={check} id={`${id}-result`} />
         {isRecord && (
           <Badge
             Icon={PiStarFill}
@@ -206,6 +202,8 @@ const RunRow = ({ row, watching, isRecord, signedIn, onWatch }) => {
             className={styles.best}
           />
         )}
+      </span>
+      <span className={styles.runMeta}>
         {keepUntil && <KeptFor until={keepUntil} />}
         {badge && <Badge Icon={badge.Icon} label={badge.text} note={badge.note} className={`${styles.check} ${styles[check.state]}`} />}
         {/* How long it lasted, unless its result says (a game's own clock: Minesweeper's time) */}
@@ -218,9 +216,8 @@ const RunRow = ({ row, watching, isRecord, signedIn, onWatch }) => {
 
 /** The player's runs of the game, newest first, to watch again */
 const Replays = ({ runs, records, replay, onWatch, signedIn }) => {
-  const [showAll, setShowAll] = useState(false);
+  const all = useDisclosure();
   const headingId = useId();
-  const extraId = useId();
   const watching = replay?.row.key ?? null;
   const record = recordKeys(runs, records, signedIn);
 
@@ -239,31 +236,25 @@ const Replays = ({ runs, records, replay, onWatch, signedIn }) => {
     <section className={styles.replays} aria-labelledby={headingId}>
       <div className={styles.replaysHeader}>
         <h2>Your runs</h2>
-        <InfoTip label={"How your runs are kept"}>
+        <InfoTip label="How your runs are kept">
           {signedIn
             ? 'Runs are kept in this browser: the moves you made, not a video. Games played on a ticket also go to GameHub’s server, which plays them again: only those count in your account, and you can watch them in any browser for 30 days (your records for as long as they are ones).'
             : 'Runs are kept in this browser: the moves you made, not a video.'}
         </InfoTip>
       </div>
       {runs.length === 0 ? (
-        <p className={styles.note}>Finish a game, and you can watch it again here.</p>
+        <Message>Finish a game, and you can watch it again here.</Message>
       ) : (
         <>
           <ul className={styles.runList}>{runs.slice(0, SHOWN_RUNS).map(row)}</ul>
           {runs.length > SHOWN_RUNS && (
             <>
-              <div id={extraId} className={`${styles.moreRuns} ${showAll ? styles.open : ''}`}>
+              <Collapsible gap="sm" {...all.panelProps}>
                 <ul className={styles.runList}>{runs.slice(SHOWN_RUNS).map(row)}</ul>
-              </div>
-              <button
-                type="button"
-                className={styles.textButton}
-                onClick={() => setShowAll((shown) => !shown)}
-                aria-expanded={showAll}
-                aria-controls={extraId}
-              >
-                {showAll ? 'Show fewer' : `Show all ${runs.length}`}
-              </button>
+              </Collapsible>
+              <Button variant="text" size="sm" font="secondary" className={styles.showAll} {...all.buttonProps}>
+                {all.open ? 'Show fewer' : `Show all ${runs.length}`}
+              </Button>
             </>
           )}
         </>
@@ -295,8 +286,9 @@ const GameProgress = ({
   onReplayAgain, onStopReplay,
 }) => {
   const played = usePlayed(playedTime);
-  const [moreOpen, setMoreOpen] = useState(false);
-  const moreId = useId();
+  const more = useDisclosure();
+  // More beside the numbers; if it doesn't fit, its ▼ alone; if that doesn't either, More under them
+  const [summaryLook, summaryRef] = useFit(['', styles.compact, '']);
 
   const main = status?.main ?? [];
   const sections = status?.more ?? [];
@@ -319,7 +311,7 @@ const GameProgress = ({
       )}
 
       {(main.length > 0 || showPlayed) && (
-        <div className={styles.summary}>
+        <div ref={summaryRef} className={`${styles.summary} ${summaryLook}`}>
           <dl className={styles.stats}>
             {main.map((item) => (
               <div key={item.label} className={styles.stat}>
@@ -335,21 +327,15 @@ const GameProgress = ({
             )}
           </dl>
           {hasMore && (
-            <button
-              type="button"
-              className={styles.moreButton}
-              onClick={() => setMoreOpen((open) => !open)}
-              aria-expanded={moreOpen}
-              aria-controls={moreId}
-            >
-              More <span aria-hidden="true">▼</span>
-            </button>
+            <DisclosureButton font="secondary" className={styles.moreButton} {...more.buttonProps}>
+              <span className={styles.moreLabel}>More</span>
+            </DisclosureButton>
           )}
         </div>
       )}
 
       {hasMore && (
-        <div id={moreId} className={`${styles.more} ${moreOpen ? styles.open : ''}`}>
+        <Collapsible {...more.panelProps}>
           <div className={styles.moreSections}>
             {sections.map((section, i) => (
               // Sections have no id, and their titles can repeat or be empty
@@ -376,7 +362,7 @@ const GameProgress = ({
                     </div>
                   )))}
                 </dl>
-                <p className={styles.note}>Your best games that GameHub&rsquo;s server played again: only these count.</p>
+                <Message>Your best games that GameHub&rsquo;s server played again: only these count.</Message>
               </section>
             )}
             {showPlayed && (
@@ -394,15 +380,15 @@ const GameProgress = ({
                     </div>
                   )}
                 </dl>
-                <p className={styles.note}>
+                <Message>
                   {played.where === 'account'
                     ? 'Counted while you play, in your account.'
                     : 'Counted while you play, in this browser only.'}
-                </p>
+                </Message>
               </section>
             )}
           </div>
-        </div>
+        </Collapsible>
       )}
 
       {showReplays && <Replays runs={runs} records={records} replay={replay} onWatch={onWatch} signedIn={signedIn} />}

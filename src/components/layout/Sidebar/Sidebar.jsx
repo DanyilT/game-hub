@@ -3,6 +3,8 @@ import { NavLink } from 'react-router';
 import { CiCircleChevLeft, CiCircleChevRight, CiCircleRemove } from 'react-icons/ci';
 import { useAuth } from '../../../contexts/AuthContext';
 import Avatar from '../../common/Avatar/Avatar';
+import Badge from '../../common/Badge/Badge';
+import Button from '../../common/Button/Button';
 import useNavItems from '../useNavItems';
 import styles from './Sidebar.module.scss';
 
@@ -37,14 +39,14 @@ const Sidebar = ({ isExpanded = false, onToggleExpanded = () => {}, isOpen = fal
       <>
         <span className={styles.iconWrap}>
           <Icon className={styles.navIcon} aria-hidden="true" />
-          {badge > 0 && <span className={styles.dot} aria-hidden="true" />}
+          {badge > 0 && <Badge variant="dot" className={styles.dot} aria-hidden="true" />}
         </span>
         <span className={styles.navLabel}>{label}</span>
-        {soon && <span className={styles.soonBadge}><span className="visually-hidden">coming </span>soon</span>}
+        {soon && <Badge variant="outline" className={styles.soonBadge}><span className="visually-hidden">coming </span>soon</Badge>}
         {badge > 0 && (
-          <span className={styles.countBadge}>
+          <Badge className={styles.countBadge}>
             {badge}<span className="visually-hidden"> {badge === 1 ? 'friend request' : 'friend requests'}</span>
-          </span>
+          </Badge>
         )}
       </>
     );
@@ -94,30 +96,26 @@ const Sidebar = ({ isExpanded = false, onToggleExpanded = () => {}, isOpen = fal
     >
       <div className={styles.sidebarHeader}>
         {/* Desktop: collapse / expand */}
-        <button
-          type="button"
-          className={`${styles.iconButton} ${styles.toggleBtn}`}
+        <Button
+          variant="ghost"
+          tone="neutral"
+          icon={isExpanded ? <CiCircleChevLeft className={styles.toggleIcon} /> : <CiCircleChevRight className={styles.toggleIcon} />}
+          label={isExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
+          className={styles.toggleBtn}
           onClick={onToggleExpanded}
-          aria-label={isExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
-          title={isExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
-        >
-          {isExpanded ? (
-            <CiCircleChevLeft className={styles.toggleIcon} aria-hidden="true" />
-          ) : (
-            <CiCircleChevRight className={styles.toggleIcon} aria-hidden="true" />
-          )}
-        </button>
+        />
 
         {/* Phone: close the drawer */}
-        <button
+        <Button
           ref={closeButtonRef}
-          type="button"
-          className={`${styles.iconButton} ${styles.closeBtn}`}
+          variant="ghost"
+          tone="neutral"
+          icon={<CiCircleRemove className={styles.toggleIcon} />}
+          label="Close menu"
+          title=""
+          className={styles.closeBtn}
           onClick={onClose}
-          aria-label="Close menu"
-        >
-          <CiCircleRemove className={styles.toggleIcon} aria-hidden="true" />
-        </button>
+        />
       </div>
 
       {/* Main Navigation */}

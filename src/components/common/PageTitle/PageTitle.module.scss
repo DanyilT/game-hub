@@ -1,0 +1,20 @@
+@use '../../../styles/abstracts/variables' as *;
+
+// In the `components` layer (main.scss): a page's own class on it wins over these (its margins)
+@layer reset, components;
+
+@layer components {
+  .title {
+    background: $gradient-neon;
+    background-size: 400%;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-size: clamp(2rem, 4vw, 2.75rem);
+    overflow-wrap: anywhere;
+    animation: global(gradient-shift) $neon-cycle;
+  }
+
+  .center {
+    text-align: center;
+  }
+}

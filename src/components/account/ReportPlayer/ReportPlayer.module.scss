@@ -1,5 +1,4 @@
 @use '../../../styles/abstracts/variables' as *;
-@use '../../../styles/abstracts/forms';
 
 .form {
   display: flex;
@@ -17,106 +16,6 @@
   color: $color-text-secondary;
   font-family: $font-secondary;
   font-weight: normal;
-}
-
-.label {
-  @include forms.label;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-sm;
-}
-
-.reasons {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-sm;
-  min-width: 0;
-  margin: 0;
-  padding: 0;
-  border: 0;
-
-  legend {
-    margin-bottom: $spacing-sm;
-    padding: 0;
-  }
-}
-
-// Each reason is a row to pick: the radio, then what it's for
-.reason {
-  display: flex;
-  align-items: flex-start;
-  gap: $spacing-sm;
-  padding: $spacing-sm $spacing-md;
-  border: 1px solid $color-primary;
-  cursor: pointer;
-  transition: background $transition-fast ease, border-color $transition-fast ease;
-
-  input {
-    margin-top: 0.3em;
-    accent-color: $color-primary-light;
-  }
-
-  &:hover,
-  &.chosen {
-    border-color: $color-primary-light;
-    background: color-mix(in srgb, $color-primary-light 12%, transparent);
-  }
-
-  &:has(input:focus-visible) {
-    outline: 2px solid $color-primary-light;
-    outline-offset: 2px;
-  }
-}
-
-.reasonText {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.reasonLabel {
-  font-weight: $font-weight-semibold;
-}
-
-.select {
-  @include forms.text-input;
-  font-family: $font-secondary;
-
-  option {
-    background: $color-black-light;
-    color: $color-text-primary;
-  }
-}
-
-.textarea {
-  @include forms.text-input;
-  min-height: 6rem;
-  resize: vertical;
-  font-family: $font-secondary;
-}
-
-.muted {
-  color: $color-text-secondary;
-  font-family: $font-secondary;
-  font-size: $font-size-sm;
-
-  a {
-    color: $color-primary-light;
-    text-decoration: underline;
-    text-underline-offset: 2px;
-
-    &:hover {
-      color: $color-secondary;
-    }
-  }
-}
-
-.error {
-  color: forms.$color-status-error;
-  font-size: $font-size-sm;
 }
 
 .actions {

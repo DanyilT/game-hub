@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { useNavigate } from 'react-router';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { hasChosenUsername, takeReturnPath } from '../../lib/account';
 import { WelcomeDialog, rememberLater } from '../../components/account/UsernameDialog/UsernameDialog';
 import Button from '../../components/common/Button/Button';
+import Message from '../../components/common/Message/Message';
+import PageTitle from '../../components/common/PageTitle/PageTitle';
 import styles from './Account.module.scss';
 
 /**
@@ -58,9 +60,9 @@ const AuthCallback = () => {
   } else if (problem) {
     content = (
       <>
-        <p className={styles.error} role="alert">{problem}</p>
+        <Message tone="error">{problem}</Message>
         <div className={styles.actions}>
-          <Button as={Link} to="/" variant="outline">Back to the games</Button>
+          <Button to="/" variant="outline">Back to the games</Button>
           <Button onClick={openSignIn}>Try again</Button>
         </div>
       </>
@@ -68,7 +70,7 @@ const AuthCallback = () => {
   } else if (user && profileError) {
     content = (
       <>
-        <p className={styles.error} role="alert">You're signed in, but your profile didn't load. Check your connection and try again.</p>
+        <Message tone="error">You&rsquo;re signed in, but your profile didn&rsquo;t load. Check your connection and try again.</Message>
         <div className={styles.actions}><Button onClick={refreshProfile}>Try again</Button></div>
       </>
     );
@@ -78,7 +80,7 @@ const AuthCallback = () => {
 
   return (
     <div className={`${styles.page} ${styles.narrow}`}>
-      <h1 className={styles.title}>Sign in</h1>
+      <PageTitle>Sign in</PageTitle>
       <section className={styles.card} aria-live="polite">{content}</section>
 
       {welcoming && profile && (

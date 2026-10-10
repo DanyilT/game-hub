@@ -1,0 +1,111 @@
+// The design system's stories (dev/storybook/stories/design): how they lay out the site's parts side by side, and the
+// surfaces (src/styles/abstracts/_surfaces.scss) drawn on boxes of their own. Storybook's only, not the site's.
+@use '../../../../src/styles/abstracts/variables' as *;
+@use '../../../../src/styles/abstracts/surfaces';
+
+// A table: a name at the start of each row, then what it names (--columns: how many after the name)
+.table {
+  display: grid;
+  grid-template-columns: max-content repeat(var(--columns), max-content);
+  align-items: center;
+  justify-items: start;
+  gap: $spacing-md $spacing-lg;
+}
+
+.heading {
+  color: $color-text-secondary;
+  font-family: $font-secondary;
+  font-size: $font-size-xs;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-md;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-md;
+  width: 320px;
+}
+
+.note {
+  max-width: 60ch;
+  color: $color-text-secondary;
+  font-family: $font-secondary;
+  font-size: $font-size-sm;
+}
+
+// A colourful picture behind the see-through ones (glass, and the tags on a game card)
+@mixin picture {
+  background:
+    radial-gradient(circle at 20% 30%, color-mix(in srgb, $color-secondary 70%, transparent), transparent 55%),
+    radial-gradient(circle at 80% 70%, color-mix(in srgb, $color-accent-light 55%, transparent), transparent 50%),
+    linear-gradient(135deg, $color-primary, $color-black-light);
+}
+
+.picture {
+  @include picture;
+  padding: $spacing-xl $spacing-lg;
+  border-radius: $radius-xl;
+}
+
+.onPicture {
+  @include picture;
+  display: inline-flex;
+  padding: $spacing-sm;
+  border-radius: $radius-md;
+}
+
+// The surfaces, each on a box of its own (a panel and a window leave their padding to the page)
+.surface {
+  width: 340px;
+}
+
+.card {
+  @include surfaces.card;
+}
+
+.cardOutlined {
+  @include surfaces.card-outlined;
+}
+
+.panel {
+  @include surfaces.panel;
+  padding: $spacing-lg;
+}
+
+.window {
+  @include surfaces.window;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+  padding: $spacing-lg;
+}
+
+// What opens a Popover: its place
+.popoverAnchor {
+  position: relative;
+  display: inline-flex;
+}
+
+// A form's fields, one under another
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+  width: min(400px, 90vw);
+}
+
+.surfaces {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 340px); // each surface's own width (.surface)
+  align-items: start;
+  gap: $spacing-lg;
+}

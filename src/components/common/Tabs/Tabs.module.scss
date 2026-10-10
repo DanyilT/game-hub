@@ -1,0 +1,81 @@
+@use '../../../styles/abstracts/variables' as *;
+
+// A row of tabs on a line, the chosen one underlined in pink; small ones (inside a tab) are pills
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: $spacing-xs;
+  border-bottom: 1px solid color-mix(in srgb, $color-primary 60%, transparent);
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  margin-bottom: -1px; // the chosen tab's line sits on the row's
+  padding: $spacing-sm;
+  border-bottom: 2px solid transparent;
+  color: $color-text-secondary;
+  font-size: $font-size-sm;
+  text-transform: uppercase;
+  transition: color $transition-fast, border-color $transition-fast;
+
+  &:hover {
+    color: $color-text-primary;
+  }
+
+  &.active {
+    border-color: $color-secondary;
+    color: $color-text-primary;
+  }
+}
+
+// A tab's icon, with the lock at its bottom right when the tab is private
+.icon {
+  position: relative;
+  display: inline-flex;
+  font-size: 1.25em;
+}
+
+.lock {
+  position: absolute;
+  right: -0.3em;
+  bottom: -0.2em;
+  display: inline-flex;
+  font-size: 0.6em;
+}
+
+.lockIcon {
+  padding: 1px;
+  border-radius: $radius-full;
+  background: $color-black-light;
+  color: $color-secondary;
+}
+
+.tip {
+  top: calc(100% + 8px);
+  padding: $spacing-xs $spacing-sm;
+  color: $color-text-primary;
+  font-family: $font-secondary;
+  font-size: $font-size-xs;
+  font-weight: normal;
+  text-transform: none;
+}
+
+.small {
+  gap: $spacing-xs;
+  border-bottom: none;
+
+  .tab {
+    margin-bottom: 0;
+    padding: $spacing-xs $spacing-sm;
+    border: 1px solid color-mix(in srgb, $color-primary 60%, transparent);
+    border-radius: $radius-full;
+    text-transform: none;
+
+    &.active {
+      border-color: $color-secondary;
+      background: color-mix(in srgb, $color-secondary 12%, transparent);
+    }
+  }
+}

@@ -1,5 +1,5 @@
 @use '../../styles/abstracts/variables' as *;
-@use '../../styles/abstracts/forms';
+@use '../../styles/abstracts/surfaces';
 @use '../../styles/abstracts/mixins';
 
 // Shared by the account pages: AuthCallback, Me, Players, Profile, Settings (sign-in is a modal:
@@ -26,46 +26,12 @@
   max-width: 1100px;
 }
 
-// The site's neon gradient, sliding through the title
-.title {
-  font-size: clamp(2rem, 4vw, 2.75rem);
-  background: $gradient-neon;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-size: 400%;
-  animation: global(gradient-shift) $neon-cycle;
-  overflow-wrap: anywhere;
-}
-
 .card {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-md;
-  padding: $spacing-lg;
-  border: 1px solid $color-primary;
-
-  @media (width <= $breakpoint-mobile) {
-    padding: $spacing-md;
-  }
+  @include surfaces.card-outlined;
 }
 
 .cardTitle {
   font-size: $font-size-xl;
-}
-
-.muted {
-  color: $color-text-secondary;
-  font-size: $font-size-sm;
-}
-
-.textLink {
-  color: $color-primary-light;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-
-  &:hover {
-    color: $color-secondary;
-  }
 }
 
 .actions {
@@ -75,47 +41,11 @@
   gap: $spacing-sm;
 }
 
-// Messages
-// A form's message, shown only once there is one: it slides down into view
-.status {
-  @include forms.form-status;
-  animation: status-in $transition-fast ease-out;
-}
-
-@keyframes status-in {
-  from {
-    opacity: 0;
-    transform: translateY(-0.5em);
-  }
-}
-
-.ok {
-  color: forms.$color-status-ok;
-}
-
-.error {
-  color: forms.$color-status-error;
-}
-
-// Fields
+// A form's fields one under another
 .form {
   display: flex;
   flex-direction: column;
   gap: $spacing-md;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-xs;
-}
-
-.label {
-  @include forms.label;
-}
-
-.input {
-  @include forms.text-input;
 }
 
 // Profile
@@ -198,48 +128,20 @@
   }
 }
 
-// A text field that fills the row, with its buttons beside it (wrapping on narrow screens)
-.inputRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: $spacing-sm;
-
-  .input {
-    flex: 1 1 14rem;
-    width: auto;
-  }
-}
-
 .danger {
   border-color: $color-error;
 }
 
-// Players: search and sort (an .inputRow), and a grid of player cards
-.sorts {
+// Players: the search box, with the order beside it, as tall as the box (under it when there's no room: its own height)
+.searchRow {
   display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: $spacing-sm $spacing-md;
 }
 
-.sortButton {
-  padding: $spacing-sm $spacing-md;
-  border: 1px solid $color-primary;
-  color: $color-text-secondary;
-  font-size: $font-size-sm;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  transition: background $transition-fast, color $transition-fast;
-
-  & + & {
-    border-left: none;
-  }
-
-  &:hover {
-    color: $color-text-primary;
-  }
-
-  &.active {
-    background: $color-primary;
-    color: $color-text-primary;
-  }
+.search {
+  flex: 1 1 14rem;
 }
 
 .playerGrid {
@@ -292,63 +194,6 @@
   overflow-wrap: anywhere;
 }
 
-.youBadge {
-  flex-shrink: 0;
-  padding: 0 $spacing-xs;
-  border: 1px solid $color-accent-light;
-  color: $color-accent-light;
-  font-size: $font-size-xs;
-  text-transform: uppercase;
-}
-
-// Settings → Preferences: radio buttons as cards, each with a little picture
-.choices {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
-  gap: $spacing-sm;
-  min-width: 0;
-  margin: 0;
-  padding: 0;
-  border: none; // browsers draw one round a fieldset
-
-  legend {
-    margin-bottom: $spacing-sm;
-    padding: 0;
-  }
-}
-
-.choice {
-  display: flex;
-  align-items: center;
-  gap: $spacing-md;
-  padding: $spacing-md;
-  border: 1px solid color-mix(in srgb, $color-primary 60%, transparent);
-  cursor: pointer;
-  transition: border-color $transition-fast, background $transition-fast;
-
-  &:hover {
-    border-color: $color-primary-light;
-  }
-
-  // The radio itself is hidden, so its focus shows on the card
-  &:has(input:focus-visible) {
-    outline: 2px solid $color-primary-light;
-    outline-offset: 2px;
-  }
-
-  &.chosen {
-    border-color: $color-secondary;
-    background: color-mix(in srgb, $color-primary 25%, transparent);
-  }
-}
-
-.choiceText {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-xs;
-  min-width: 0;
-}
-
 // A tiny page: a bar down its side (sidebar) or a dot in a bottom corner (floating button)
 .navPreview {
   position: relative;
@@ -382,42 +227,26 @@
     left: 4px;
   }
 
-  .chosen & {
+  // Its card's radio is chosen (a RadioGroup's card: the picture beside the radio)
+  :has(> input:checked) > & {
     border-color: $color-text-primary;
     opacity: 1;
   }
 }
 
-// Profile: the friend buttons, then tabs (Favorites, Friends, and your own Bookmarks, Ratings, Requests)
+// Another player's profile: the friend button (or its menu), then the ⋯, at the header's right (under the names when
+// there's no room)
+.headerActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+// Above the tabs, when you've blocked them (a Message): what that means, with a line under it
 .profileFriend {
   padding-bottom: $spacing-md;
   border-bottom: 1px solid color-mix(in srgb, $color-primary 60%, transparent);
-}
-
-.friendButton {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-xs;
-}
-
-.friendsBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: $spacing-xs;
-  padding: $spacing-sm $spacing-md;
-  border: 1px solid $color-accent-light;
-  color: $color-accent-light;
-  font-weight: $font-weight-semibold;
-}
-
-.blockedBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: $spacing-xs;
-  padding: $spacing-sm $spacing-md;
-  border: 1px solid color-mix(in srgb, $color-error 70%, transparent);
-  color: forms.$color-status-error;
-  font-weight: $font-weight-semibold;
 }
 
 // Settings → Privacy: the players you've blocked
@@ -453,106 +282,6 @@
   transition: color $transition-fast ease;
 }
 
-.tabs {
-  display: flex;
-  flex-wrap: wrap;
-  column-gap: $spacing-xs;
-  border-bottom: 1px solid color-mix(in srgb, $color-primary 60%, transparent);
-}
-
-.tab {
-  display: inline-flex;
-  align-items: center;
-  gap: $spacing-xs;
-  margin-bottom: -1px; // the active tab's line sits on the row's
-  padding: $spacing-sm;
-  border-bottom: 2px solid transparent;
-  color: $color-text-secondary;
-  font-size: $font-size-sm;
-  text-transform: uppercase;
-  transition: color $transition-fast, border-color $transition-fast;
-
-  &:hover {
-    color: $color-text-primary;
-  }
-
-  &.active {
-    border-color: $color-secondary;
-    color: $color-text-primary;
-  }
-}
-
-// A tab's icon, with a lock at its bottom right when the tab is private; hovering it says so
-.tabIcon {
-  position: relative;
-  display: inline-flex;
-  font-size: 1.25em;
-
-  &:hover .tabTip {
-    display: block;
-  }
-}
-
-.tabLock {
-  position: absolute;
-  right: -0.3em;
-  bottom: -0.2em;
-  padding: 1px;
-  border-radius: $radius-full;
-  background: $color-black-light;
-  color: $color-secondary;
-  font-size: 0.6em;
-}
-
-.tabTip {
-  @include mixins.popup;
-  display: none;
-  left: 0;
-  right: auto;
-  top: calc(100% + 8px);
-  padding: $spacing-xs $spacing-sm;
-  color: $color-text-primary;
-  font-family: $font-secondary;
-  font-size: $font-size-xs;
-  text-transform: none;
-}
-
-// The tabs inside a tab (your friends, and your friend requests): smaller, as pills
-.subTabs {
-  gap: $spacing-xs;
-  border-bottom: none;
-
-  .tab {
-    margin-bottom: 0;
-    padding: $spacing-xs $spacing-sm;
-    border: 1px solid color-mix(in srgb, $color-primary 60%, transparent);
-    border-radius: $radius-full;
-    text-transform: none;
-
-    &.active {
-      border-color: $color-secondary;
-      background: color-mix(in srgb, $color-secondary 12%, transparent);
-    }
-  }
-}
-
-.tabCount {
-  min-width: 1.6em;
-  padding: 0 $spacing-xs;
-  border-radius: $radius-full;
-  background: $color-surface;
-  font-family: $font-secondary;
-  font-size: $font-size-xs;
-  line-height: 1.6;
-  text-align: center;
-
-  &.alert {
-    background: $color-secondary;
-    color: $color-black;
-    font-weight: $font-weight-bold;
-  }
-}
-
 .tabPanel {
   display: flex;
   flex-direction: column;
@@ -572,10 +301,10 @@
 }
 
 .gameTile {
+  position: relative; // for the lift's strip
   display: flex;
   flex-direction: column;
   height: 100%;
-  overflow: hidden;
   border: 1px solid $color-primary;
   color: $color-text-primary;
   text-decoration: none;
@@ -584,7 +313,7 @@
   &:hover {
     border-color: $color-primary-light;
     box-shadow: 0 0 10px rgba($color-primary-light, 0.3);
-    transform: translateY(-2px);
+    @include mixins.lift;
   }
 }
 
@@ -607,6 +336,7 @@
   align-items: center;
   gap: $spacing-sm;
   padding: $spacing-sm;
+  overflow-wrap: anywhere; // a long title wraps rather than widening the tile
   font-family: $font-secondary;
   font-size: $font-size-sm;
   font-weight: $font-weight-semibold;
@@ -665,118 +395,11 @@
   border-top: 1px solid color-mix(in srgb, $color-primary 40%, transparent);
 }
 
-.switchRow {
-  display: flex;
-  align-items: flex-start;
-  gap: $spacing-md;
-  cursor: pointer;
-}
-
-// A checkbox drawn as a switch: a track, and a knob that slides across when it's on
-.switch {
-  flex-shrink: 0;
-  position: relative;
-  width: 44px;
-  height: 24px;
-  margin-top: 2px;
-  border: 1px solid $color-primary-light;
-  border-radius: $radius-full;
-  background: transparent;
-  appearance: none;
-  cursor: pointer;
-  transition: background $transition-fast ease, border-color $transition-fast ease;
-
-  &::after {
-    content: '';
-    position: absolute;
-    top: 3px;
-    left: 3px;
-    width: 16px;
-    height: 16px;
-    border-radius: $radius-full;
-    background: $color-primary-light;
-    transition: transform $transition-fast ease, background $transition-fast ease;
-  }
-
-  &:checked {
-    border-color: $color-accent-light;
-    background: color-mix(in srgb, $color-accent-light 25%, transparent);
-
-    &::after {
-      transform: translateX(20px);
-      background: $color-accent-light;
-    }
-  }
-
-  &:focus-visible {
-    outline: 2px solid $color-primary-light;
-    outline-offset: 2px;
-  }
-}
-
 .historyActions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: $spacing-sm $spacing-md;
-}
-
-// Who sees one kind of activity, as a row of three choices
-.audienceGroup {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: $spacing-sm $spacing-md;
-  min-width: 0;
-}
-
-.audienceText {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-xs;
-  max-width: 24rem;
-}
-
-.audienceLabel {
-  display: flex;
-  align-items: center;
-  gap: $spacing-xs;
-}
-
-.audienceOptions {
-  display: inline-flex;
-  border: 1px solid color-mix(in srgb, $color-primary 60%, transparent);
-}
-
-.audienceOption {
-  display: inline-flex;
-  align-items: center;
-  gap: $spacing-xs;
-  padding: $spacing-xs $spacing-md;
-  font-family: $font-secondary;
-  font-size: $font-size-sm;
-  cursor: pointer;
-  transition: background $transition-fast, color $transition-fast;
-
-  & + & {
-    border-left: 1px solid color-mix(in srgb, $color-primary 60%, transparent);
-  }
-
-  &:hover {
-    background: color-mix(in srgb, $color-primary 20%, transparent);
-  }
-
-  // The radio itself is hidden, so its focus shows on the option
-  &:has(input:focus-visible) {
-    outline: 2px solid $color-primary-light;
-    outline-offset: 2px;
-  }
-
-  &.chosenAudience {
-    background: $color-primary;
-    color: $color-text-primary;
-  }
 }
 
 .gameTileIcon {
@@ -854,21 +477,8 @@
   min-width: 0;
 }
 
+// Saving… / Saved / the score (a Message), its numbers lined up
 .ratingState {
-  color: $color-text-secondary;
-  font-family: $font-secondary;
-  font-size: $font-size-sm;
   font-variant-numeric: tabular-nums;
 }
 
-.textButton {
-  color: $color-text-secondary;
-  font-family: $font-secondary;
-  font-size: $font-size-sm;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-
-  &:hover {
-    color: $color-secondary;
-  }
-}

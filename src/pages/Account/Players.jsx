@@ -5,7 +5,12 @@ import { supabase } from '../../lib/supabase';
 import { PROFILE_COLUMNS } from '../../lib/account';
 import { monthYear } from '../../lib/dates';
 import Avatar from '../../components/common/Avatar/Avatar';
+import Badge from '../../components/common/Badge/Badge';
 import Button from '../../components/common/Button/Button';
+import { RadioGroup, TextField } from '../../components/common/Field/Field';
+import Message from '../../components/common/Message/Message';
+import PageTitle from '../../components/common/PageTitle/PageTitle';
+import Status from '../../components/common/Status/Status';
 import styles from './Account.module.scss';
 
 const PAGE_SIZE = 24;
@@ -69,7 +74,7 @@ const Players = () => {
 
   const page = (content) => (
     <div className={`${styles.page} ${styles.wide}`}>
-      <h1 className={styles.title}>Players</h1>
+      <PageTitle>Players</PageTitle>
       {content}
     </div>
   );
@@ -88,43 +93,38 @@ const Players = () => {
 
   return page(
     <>
-      <div className={styles.inputRow}>
-        <label htmlFor="users-search" className="visually-hidden">Search players by name</label>
-        <input
+      <div className={styles.searchRow}>
+        <TextField
           id="users-search"
           type="search"
-          className={styles.input}
+          label="Search players by name"
+          hideLabel
+          className={styles.search}
           placeholder="Search by name"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           autoComplete="off"
           spellCheck={false}
         />
-        <div className={styles.sorts} role="group" aria-label="Order">
-          {SORTS.map(({ id, label }) => (
-            <button
-              key={id}
-              type="button"
-              className={`${styles.sortButton} ${sort === id ? styles.active : ''}`}
-              aria-pressed={sort === id}
-              onClick={() => {
-                setSort(id);
-                setShown(PAGE_SIZE);
-              }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        <RadioGroup
+          variant="segmented"
+          label="Order"
+          hideLabel
+          options={SORTS.map(({ id, label }) => ({ value: id, label }))}
+          value={sort}
+          onChange={(id) => {
+            setSort(id);
+            setShown(PAGE_SIZE);
+          }}
+        />
       </div>
 
       {error ? (
-        <div className={styles.actions} role="alert">
-          <span className={styles.error}>Couldn't load the players. Check your connection and try again.</span>
-          <Button variant="outline" onClick={() => setAttempt((n) => n + 1)}>Try again</Button>
-        </div>
+        <Status kind="error" onRetry={() => setAttempt((n) => n + 1)}>
+          Couldn&rsquo;t load the players. Check your connection and try again.
+        </Status>
       ) : (
-        <p className={styles.muted} aria-live="polite">{summary}</p>
+        <Message aria-live="polite">{summary}</Message>
       )}
 
       {players.length > 0 && (
@@ -139,7 +139,7 @@ const Players = () => {
                     {/* Only the name gets cut short ("…"), never the badge */}
                     <span className={styles.playerNameRow}>
                       <span className={styles.playerName}>{name}</span>
-                      {player.id === me?.id && <span className={styles.youBadge}>you</span>}
+                      {player.id === me?.id && <Badge variant="outline" tone="accent">you</Badge>}
                     </span>
                     <span className={styles.playerMeta}>@{player.username}</span>
                     <span className={styles.playerMeta}>Joined {monthYear(player.created_at, 'short')}</span>

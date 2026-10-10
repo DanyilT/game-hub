@@ -236,8 +236,13 @@ Each list is optional, and every link needs a `label`. A new game on another sit
 
 - **React 19** + **React Router 8**: UI and routing.
 - **Vite 8**: dev server and build.
-- **SCSS modules**: component styles (`*.module.scss`, `@use` only). Colours, sizes, fonts and timings are Sass variables in `src/styles/abstracts/_variables.scss`, and shared mixins are in `_mixins.scss` next to it.
-- **Fonts** (Google Fonts): Doto for the site, and Chakra Petch (easier to read small) for game tags. To change one, edit `$font-primary` / `$font-secondary` in `_variables.scss` and the Google Fonts link in `index.html`.
+- **SCSS modules**: component styles (`*.module.scss`, `@use` only). Colours, sizes, fonts and timings are Sass variables in `src/styles/abstracts/_variables.scss`, shared mixins are in `_mixins.scss` next to it, and what content sits on (cards, panels, windows, popups) is in `_surfaces.scss`.
+- **One design system** (`src/components/common`), each part in a `components` cascade layer (`@layer`), so a page's own class on one always wins: for where it goes, not a look of its own. Storybook shows them all under **Design system**.
+  - `Button`: every button, and every link that looks like one (a variant, tone, size, shape and font, an icon; an action, a page of the site, or another site). `Tag`: a game's tag. `Badge`: a count, a dot or a word (soon, you).
+  - The form fields (`Field`): `TextField`, `TextArea`, `Select`, `Checkbox`, `Switch` and `RadioGroup` (a list, cards, or segmented), each tying its label, hint and error to its control.
+  - `Message` (a note, error, warning or success line) and `Status` (loading, nothing yet, couldn't load with Try again); `PageTitle`; `Disclosure` (a ▼ and the part it opens); `Tabs`; `Popover` (kept inside the window).
+  - A link in running text (no class of its own) gets the site's link style from the base styles.
+- **Fonts** (Google Fonts): Doto for the site, and Chakra Petch (easier to read small) for tags and small labels (a `Button`'s `font="secondary"`). To change one, edit `$font-primary` / `$font-secondary` in `_variables.scss` and the Google Fonts link in `index.html`.
 - **react-icons**: interface icons, and the icons the catalogue names.
 - **Supabase**: sign-in (Google; Discord is coming), Postgres with row level security: profiles, the game list, game saves, ratings, favorites, bookmarks, feedback, friends, blocks and reports, play activity and privacy settings. Schema changes are migrations in `supabase/migrations/`, applied with `npx supabase db push`, with pgTAP tests in `supabase/tests/`.
 - **Cloudflare Workers (static assets)**: hosting, plus a small script (`worker/index.js`) whose cron trigger keeps Supabase awake.
@@ -258,7 +263,7 @@ game-hub/
 ├── src/
 │   ├── components/account/  # SignInModal, UsernameDialog (new players pick a username), UsernameField (🎲), ReportPlayer (the ⋯ → Report window)
 │   ├── components/install/  # installing as an app: the steps for iPhone/iPad, the banner on phones, useInstall()
-│   ├── components/common/   # Avatar, Button, ConfirmDialog ("Sign out?"), ErrorBoundary, ExternalLink (a link that opens a new tab), GooglePlayBadge, InfoTip, Menu (a ⋯ button with actions), Modal (the neon window), Toasts
+│   ├── components/common/   # the design system: Button, Tag, Badge, Field (the form fields), Message, Status, PageTitle, Disclosure, Tabs, Popover; and Avatar, ConfirmDialog ("Sign out?"), ErrorBoundary, ExternalLink (a link that opens a new tab), GooglePlayBadge, InfoTip, Menu (a ⋯ button with actions), Modal (the neon window), Toasts
 │   ├── components/layout/   # Header, Footer, MainLayout, RecentActivity (the games page); the navigation: Sidebar or FloatingNav, both from useNavItems.js
 │   ├── components/layout/game/  # GameCard, GameList, GameControls, GameReactions (favorites, bookmarks), DownloadGame (offline), GameProgress (the panel under the game, replays), RatingSlider, RateGame, GameHelp (the ? window)
 │   ├── contexts/            # AuthContext (the signed-in player, useAuth()), LibraryContext (their favorites, bookmarks, ratings, friend requests: useLibrary())
@@ -266,7 +271,7 @@ game-hub/
 │   ├── lib/                 # supabase.js (the client), gameBridge.js (saves, downloads, the panel), runs.js (runs to replay), checks.js (tickets, checked runs, records), gameStatus.js (the panel's numbers), playTime.js (play time), activity.js (played games, playing now, privacy), offline.js, friends.js, blocks.js, reports.js, account.js (username rules), install.js, preferences.js (navigation style), support.js (bug report links), toast.js, confirm.js, dates.js
 │   ├── service-worker.js    # the site's service worker: built into /sw.js by vite.config.js, not imported by the app
 │   ├── pages/               # Games, GamePage, Account/ (players, profile, /me, settings, sign-in callback), Legal/ (about, terms, privacy), ErrorPage
-│   ├── styles/              # Sass variables, mixins, buttons and forms, shared animations, reset, base
+│   ├── styles/              # Sass variables, mixins, surfaces (cards, panels, windows, popups) and forms, shared animations, reset, base
 │   ├── App.jsx              # routes
 │   └── index.jsx            # entry point
 ├── supabase/

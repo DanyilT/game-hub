@@ -1,0 +1,9 @@
+@use '../../../styles/abstracts/variables' as *;
+
+// The error, with Try again beside it (under it when there's no room)
+.status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-sm $spacing-md;
+}

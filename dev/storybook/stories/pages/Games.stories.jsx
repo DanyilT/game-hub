@@ -50,8 +50,11 @@ export const FilteredByLink = { parameters: { route: '/?tag=easy&tag=arcade' } }
 
 /** A game card's info, opened */
 export const GameInfo = {
+  // As a keyboard player opens it: a card shows its buttons while one of them has the focus (they take no clicks
+  // while hidden, and a pretend hover doesn't show them)
   play: async ({ canvas, userEvent }) => {
-    await userEvent.click(await canvas.findByRole('button', { name: 'Snake Game: Game Info' }));
+    (await canvas.findByRole('button', { name: 'Snake Game: Game Info' })).focus();
+    await userEvent.keyboard('{Enter}');
   },
 };
 

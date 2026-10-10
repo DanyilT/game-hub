@@ -2,6 +2,13 @@
 // Reset
 // ==========================================
 
+// The cascade layers' order, lowest first (main.scss): this reset, then the shared components (Button, Tag). Rules in no
+// layer come above both.
+@layer reset, components;
+
+// In the `reset` layer, the lowest: any other rule beats it, whatever its specificity
+@layer reset {
+
 *,
 *::before,
 *::after {
@@ -53,4 +60,6 @@ svg {
   display: block;
   max-width: 100%;
   height: auto;
+}
+
 }

@@ -1,6 +1,5 @@
 @use '../../../../styles/abstracts/variables' as *;
-@use '../../../../styles/abstracts/mixins';
-@use '../../../../styles/abstracts/buttons'; // %button-outline
+@use '../../../../styles/abstracts/surfaces';
 
 $outline: 2px solid color-mix(in srgb, $color-primary 70%, transparent);
 $line: 1px solid color-mix(in srgb, $color-primary 70%, transparent);
@@ -10,7 +9,7 @@ $device-max-height: 15rem;
 $cap-depth: inset 0 -0.2em 0 color-mix(in srgb, $color-black 55%, transparent);
 
 .controls {
-  @include mixins.info-card;
+  @include surfaces.card;
 }
 
 .header {
@@ -23,14 +22,6 @@ $cap-depth: inset 0 -0.2em 0 color-mix(in srgb, $color-black 55%, transparent);
   display: flex;
   gap: $spacing-xs;
   margin-left: auto;
-}
-
-// Icon buttons: phone / keyboard, and maximize / minimize
-.headerButton {
-  @extend %button-outline;
-  padding: $spacing-xs;
-  border-width: 1px;
-  font-size: $font-size-lg;
 }
 
 // The devices side by side, all the same height: the tallest that lets the row fit the panel's

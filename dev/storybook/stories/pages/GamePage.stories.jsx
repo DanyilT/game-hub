@@ -29,6 +29,7 @@ export default {
       downloads: args.downloaded ? [args.game] : [],
       playTime: { [args.game]: 1260 }, // a guest's, in this browser
       toast: args.toast ? { text: args.toast, tone: args.toastTone } : null,
+      device: args.android ? 'android' : null,
     }),
   },
   argTypes: {
@@ -46,6 +47,7 @@ export default {
     ticketsLeft: { control: { type: 'number', min: 0, max: 10 }, description: 'Offline: tickets left for this game' },
     toast: { control: 'text', description: 'A message at the bottom of the screen' },
     toastTone: { control: 'inline-radio', options: ['info', 'error'] },
+    android: { description: 'An Android device: an app on Google Play gets Play on its picture, which tries the app' },
   },
   args: {
     game: 'snake',
@@ -62,6 +64,7 @@ export default {
     ticketsLeft: 7,
     toast: '',
     toastTone: 'info',
+    android: false,
   },
 };
 
@@ -131,6 +134,14 @@ export const SaveFailed = { args: { save: 'failed' } };
 
 /** An app on Google Play: a picture with the store badge instead of the frame */
 export const AppOnGooglePlay = { args: { game: 'chillzone' } };
+
+/** The app, on an Android device: its picture glassed over, with Play in the middle, which tries the app */
+export const AppOnAndroid = {
+  args: { game: 'chillzone', android: true },
+  play: async ({ canvas }) => {
+    await canvas.findByRole('link', { name: 'Play' });
+  },
+};
 
 /** A collection on a site of its own */
 export const Collection = { args: { game: 'flashback-arcade' } };

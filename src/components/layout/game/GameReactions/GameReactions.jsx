@@ -1,6 +1,7 @@
 import { PiBookmarkSimple, PiBookmarkSimpleFill, PiHeart, PiHeartFill } from 'react-icons/pi';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { useLibrary } from '../../../../contexts/LibraryContext';
+import Button from '../../../common/Button/Button';
 import styles from './GameReactions.module.scss';
 
 const compact = new Intl.NumberFormat('en', { notation: 'compact' });
@@ -22,28 +23,34 @@ const GameReactions = ({ game, stats }) => {
 
   return (
     <div className={styles.reactions}>
-      <button
-        type="button"
-        className={`${styles.reaction} ${styles.favorite} ${favorite ? styles.on : ''}`}
+      <Button
+        variant="soft"
+        tone="secondary"
+        shape="round"
+        font="secondary"
+        icon={favorite ? PiHeartFill : PiHeart}
+        className={styles.reaction}
         aria-pressed={favorite}
         onClick={() => toggleFavorite(game.id)}
         title={favorite ? 'In your favorites: it shows on your profile' : 'Add to favorites (they show on your profile)'}
       >
-        {favorite ? <PiHeartFill aria-hidden="true" /> : <PiHeart aria-hidden="true" />}
         <span className="visually-hidden">Favorite</span>
         {stats && <span className={styles.count}>{compact.format(stats.favorite_count)}</span>}
-      </button>
-      <button
-        type="button"
-        className={`${styles.reaction} ${styles.bookmark} ${saved ? styles.on : ''}`}
+      </Button>
+      <Button
+        variant="soft"
+        tone="accent"
+        shape="round"
+        font="secondary"
+        icon={saved ? PiBookmarkSimpleFill : PiBookmarkSimple}
+        className={styles.reaction}
         aria-pressed={saved}
         onClick={() => toggleBookmark(game.id)}
         title={saved ? 'Bookmarked to play later (only you see it)' : 'Bookmark it to play later (only you see it)'}
       >
-        {saved ? <PiBookmarkSimpleFill aria-hidden="true" /> : <PiBookmarkSimple aria-hidden="true" />}
         <span className="visually-hidden">Bookmark</span>
         {stats && <span className={styles.count}>{compact.format(stats.bookmark_count)}</span>}
-      </button>
+      </Button>
     </div>
   );
 };

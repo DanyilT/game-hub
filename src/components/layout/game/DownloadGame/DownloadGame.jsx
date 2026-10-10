@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { PiCloudArrowDown, PiCloudCheck, PiDownloadSimple, PiCloudX } from 'react-icons/pi';
 import { askToConfirm } from '../../../../lib/confirm';
 import { showToast } from '../../../../lib/toast';
+import Button from '../../../common/Button/Button';
 import styles from './DownloadGame.module.scss';
 
 /**
@@ -74,14 +75,17 @@ const DownloadGame = ({ game, offline, recorded, onSetDownload }) => {
 
   const classes = [
     styles.download,
-    downloaded && styles.downloaded,
     removable && !justDownloaded && styles.removable,
     busy && styles.busy,
   ].filter(Boolean).join(' ');
 
   return (
-    <button
-      type="button"
+    <Button
+      variant="soft"
+      tone="accent"
+      shape="round"
+      font="secondary"
+      active={downloaded}
       className={classes}
       onClick={toggle}
       onPointerLeave={(e) => {
@@ -94,18 +98,20 @@ const DownloadGame = ({ game, offline, recorded, onSetDownload }) => {
       aria-busy={busy || undefined}
       title={title ?? undefined}
     >
-      <span className={styles.face}>
-        <Icon aria-hidden="true" />
-        <span className={styles.label}>{label}</span>
-      </span>
-      {/* Drawn over it on hover and focus; screen readers get the title instead */}
-      {removable && (
-        <span className={`${styles.face} ${styles.remove}`} aria-hidden="true">
-          <PiCloudX />
-          <span className={styles.label}>Remove</span>
+      <span className={styles.faces}>
+        <span className={styles.face}>
+          <Icon aria-hidden="true" />
+          <span className={styles.label}>{label}</span>
         </span>
-      )}
-    </button>
+        {/* Drawn over it on hover and focus; screen readers get the title instead */}
+        {removable && (
+          <span className={`${styles.face} ${styles.remove}`} aria-hidden="true">
+            <PiCloudX />
+            <span className={styles.label}>Remove</span>
+          </span>
+        )}
+      </span>
+    </Button>
   );
 };
 

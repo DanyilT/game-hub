@@ -1,0 +1,58 @@
+@use '../../../styles/abstracts/variables' as *;
+
+// Grid rows can animate from 0 to the content's own height (height: auto can't). `visibility` hides the content from
+// keyboards and screen readers once it has closed. In the `components` layer (main.scss): a page's class wins.
+@layer reset, components;
+
+@layer components {
+  .collapsible {
+    --gap: #{$spacing-md};
+    display: grid;
+    grid-template-rows: 0fr;
+    margin-top: calc(-1 * var(--gap));
+    opacity: 0;
+    visibility: hidden;
+    transition: grid-template-rows $transition-slow ease, margin-top $transition-slow ease,
+      opacity $transition-slow ease, visibility 0s $transition-slow;
+  }
+
+  .gap-sm {
+    --gap: #{$spacing-sm};
+  }
+
+  .gap-none {
+    --gap: 0px;
+  }
+
+  .open {
+    grid-template-rows: 1fr;
+    margin-top: 0;
+    opacity: 1;
+    visibility: visible;
+    transition-delay: 0s;
+  }
+
+  .inner {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  // The ▼, turning to point up while open: bigger alone in its round button, smaller after a label
+  .chevron,
+  .chevronSmall {
+    display: inline-block;
+    transition: transform $transition-slow ease;
+
+    [aria-expanded='true'] & {
+      transform: rotate(180deg);
+    }
+  }
+
+  .chevron {
+    font-size: 0.75em;
+  }
+
+  .chevronSmall {
+    font-size: 0.6em;
+  }
+}

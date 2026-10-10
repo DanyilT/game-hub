@@ -2,6 +2,9 @@ import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { CiCircleRemove, CiFilter } from 'react-icons/ci';
 import { CgChevronDown } from 'react-icons/cg';
+import Badge from '../../../common/Badge/Badge';
+import Button from '../../../common/Button/Button';
+import Tag from '../../../common/Tag/Tag';
 import GameCard from '../GameCard/GameCard';
 import { TAG_PARAM, getPlatformTypes } from '../../../../data/games';
 import styles from './GameList.module.scss';
@@ -142,11 +145,17 @@ const GameList = ({ games }) => {
 
   return (
     <div className={styles.gameList}>
-      <section className={`${styles.filters} ${filtersOpen ? styles.open : ''}`} aria-label="Filters">
+      <section
+        className={[styles.filters, filtersOpen && styles.open, selectedTags.length > 0 && styles.picked].filter(Boolean).join(' ')}
+        aria-label="Filters"
+      >
         {/* The toggle fills the header row, so clicking anywhere on it opens or closes the box */}
         <div className={styles.filtersBar}>
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            tone="neutral"
+            size="lg"
+            icon={CiFilter}
             className={styles.filtersToggle}
             onClick={() => {
               if (!filtersOpen) setOpenCount((count) => count + 1);
@@ -155,27 +164,27 @@ const GameList = ({ games }) => {
             aria-expanded={filtersOpen}
             aria-controls="game-filters"
           >
-            <CiFilter aria-hidden="true" />
             <span className={styles.toggleLabel}>Filter games</span>
             {selectedTags.length > 0 && (
-              <span className={styles.selectedCount}>
-                {selectedTags.length}<span className="visually-hidden"> selected</span>
-              </span>
+              <Badge>{selectedTags.length}<span className="visually-hidden"> selected</span></Badge>
             )}
             <CgChevronDown className={styles.chevron} aria-hidden="true" />
-          </button>
+          </Button>
           {/* Clears without having to open the box */}
           {selectedTags.length > 0 && (
-            <button
-              type="button"
+            <Button
+              variant="outline"
+              shape="round"
+              size="sm"
+              font="secondary"
+              icon={CiCircleRemove}
+              label="Clear all filters"
+              title="Clear all filters"
               className={styles.clearButton}
               onClick={clearFilters}
-              aria-label="Clear all filters"
-              title="Clear all filters"
             >
-              <CiCircleRemove aria-hidden="true" />
               <span className={styles.clearText}>Clear</span>
-            </button>
+            </Button>
           )}
         </div>
 
@@ -183,15 +192,17 @@ const GameList = ({ games }) => {
           <div className={styles.panelContent}>
             <div className={styles.groupButtons} role="group" aria-label="Show tags for">
               {FILTER_GROUPS.map(({ key, label }) => (
-                <button
+                <Button
                   key={key}
-                  type="button"
-                  className={`${styles.groupButton} ${filterGroup === key ? styles.active : ''}`}
+                  variant="outline"
+                  size="sm"
+                  font="secondary"
+                  shape="rounded"
                   onClick={() => setFilterGroup((current) => (current === key ? null : key))}
                   aria-pressed={filterGroup === key}
                 >
                   {label}
-                </button>
+                </Button>
               ))}
             </div>
 
@@ -200,16 +211,15 @@ const GameList = ({ games }) => {
                 {/* New keys whenever the box opens or the group changes, so the chips shoot in again
                     (not when one is picked). The row itself stays: useChipRows keeps measuring it. */}
                 {chips.map((tag, index) => (
-                  <button
+                  <Tag
                     key={`${openCount}:${filterGroup ?? 'all'}:${tag}`}
-                    type="button"
                     style={{ '--chip-index': index }}
-                    className={`${styles.chip} ${selectedTags.includes(tag) ? styles.active : ''}`}
+                    className={styles.chip}
+                    selected={selectedTags.includes(tag)}
                     onClick={() => toggleTag(tag)}
-                    aria-pressed={selectedTags.includes(tag)}
                   >
                     {tag}
-                  </button>
+                  </Tag>
                 ))}
               </div>
             </div>

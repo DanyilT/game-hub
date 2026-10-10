@@ -69,7 +69,7 @@ const preview = {
     // Accessibility problems show in the Accessibility tab without failing anything
     a11y: { test: 'todo' },
     options: {
-      storySort: { order: ['Introduction', 'Pages', 'Layout', 'Game', 'Account', 'Common'] },
+      storySort: { order: ['Introduction', 'Design system', 'Pages', 'Layout', 'Game', 'Account', 'Common'] },
     },
   },
 };

@@ -4,8 +4,12 @@ import { useAuth } from '../../../../contexts/AuthContext';
 import { useLibrary } from '../../../../contexts/LibraryContext';
 import { gameBugReportUrl } from '../../../../lib/support';
 import Button from '../../../common/Button/Button';
+import { Collapsible, DisclosureButton, useDisclosure } from '../../../common/Disclosure/Disclosure';
 import ExternalLink from '../../../common/ExternalLink/ExternalLink';
+import { TextArea } from '../../../common/Field/Field';
 import InfoTip from '../../../common/InfoTip/InfoTip';
+import Message from '../../../common/Message/Message';
+import Status from '../../../common/Status/Status';
 import RatingSlider, { SCORES } from '../RatingSlider/RatingSlider';
 import styles from './RateGame.module.scss';
 
@@ -20,17 +24,17 @@ const followUp = (score) => {
 
 /** How the players rated a game: the average, how many, and a bar for each score */
 const RatingSummary = ({ stats }) => {
-  if (!stats) return <p className={`${styles.summary} ${styles.muted}`}>Loading the ratings…</p>;
-  if (stats.rating_count === 0) return <p className={`${styles.summary} ${styles.muted}`}>No ratings yet. Be the first!</p>;
+  if (!stats) return <Status kind="loading" className={styles.summary}>Loading the ratings…</Status>;
+  if (stats.rating_count === 0) return <Status kind="empty" className={styles.summary}>No ratings yet. Be the first!</Status>;
   const most = Math.max(...stats.score_counts);
   return (
     <div className={styles.summary}>
       <p className={styles.average}>
         <PiStarFill aria-hidden="true" />
         <strong>{Number(stats.rating_average).toFixed(1)}</strong>
-        <span className={styles.muted}>
+        <Message as="span">
           average from {stats.rating_count} {stats.rating_count === 1 ? 'rating' : 'ratings'}
-        </span>
+        </Message>
       </p>
       <ol className={styles.bars} aria-label="Ratings by score">
         {SCORES.map(({ score, label }) => {
@@ -66,10 +70,8 @@ const RateGame = ({ game, stats }) => {
   const [step, setStep] = useState('rate'); // 'rate', 'tell-more' (after rating) or 'thanks' (after the message)
   const [message, setMessage] = useState('');
   const [state, setState] = useState({ busy: false, error: null });
-  const [expanded, setExpanded] = useState(false); // the players' ratings, under the slider
+  const players = useDisclosure(); // the players' ratings, under the slider
   const headingId = useId();
-  const messageId = useId();
-  const summaryId = useId();
 
   if (!isAvailable) return null;
 
@@ -106,10 +108,8 @@ const RateGame = ({ game, stats }) => {
     content = (
       <form className={styles.form} onSubmit={submitMessage}>
         <p className={styles.thanks}>Thanks for rating {game.title}!</p>
-        <label htmlFor={messageId} className={styles.question}>{question}</label>
-        <textarea
-          id={messageId}
-          className={styles.textarea}
+        <TextArea
+          label={question}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           maxLength={FEEDBACK_MAX}
@@ -118,11 +118,11 @@ const RateGame = ({ game, stats }) => {
           // Straight into the box with a keyboard; on touch screens that would pop the keyboard up unasked
           autoFocus={window.matchMedia('(hover: hover) and (pointer: fine)').matches}
         />
-        <p className={styles.muted}>
+        <Message>
           Only the developer reads this. Found a bug?{' '}
-          <ExternalLink href={gameBugReportUrl(game)} className={styles.link}>Report it on GitHub</ExternalLink>
+          <ExternalLink href={gameBugReportUrl(game)}>Report it on GitHub</ExternalLink>
           , or use the <strong>?</strong> button at the top.
-        </p>
+        </Message>
         <div className={styles.actions}>
           <Button variant="outline" onClick={() => setStep('rate')} disabled={state.busy}>No thanks</Button>
           <Button type="submit" disabled={!message.trim() || state.busy}>{state.busy ? 'Sending…' : 'Send'}</Button>
@@ -180,23 +180,17 @@ const RateGame = ({ game, stats }) => {
           {saved === null ? 'Rate this game' : 'Your rating'}
         </h2>
         {saved !== null && <InfoTip label="About your rating">Slide to change it. Only you see your rating.</InfoTip>}
-        <button
-          type="button"
+        <DisclosureButton
+          label={players.open ? "Hide the players' ratings" : "Show the players' ratings"}
           className={styles.toggle}
-          onClick={() => setExpanded((open) => !open)}
-          aria-expanded={expanded}
-          aria-controls={summaryId}
-          aria-label={expanded ? "Hide the players' ratings" : "Show the players' ratings"}
-          title={expanded ? "Hide the players' ratings" : "Show the players' ratings"}
-        >
-          <span aria-hidden="true">▼</span>
-        </button>
+          {...players.buttonProps}
+        />
       </div>
       {content}
-      {state.error && <p className={styles.error} role="alert">{state.error}</p>}
-      <div id={summaryId} className={`${styles.players} ${expanded ? styles.open : ''}`}>
-        <div><RatingSummary stats={stats} /></div>
-      </div>
+      {state.error && <Message tone="error">{state.error}</Message>}
+      <Collapsible {...players.panelProps}>
+        <RatingSummary stats={stats} />
+      </Collapsible>
     </section>
   );
 };

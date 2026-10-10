@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useParams, useSearchParams } from 'react-router';
 import {
-  PiBookmarkSimple, PiDotsThreeVertical, PiFlag, PiGameController, PiHeart, PiLockSimple, PiProhibit, PiStar, PiUserCheck,
-  PiUserMinus, PiUserPlus, PiUsers,
+  PiBookmarkSimple, PiDotsThreeVertical, PiFlag, PiGameController, PiHeart, PiProhibit, PiStar, PiUserCheck,
+  PiUserCircle, PiUserMinus, PiUserPlus, PiUsers,
 } from 'react-icons/pi';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLibrary } from '../../contexts/LibraryContext';
@@ -20,8 +20,13 @@ import {
 import { showToast } from '../../lib/toast';
 import ReportPlayer from '../../components/account/ReportPlayer/ReportPlayer';
 import Avatar from '../../components/common/Avatar/Avatar';
+import Badge from '../../components/common/Badge/Badge';
 import Button from '../../components/common/Button/Button';
 import Menu from '../../components/common/Menu/Menu';
+import Message from '../../components/common/Message/Message';
+import PageTitle from '../../components/common/PageTitle/PageTitle';
+import Status from '../../components/common/Status/Status';
+import Tabs from '../../components/common/Tabs/Tabs';
 import RatingSlider from '../../components/layout/game/RatingSlider/RatingSlider';
 import styles from './Account.module.scss';
 
@@ -52,7 +57,7 @@ const useLoad = (load, deps) => {
 /** The games in a list of ids (newest first), as tiles linking to each game's page, each with an optional line under its title */
 const GameTiles = ({ entries, empty }) => {
   const known = entries.filter(({ gameId }) => gamesById.has(gameId));
-  if (known.length === 0) return <p className={styles.muted}>{empty}</p>;
+  if (known.length === 0) return <Status kind="empty">{empty}</Status>;
   return (
     <ul className={styles.gameTiles}>
       {known.map(({ gameId, meta }) => {
@@ -84,7 +89,7 @@ const PlayingNow = ({ gameId }) => {
   const game = gamesById.get(gameId);
   return game && (
     <span className={styles.playingNow}>
-      <span className={styles.liveDot} aria-hidden="true" />
+      <Badge variant="dot" tone="accent" className={styles.liveDot} aria-hidden="true" />
       Playing {game.title}
     </span>
   );
@@ -109,138 +114,102 @@ const PlayerCard = ({ player, meta, playing, children }) => {
 };
 
 /**
- * Add friend / Request sent / Accept / Friends, on another player's profile. Signed out, "Add
- * friend" opens the sign-in window.
+ * You and another player, as one button beside their ⋯: Add friend, or, once there's something between you, a menu of
+ * what you can do about it (Friends: remove, block; Request sent: cancel; Friend request: accept, decline; Blocked:
+ * unblock). Signed out, Add friend opens the sign-in window.
  * @param {object} player - their profile
- * @param {function} onChange - after a change (their friends list may have changed)
+ * @param {object} friendship - where you stand (useLoad of fetchFriendState: 'friends', 'outgoing', 'incoming', or none)
+ * @param {boolean} blocked - you've blocked them
+ * @param {function} onBlock - asks, then blocks them
+ * @param {function} onUnblock
+ * @param {function} onChange - after a change (their friends list, and where you stand, load again)
  */
-const FriendButton = ({ player, onChange }) => {
+const FriendButton = ({ player, friendship, blocked, onBlock, onUnblock, onChange }) => {
   const { user, openSignIn } = useAuth();
   const { refreshRequests } = useLibrary();
-  const me = user?.id ?? null;
-  const status = useLoad(me ? () => fetchFriendState(me, player.id) : null, [me, player.id]);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(null);
+  const name = player.display_name ?? player.username;
 
-  if (!me) {
-    return <Button variant="outline" onClick={openSignIn}><PiUserPlus aria-hidden="true" />Add friend</Button>;
+  if (blocked) {
+    return (
+      <Menu
+        label={`You blocked ${name}`}
+        text="Blocked"
+        icon={<PiProhibit aria-hidden="true" />}
+        look={{ tone: 'danger' }}
+        items={[{ label: 'Unblock', icon: <PiProhibit aria-hidden="true" />, onSelect: onUnblock }]}
+      />
+    );
   }
-  if (!status.loaded) return null;
+  if (!user) return <Button icon={PiUserPlus} onClick={openSignIn}>Add friend</Button>;
+  if (friendship.error) {
+    return <Status kind="error" onRetry={friendship.reload}>Couldn&rsquo;t check whether you&rsquo;re friends.</Status>;
+  }
+  if (!friendship.loaded) return null;
 
   // `question`: askToConfirm's, for actions that need a yes first
   const run = async (action, question) => {
     if (question && !(await askToConfirm(question))) return;
     setBusy(true);
-    setError(null);
     try {
       await action(player.id);
-      status.reload();
       refreshRequests();
       onChange();
     } catch (err) {
-      setError(describeFriendError(err));
+      showToast(describeFriendError(err), { tone: 'error' });
     } finally {
       setBusy(false);
     }
   };
 
-  const name = player.display_name ?? player.username;
-  let buttons;
-  switch (status.data) {
+  const menu = (text, icon, items, look) => (
+    <Menu label={`You and ${name}`} text={text} icon={icon} look={look} disabled={busy} items={items} />
+  );
+  switch (friendship.data) {
     case 'friends':
-      buttons = (
-        <>
-          <span className={styles.friendsBadge}><PiUserCheck aria-hidden="true" />Friends</span>
-          <Button
-            variant="outline"
-            disabled={busy}
-            onClick={() => run(removeFriend, {
-              title: 'Remove friend?',
-              message: `${name} comes off your friends list, and you come off theirs. You can send a new request any time.`,
-              confirmLabel: 'Remove',
-              danger: true,
-            })}
-          >
-            <PiUserMinus aria-hidden="true" />Remove
-          </Button>
-        </>
-      );
-      break;
+      return menu('Friends', <PiUserCheck aria-hidden="true" />, [
+        {
+          label: 'Remove friend',
+          icon: <PiUserMinus aria-hidden="true" />,
+          danger: true,
+          onSelect: () => run(removeFriend, {
+            title: 'Remove friend?',
+            message: `${name} comes off your friends list, and you come off theirs. You can send a new request any time.`,
+            confirmLabel: 'Remove',
+            danger: true,
+          }),
+        },
+        { label: 'Block', icon: <PiProhibit aria-hidden="true" />, danger: true, onSelect: onBlock },
+      ], { tone: 'accent' });
     case 'outgoing':
-      buttons = (
-        <>
-          <span className={styles.friendsBadge}>Request sent</span>
-          <Button variant="outline" disabled={busy} onClick={() => run(removeFriend)}>Cancel request</Button>
-        </>
-      );
-      break;
+      return menu('Request sent', <PiUserCircle aria-hidden="true" />, [
+        { label: 'Cancel request', icon: <PiUserMinus aria-hidden="true" />, onSelect: () => run(removeFriend) },
+      ]);
     case 'incoming':
-      buttons = (
-        <>
-          <Button variant="outline" disabled={busy} onClick={() => run(removeFriend)}>Decline</Button>
-          <Button disabled={busy} onClick={() => run(acceptFriendRequest)}><PiUserCheck aria-hidden="true" />Accept request</Button>
-        </>
-      );
-      break;
+      return menu('Friend request', <PiUserPlus aria-hidden="true" />, [
+        { label: 'Accept', icon: <PiUserCheck aria-hidden="true" />, onSelect: () => run(acceptFriendRequest) },
+        { label: 'Decline', icon: <PiUserMinus aria-hidden="true" />, danger: true, onSelect: () => run(removeFriend) },
+      ], { variant: 'filled' });
     default:
-      buttons = <Button disabled={busy} onClick={() => run(sendFriendRequest)}><PiUserPlus aria-hidden="true" />Add friend</Button>;
+      return <Button icon={PiUserPlus} disabled={busy} onClick={() => run(sendFriendRequest)}>Add friend</Button>;
   }
-
-  return (
-    <div className={styles.friendButton}>
-      <div className={styles.actions}>{buttons}</div>
-      {(error || status.error) && (
-        <p className={styles.error} role="alert">{error ?? "Couldn't check whether you're friends."}</p>
-      )}
-    </div>
-  );
-};
-
-/** In place of the friend buttons, on the profile of a player you've blocked */
-const BlockedNote = ({ onUnblock }) => {
-  const [busy, setBusy] = useState(false);
-  return (
-    <div className={styles.friendButton}>
-      <div className={styles.actions}>
-        <span className={styles.blockedBadge}><PiProhibit aria-hidden="true" />Blocked</span>
-        <Button
-          variant="outline"
-          disabled={busy}
-          onClick={async () => {
-            setBusy(true);
-            await onUnblock();
-            setBusy(false);
-          }}
-        >
-          Unblock
-        </Button>
-      </div>
-      <p className={styles.muted}>
-        You aren&rsquo;t friends, neither of you can add the other, and you don&rsquo;t see each other&rsquo;s
-        activity. They aren&rsquo;t told.
-      </p>
-    </div>
-  );
 };
 
 /**
- * The ⋯ on another player's profile: block or unblock them, and report them to the developer. Signed out, each opens
- * the sign-in window.
+ * The ⋯ on another player's profile: block them (while you aren't friends: friends block them from the Friends button,
+ * and Blocked's unblocks them), and report them to the developer. Signed out, each opens the sign-in window.
  * @param {object} player - their profile
- * @param {boolean} blocked - you've blocked them
+ * @param {boolean} canBlock - not blocked, and not friends
  * @param {function} onBlock - asks, then blocks them
- * @param {function} onUnblock
  */
-const PlayerActions = ({ player, blocked, onBlock, onUnblock }) => {
+const PlayerActions = ({ player, canBlock, onBlock }) => {
   const { user, openSignIn } = useAuth();
   const [reporting, setReporting] = useState(false);
   const name = player.display_name ?? player.username;
   const signedIn = Boolean(user);
 
   const items = [
-    blocked
-      ? { label: 'Unblock', icon: <PiProhibit aria-hidden="true" />, onSelect: signedIn ? onUnblock : openSignIn }
-      : { label: 'Block', icon: <PiProhibit aria-hidden="true" />, onSelect: signedIn ? onBlock : openSignIn, danger: true },
+    ...(canBlock ? [{ label: 'Block', icon: <PiProhibit aria-hidden="true" />, onSelect: signedIn ? onBlock : openSignIn, danger: true }] : []),
     { label: 'Report…', icon: <PiFlag aria-hidden="true" />, onSelect: signedIn ? () => setReporting(true) : openSignIn, danger: true },
   ];
 
@@ -312,10 +281,10 @@ const RatingRow = ({ game, score }) => {
       <div className={styles.ratingSlider}>
         <RatingSlider value={draft ?? score} onChange={save} label={`Your rating for ${game.title}`} compact />
       </div>
-      <span className={`${styles.ratingState} ${state === 'error' ? styles.error : ''}`} role="status">
+      <Message as="span" tone={state === 'error' ? 'error' : 'note'} role="status" className={styles.ratingState}>
         {{ saving: 'Saving…', saved: 'Saved', error: "Couldn't save" }[state] ?? `${draft ?? score} / 5`}
-      </span>
-      <button type="button" className={styles.textButton} onClick={remove}>Remove</button>
+      </Message>
+      <Button variant="text" size="sm" font="secondary" onClick={remove}>Remove</Button>
     </li>
   );
 };
@@ -326,11 +295,11 @@ const Ratings = () => {
     .filter(([gameId]) => gamesById.has(gameId))
     .sort(([, a], [, b]) => b.updated_at.localeCompare(a.updated_at));
   if (rows.length === 0) {
-    return <p className={styles.muted}>You haven&rsquo;t rated any games yet. Rate one from its page.</p>;
+    return <Status kind="empty">You haven&rsquo;t rated any games yet. Rate one from its page.</Status>;
   }
   return (
     <>
-      <p className={styles.muted}>Only you see your ratings. Everyone sees each game&rsquo;s average.</p>
+      <Message>Only you see your ratings. Everyone sees each game&rsquo;s average.</Message>
       <ul className={styles.ratingList}>
         {rows.map(([gameId, { score }]) => <RatingRow key={gameId} game={gamesById.get(gameId)} score={score} />)}
       </ul>
@@ -345,15 +314,8 @@ const Requests = ({ onChange }) => {
   const [busy, setBusy] = useState(null);
   const [error, setError] = useState(null);
 
-  if (!requests.loaded) return <p className={styles.muted}>Loading…</p>;
-  if (requests.error) {
-    return (
-      <div className={styles.actions} role="alert">
-        <span className={styles.error}>Couldn&rsquo;t load your requests.</span>
-        <Button variant="outline" onClick={requests.reload}>Try again</Button>
-      </div>
-    );
-  }
+  if (!requests.loaded) return <Status kind="loading" />;
+  if (requests.error) return <Status kind="error" onRetry={requests.reload}>Couldn&rsquo;t load your requests.</Status>;
 
   const run = async (action, id) => {
     setBusy(id);
@@ -373,12 +335,12 @@ const Requests = ({ onChange }) => {
   const incoming = requests.data.filter((r) => r.direction === 'incoming');
   const outgoing = requests.data.filter((r) => r.direction === 'outgoing');
   if (incoming.length + outgoing.length === 0) {
-    return <p className={styles.muted}>No friend requests. Add friends from their profiles.</p>;
+    return <Status kind="empty">No friend requests. Add friends from their profiles.</Status>;
   }
 
   return (
     <>
-      {error && <p className={styles.error} role="alert">{error}</p>}
+      {error && <Message tone="error">{error}</Message>}
       {incoming.length > 0 && (
         <>
           <h3 className={styles.subTitle}>Waiting for your answer</h3>
@@ -414,17 +376,10 @@ const Requests = ({ onChange }) => {
 
 const Friends = ({ friends, isMe }) => {
   const playing = usePlayingNow(friends.data?.map((friend) => friend.id) ?? []);
-  if (!friends.loaded) return <p className={styles.muted}>Loading…</p>;
-  if (friends.error) {
-    return (
-      <div className={styles.actions} role="alert">
-        <span className={styles.error}>Couldn&rsquo;t load the friends list.</span>
-        <Button variant="outline" onClick={friends.reload}>Try again</Button>
-      </div>
-    );
-  }
+  if (!friends.loaded) return <Status kind="loading" />;
+  if (friends.error) return <Status kind="error" onRetry={friends.reload}>Couldn&rsquo;t load the friends list.</Status>;
   if (friends.data.length === 0) {
-    return <p className={styles.muted}>{isMe ? 'No friends yet. Add friends from their profiles.' : 'No friends yet.'}</p>;
+    return <Status kind="empty">{isMe ? 'No friends yet. Add friends from their profiles.' : 'No friends yet.'}</Status>;
   }
   return (
     <ul className={styles.playerList}>
@@ -439,19 +394,19 @@ const Friends = ({ friends, isMe }) => {
 
 /** The games a player has played for a minute or more: when last, how long in all, how many plays */
 const Played = ({ played, isMe, privacy }) => {
-  if (!played.loaded) return <p className={styles.muted}>Loading…</p>;
-  if (played.error) return <p className={styles.error} role="alert">Couldn&rsquo;t load the games played.</p>;
+  if (!played.loaded) return <Status kind="loading" />;
+  if (played.error) return <Status kind="error">Couldn&rsquo;t load the games played.</Status>;
   const audience = privacy.data && AUDIENCES.find(({ value }) => value === privacy.data.show_played);
   const historyOff = privacy.data?.record_played === false;
   return (
     <>
       {isMe && (
-        <p className={styles.muted}>
+        <Message>
           {historyOff
             ? 'Your play history is off: nothing new is recorded, and only you see what was kept before'
             : `Games you’ve played for a minute or more.${audience ? ` ${audience.value === 'nobody' ? 'Only you see them' : `${audience.label} can see them`}` : ''}`}
-          {' '}(<Link to="/settings" className={styles.textLink}>Settings → Privacy</Link>).
-        </p>
+          {' '}(<Link to="/settings">Settings → Privacy</Link>).
+        </Message>
       )}
       <GameTiles
         entries={played.data.map((row) => ({
@@ -477,74 +432,12 @@ const useFavorites = (player, isMe) => useLoad(
 );
 
 /**
- * A row of tabs (with the usual keys: the arrows, Home and End), each with an icon. A private tab has a lock on its
- * icon, which says so on hover (and to screen readers, as the tab's description).
- * @param {string} label - the row's name
- * @param {string} idPrefix - for the tabs' ids: `${idPrefix}-${tab.id}`
- * @param {object[]} tabs - { id, label, icon, count?, alert?: { count, text }, private? }
- * @param {string} selected - the id of the tab that's showing
- * @param {function} onSelect - gets a tab's id
- * @param {string} panelId - the panel the tabs show
- * @param {boolean} [small] - sub-tabs, inside a tab's panel
- */
-const TabRow = ({ label, idPrefix, tabs, selected, onSelect, panelId, small = false }) => {
-  const refs = useRef({});
-  const onKeyDown = (e) => {
-    const at = tabs.findIndex(({ id }) => id === selected);
-    const next = { ArrowRight: at + 1, ArrowLeft: at - 1, Home: 0, End: tabs.length - 1 }[e.key];
-    if (next === undefined) return;
-    e.preventDefault();
-    const { id } = tabs[(next + tabs.length) % tabs.length];
-    onSelect(id);
-    refs.current[id]?.focus();
-  };
-  return (
-    <div className={`${styles.tabs} ${small ? styles.subTabs : ''}`} role="tablist" aria-label={label} onKeyDown={onKeyDown}>
-      {tabs.map(({ id, label: tabLabel, icon: Icon, count, alert, private: isPrivate }) => (
-        <button
-          key={id}
-          ref={(element) => { refs.current[id] = element; }}
-          type="button"
-          role="tab"
-          id={`${idPrefix}-${id}`}
-          aria-selected={selected === id}
-          aria-controls={panelId}
-          aria-describedby={isPrivate ? `${idPrefix}-${id}-private` : undefined}
-          tabIndex={selected === id ? 0 : -1}
-          className={`${styles.tab} ${selected === id ? styles.active : ''}`}
-          onClick={() => onSelect(id)}
-        >
-          <span className={styles.tabIcon}>
-            <Icon aria-hidden="true" />
-            {isPrivate && (
-              <>
-                <PiLockSimple className={styles.tabLock} aria-hidden="true" />
-                <span id={`${idPrefix}-${id}-private`} role="tooltip" className={styles.tabTip}>
-                  Private: only you see this tab
-                </span>
-              </>
-            )}
-          </span>
-          {tabLabel}
-          {count !== undefined && <span className={styles.tabCount}>{count}</span>}
-          {alert?.count > 0 && (
-            <span className={`${styles.tabCount} ${styles.alert}`}>
-              {alert.count}<span className="visually-hidden"> {alert.text}</span>
-            </span>
-          )}
-        </button>
-      ))}
-    </div>
-  );
-};
-
-/**
  * The tabs under the profile header: public ones for everyone, private ones on your own. Your friends tab has your
  * friend requests in it, as a tab of its own.
  * @param {boolean} blocked - you've blocked this player: no friend buttons, but Unblock
  * @param {function} onUnblock
  */
-const ProfileTabs = ({ player, isMe, blocked, onUnblock }) => {
+const ProfileTabs = ({ player, isMe, blocked }) => {
   const library = useLibrary();
   const [searchParams, setSearchParams] = useSearchParams();
   const theirFavorites = useFavorites(player, isMe);
@@ -580,7 +473,7 @@ const ProfileTabs = ({ player, isMe, blocked, onUnblock }) => {
 
   // Another player's tabs wait to know whether there's a Played tab, which comes first
   if (!isMe && !played.loaded) {
-    return <section className={styles.card}><p className={styles.muted}>Loading…</p></section>;
+    return <section className={styles.card}><Status kind="loading" /></section>;
   }
 
   let panel;
@@ -589,7 +482,7 @@ const ProfileTabs = ({ player, isMe, blocked, onUnblock }) => {
   } else if (tab === 'friends') {
     panel = isMe ? (
       <>
-        <TabRow
+        <Tabs
           label="Friends and requests"
           idPrefix="profile-friends-tab"
           panelId="profile-friends-panel"
@@ -613,10 +506,10 @@ const ProfileTabs = ({ player, isMe, blocked, onUnblock }) => {
     ) : <Friends friends={friends} isMe={false} />;
   } else if (tab === 'favorites') {
     panel = favorites.error
-      ? <p className={styles.error} role="alert">Couldn&rsquo;t load the favorites.</p>
+      ? <Status kind="error">Couldn&rsquo;t load the favorites.</Status>
       : favorites.loaded && (
         <>
-          {isMe && <p className={styles.muted}>Your favorite games show here, for everyone to see.</p>}
+          {isMe && <Message>Your favorite games show here, for everyone to see.</Message>}
           <GameTiles
             entries={favorites.data}
             empty={isMe ? 'Add the games you love to your favorites with the heart on their pages.' : 'No favorites yet.'}
@@ -626,7 +519,7 @@ const ProfileTabs = ({ player, isMe, blocked, onUnblock }) => {
   } else if (tab === 'bookmarks') {
     panel = (
       <>
-        <p className={styles.muted}>Games saved to play later. Only you see these.</p>
+        <Message>Games saved to play later. Only you see these.</Message>
         <GameTiles entries={newestFirst(library.bookmarks)} empty="No bookmarks yet. Bookmark games from the games list or their pages." />
       </>
     );
@@ -636,12 +529,13 @@ const ProfileTabs = ({ player, isMe, blocked, onUnblock }) => {
 
   return (
     <section className={styles.card}>
-      {!isMe && (
-        <div className={styles.profileFriend}>
-          {blocked ? <BlockedNote onUnblock={onUnblock} /> : <FriendButton player={player} onChange={reloadFriends} />}
-        </div>
+      {blocked && (
+        <Message className={styles.profileFriend}>
+          You blocked {player.display_name ?? player.username}: you aren&rsquo;t friends, neither of you can add the
+          other, and you don&rsquo;t see each other&rsquo;s activity. They aren&rsquo;t told.
+        </Message>
       )}
-      <TabRow label="Profile" idPrefix="profile-tab" panelId="profile-panel" tabs={tabs} selected={tab} onSelect={select} />
+      <Tabs label="Profile" idPrefix="profile-tab" panelId="profile-panel" tabs={tabs} selected={tab} onSelect={select} />
       <div id="profile-panel" role="tabpanel" aria-labelledby={`profile-tab-${tab}`} className={styles.tabPanel}>
         {panel}
       </div>
@@ -667,8 +561,9 @@ const ProfileBody = ({ player, isMe }) => {
   const block = useLoad(me && !isMe ? () => fetchIsBlocked(player.id) : null, [me, player.id]);
   const [blockedNow, setBlockedNow] = useState(null); // after blocking or unblocking here
   const blocked = blockedNow ?? block.data === true;
-  // Bumped by blocking or unblocking: what each of you sees of the other changes, so it loads again
+  // Bumped by blocking, unblocking or a friend change: what each of you sees of the other changes, so it loads again
   const [seen, setSeen] = useState(0);
+  const friendship = useLoad(me && !isMe ? () => fetchFriendState(me, player.id) : null, [me, player.id, seen]);
   const name = player.display_name ?? player.username;
 
   const changed = (now) => {
@@ -709,18 +604,28 @@ const ProfileBody = ({ player, isMe }) => {
       <section className={styles.profileHeader}>
         <Avatar url={player.avatar_url} name={name} size={96} />
         <div className={styles.profileNames}>
-          <h1 className={styles.title}>{name}</h1>
+          <PageTitle>{name}</PageTitle>
           <p className={styles.handle}>@{player.username}</p>
-          <p className={styles.muted}>Joined {monthYear(player.created_at)}</p>
+          <Message>Joined {monthYear(player.created_at)}</Message>
           <PlayingNowLine key={seen} playerId={player.id} />
         </div>
-        {isMe && <Button as={Link} to="/settings" variant="outline">Edit profile</Button>}
+        {isMe && <Button to="/settings" variant="outline">Edit profile</Button>}
         {!isMe && (!me || block.loaded) && (
-          <PlayerActions player={player} blocked={blocked} onBlock={blockThem} onUnblock={unblockThem} />
+          <div className={styles.headerActions}>
+            <FriendButton
+              player={player}
+              friendship={friendship}
+              blocked={blocked}
+              onBlock={blockThem}
+              onUnblock={unblockThem}
+              onChange={() => setSeen((n) => n + 1)}
+            />
+            <PlayerActions player={player} canBlock={!blocked && friendship.data !== 'friends'} onBlock={blockThem} />
+          </div>
         )}
       </section>
 
-      <ProfileTabs key={seen} player={player} isMe={isMe} blocked={blocked} onUnblock={unblockThem} />
+      <ProfileTabs key={seen} player={player} isMe={isMe} blocked={blocked} />
     </>
   );
 };
@@ -758,13 +663,14 @@ const Profile = () => {
     return page(<section className={styles.card}><p>Player profiles are coming soon.</p></section>);
   }
   if (!isOwn && valid && result.lookup !== lookup) {
-    return page(<p className={styles.muted} aria-live="polite">Loading profile…</p>);
+    return page(<Status kind="loading">Loading profile…</Status>);
   }
   if (!isOwn && valid && result.error) {
     return page(
       <section className={styles.card}>
-        <p className={styles.error} role="alert">Couldn't load this profile. Check your connection and try again.</p>
-        <div className={styles.actions}><Button onClick={() => setAttempt((n) => n + 1)}>Try again</Button></div>
+        <Status kind="error" onRetry={() => setAttempt((n) => n + 1)}>
+          Couldn&rsquo;t load this profile. Check your connection and try again.
+        </Status>
       </section>,
     );
   }
@@ -772,8 +678,8 @@ const Profile = () => {
     return page(
       <section className={styles.card}>
         <h1 className={styles.cardTitle}>No player called @{username}</h1>
-        <p className={styles.muted}>They may have changed their username or deleted their account.</p>
-        <p><Link to="/players" className={styles.textLink}>See all players</Link></p>
+        <Message>They may have changed their username or deleted their account.</Message>
+        <p><Link to="/players">See all players</Link></p>
       </section>,
     );
   }

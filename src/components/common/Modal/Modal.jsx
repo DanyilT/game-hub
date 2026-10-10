@@ -1,5 +1,6 @@
 import { useId, useLayoutEffect, useRef } from 'react';
 import { PiX } from 'react-icons/pi';
+import Button from '../Button/Button';
 import styles from './Modal.module.scss';
 
 /**
@@ -43,7 +44,7 @@ const Modal = ({ title, onClose, initialFocusRef, children }) => {
     >
       <div className={styles.content}>
         {/* An icon, not the × character: Doto draws that off-centre */}
-        <button type="button" className={styles.close} onClick={onClose} aria-label="Close"><PiX aria-hidden="true" /></button>
+        <Button variant="outline" size="sm" icon={PiX} label="Close" title="" className={styles.close} onClick={onClose} />
         <h2 id={titleId} className={styles.title}>{title}</h2>
         {children}
       </div>

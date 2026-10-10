@@ -30,6 +30,7 @@ export const scenario = {
   emailSignIn: false, // the sign-in window offers the email link (only with the local Supabase on the real site)
   privacy: {}, // the signed-in player's choices, over data.js's PRIVACY (e.g. { record_played: false })
   install: { canPrompt: false, platform: null, installed: false, stepsOpen: false, bannerDue: false },
+  device: null, // 'android': the browser says it's an Android device (store apps' Play tries the app), else this one's
 };
 
 const listeners = new Set();

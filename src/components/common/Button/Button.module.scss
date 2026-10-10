@@ -1,59 +1,382 @@
+@use 'sass:map';
 @use '../../../styles/abstracts/variables' as *;
+@use '../../../styles/abstracts/forms';
+@use '../../../styles/abstracts/mixins';
 
-.button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: $spacing-sm;
-  padding: $spacing-sm $spacing-md;
-  border: 2px solid transparent; // square corners, like the legal pages and the neon windows
-  font-weight: 600;
-  text-align: center;
-  text-decoration: none;
-  cursor: pointer;
-  transition: background $transition-fast ease, border-color $transition-fast ease,
-    transform $transition-fast ease;
+// The site's one button (Button.jsx). Each tone sets a few colours, and each variant uses them the same way:
+// --fill, --fill-hover, --on-fill: the filled button, and anything pressed (aria-pressed, .active)
+// --line: an outline's edge; --ink: the text of the outlined, ghost and text ones; --wash: their hover background
+// --glass: the see-through background over a picture
 
-  &:hover:not(:disabled) {
-    transform: translateY(-2px);
-  }
+$tones: (
+  primary: (
+    fill: $color-primary,
+    fill-hover: color-mix(in srgb, $color-primary 75%, $color-primary-light), // keeps white text readable
+    on-fill: $color-text-primary,
+    line: $color-primary-light,
+    ink: $color-primary-light,
+    glass: color-mix(in srgb, $color-primary-light 30%, transparent),
+  ),
+  secondary: (
+    fill: color-mix(in srgb, $color-secondary 80%, $color-black),
+    fill-hover: $color-secondary,
+    on-fill: $color-white,
+    line: $color-secondary,
+    ink: $color-secondary,
+    glass: color-mix(in srgb, $color-secondary 30%, transparent),
+  ),
+  danger: (
+    fill: color-mix(in srgb, $color-error 70%, $color-black),
+    fill-hover: color-mix(in srgb, $color-error 85%, $color-black),
+    on-fill: $color-white,
+    line: forms.$color-status-error,
+    ink: forms.$color-status-error,
+    glass: color-mix(in srgb, $color-error 35%, transparent),
+  ),
+  warning: (
+    fill: $color-warning,
+    fill-hover: color-mix(in srgb, $color-warning 80%, $color-white),
+    on-fill: $color-black,
+    line: $color-warning,
+    ink: $color-warning,
+    glass: color-mix(in srgb, $color-warning 35%, transparent),
+  ),
+  success: (
+    fill: color-mix(in srgb, $color-success 75%, $color-black),
+    fill-hover: color-mix(in srgb, $color-success 90%, $color-black),
+    on-fill: $color-white,
+    line: $color-success,
+    ink: $color-success,
+    glass: color-mix(in srgb, $color-success 30%, transparent),
+  ),
+  info: (
+    fill: color-mix(in srgb, $color-info 75%, $color-black),
+    fill-hover: color-mix(in srgb, $color-info 90%, $color-black),
+    on-fill: $color-white,
+    line: $color-info,
+    ink: $color-info,
+    glass: color-mix(in srgb, $color-info 30%, transparent),
+  ),
+  accent: (
+    fill: $color-accent-light,
+    fill-hover: color-mix(in srgb, $color-accent-light 80%, $color-white),
+    on-fill: $color-black,
+    line: $color-accent-light,
+    ink: $color-accent-light,
+    glass: color-mix(in srgb, $color-accent-light 30%, transparent),
+  ),
+  neutral: (
+    fill: $color-surface,
+    fill-hover: color-mix(in srgb, $color-white 18%, transparent),
+    on-fill: $color-text-primary,
+    line: color-mix(in srgb, $color-white 35%, transparent),
+    ink: $color-text-secondary,
+    glass: color-mix(in srgb, $color-black 45%, transparent),
+  ),
+);
 
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
+// In the `components` layer (main.scss): a page's own class on it wins over these. Its size is a few custom properties
+// (--box, --pad-y, --pad-x, --gap, --text, --edge: .xs to .lg below), which a page can set too, to make its buttons
+// smaller on a phone.
+@layer reset, components;
 
-  @media (prefers-reduced-motion: reduce) {
-    &:hover:not(:disabled) {
-      transform: none;
+@layer components {
+  // Hovered, and it can be used (not disabled, nor busy: aria-disabled)
+  @mixin hover {
+    &:hover:not(:disabled, [aria-disabled='true']) {
+      @content;
     }
   }
-}
 
-.primary {
-  background: $color-primary;
-  color: $color-text-primary;
+  .button {
+    --wash: color-mix(in srgb, var(--line) 15%, transparent);
+    position: relative; // for the lift's strip (a page may place it absolutely instead)
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--gap);
+    min-height: var(--box);
+    padding: var(--pad-y) var(--pad-x);
+    border: var(--edge) solid transparent;
+    border-radius: 0;
+    background: transparent;
+    color: var(--ink);
+    font-size: var(--text);
+    font-weight: $font-weight-semibold;
+    line-height: 1.2;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background $transition-fast ease, border-color $transition-fast ease, color $transition-fast ease,
+      box-shadow $transition-fast ease, transform $transition-fast ease;
 
-  // Keeps white text readable (the light purple alone is too bright for it)
-  &:hover:not(:disabled) {
-    background: color-mix(in srgb, $color-primary 75%, $color-primary-light);
+    &:disabled,
+    &[aria-disabled='true'] {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
   }
-}
 
-.outline {
-  border-color: $color-primary-light;
-  color: $color-text-primary;
-
-  &:hover:not(:disabled) {
-    background: color-mix(in srgb, $color-primary-light 15%, transparent);
+  @each $name, $tone in $tones {
+    .#{$name} {
+      --fill: #{map.get($tone, fill)};
+      --fill-hover: #{map.get($tone, fill-hover)};
+      --on-fill: #{map.get($tone, on-fill)};
+      --line: #{map.get($tone, line)};
+      --ink: #{map.get($tone, ink)};
+      --glass: #{map.get($tone, glass)};
+    }
   }
-}
 
-.danger {
-  background: color-mix(in srgb, $color-error 70%, $color-black);
-  color: $color-white;
+  // Sizes: the padding, the text, and the box an icon alone sits in
+  .xs {
+    --box: 24px;
+    --pad-y: 2px;
+    --pad-x: #{$spacing-sm};
+    --gap: #{$spacing-xs};
+    --text: #{$font-size-xs};
+    --edge: 1px;
+  }
 
-  &:hover:not(:disabled) {
-    background: color-mix(in srgb, $color-error 85%, $color-black);
+  .sm {
+    --box: 32px;
+    --pad-y: #{$spacing-xs};
+    --pad-x: 0.625rem;
+    --gap: 0.375rem;
+    --text: #{$font-size-sm};
+    --edge: 1px;
+  }
+
+  .md {
+    --box: 40px;
+    --pad-y: #{$spacing-sm};
+    --pad-x: #{$spacing-md};
+    --gap: #{$spacing-sm};
+    --text: #{$font-size-base};
+    --edge: 2px;
+  }
+
+  .lg {
+    --box: 48px;
+    --pad-y: 0.75rem;
+    --pad-x: #{$spacing-lg};
+    --gap: #{$spacing-sm};
+    --text: #{$font-size-lg};
+    --edge: 2px;
+  }
+
+  .icon {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2em;
+  }
+
+  // An icon alone: a square box (a circle when round)
+  .iconOnly {
+    width: var(--box);
+    height: var(--box);
+    padding: 0;
+
+    .icon {
+      font-size: 1.35em;
+    }
+  }
+
+  .rounded {
+    border-radius: $radius-md;
+  }
+
+  .round {
+    border-radius: $radius-full;
+  }
+
+  .block {
+    display: flex;
+    width: 100%;
+  }
+
+  .primaryFont {
+    font-family: $font-primary;
+  }
+
+  .secondaryFont {
+    font-family: $font-secondary;
+  }
+
+  // The boxed ones rise a little on hover (without flickering at their bottom edge: mixins.lift)
+  .filled,
+  .outline,
+  .dashed,
+  .soft,
+  .glass {
+    @include hover {
+      @include mixins.lift;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      @include hover {
+        transform: none;
+      }
+    }
+  }
+
+  // Pressed: a toggle that's on (aria-pressed), or a button shown as on (.active)
+  @mixin pressed {
+    &[aria-pressed='true'],
+    &.active {
+      @content;
+    }
+  }
+
+  .filled {
+    background: var(--fill);
+    color: var(--on-fill);
+
+    @include hover {
+      background: var(--fill-hover);
+    }
+
+    @include pressed {
+      box-shadow: inset 0 0 0 2px var(--line), 0 0 12px color-mix(in srgb, var(--line) 45%, transparent);
+    }
+  }
+
+  // A white label with the icon in its colour (the coloured tones colour the label too, below)
+  .outline {
+    border-color: var(--line);
+    color: $color-text-primary;
+
+    .icon {
+      color: var(--ink);
+    }
+
+    @include hover {
+      background: var(--wash);
+    }
+
+    &[aria-expanded='true'] {
+      background: var(--wash);
+    }
+
+    @include pressed {
+      border-color: var(--fill);
+      background: var(--fill);
+      color: var(--on-fill);
+
+      .icon {
+        color: inherit;
+      }
+    }
+  }
+
+  // Danger and the coloured tones keep their colour in the label too
+  .outline:is(.secondary, .danger, .warning, .success, .info, .accent) {
+    color: var(--ink);
+  }
+
+  // A thin dashed edge, the label in its colour: quieter than an outline
+  .dashed {
+    border-width: 1px;
+    border-style: dashed;
+    border-color: var(--line);
+    color: var(--ink);
+
+    @include hover {
+      background: var(--wash);
+    }
+
+    &[aria-expanded='true'] {
+      background: var(--wash);
+    }
+
+    @include pressed {
+      border-style: solid;
+      background: var(--wash);
+    }
+  }
+
+  .soft {
+    background: $color-surface;
+    color: $color-text-primary;
+
+    @include hover {
+      background: color-mix(in srgb, var(--line) 30%, transparent);
+    }
+
+    @include pressed {
+      border-color: color-mix(in srgb, var(--line) 60%, transparent);
+      background: color-mix(in srgb, var(--line) 20%, transparent);
+      color: var(--ink);
+    }
+  }
+
+  .glass {
+    background: var(--glass);
+    backdrop-filter: blur(4px);
+    color: $color-text-primary;
+
+    @include hover {
+      background: color-mix(in srgb, var(--glass) 70%, var(--line));
+    }
+
+    // On: darker behind, so its colour reads on any picture, with a ring in it
+    @include pressed {
+      background: color-mix(in srgb, $color-black 55%, transparent);
+      box-shadow: inset 0 0 0 1px var(--line);
+      color: var(--ink);
+    }
+  }
+
+  // Open (aria-expanded) shows no box: what it opens, or its turning chevron, says so
+  .ghost {
+    @include hover {
+      background: var(--wash);
+    }
+
+    @include pressed {
+      background: var(--fill);
+      color: var(--on-fill);
+    }
+  }
+
+  // Grey until hovered or on
+  .neutral.ghost {
+    @include hover {
+      color: $color-text-primary;
+    }
+
+    &[aria-pressed='true'],
+    &.active {
+      color: $color-text-primary;
+    }
+  }
+
+  // A text link: no box, its own size only when asked for (sm, lg), and the line under it
+  .text {
+    min-height: 0;
+    padding: 0;
+    font-size: inherit;
+    font-weight: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+
+    &.sm {
+      font-size: $font-size-sm;
+    }
+
+    &.lg {
+      font-size: $font-size-lg;
+    }
+
+    @include hover {
+      color: $color-secondary;
+    }
+
+    @include pressed {
+      color: $color-secondary;
+      text-decoration-thickness: 2px;
+    }
   }
 }

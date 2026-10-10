@@ -1,15 +1,20 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router';
+import { useLocation, useNavigate, useParams } from 'react-router';
 import {
   CiCircleQuestion, CiFilter, CiGlobe, CiMaximize1, CiMaximize2, CiMinimize1, CiSquareChevLeft,
 } from 'react-icons/ci';
 import { LuChevronsLeftRight, LuChevronsRightLeft } from 'react-icons/lu';
-import { PiResizeDuotone, PiStarFill } from 'react-icons/pi';
+import { PiPlayFill, PiResizeDuotone, PiStarFill } from 'react-icons/pi';
 import {
-  games, gamesWithTags, getEmbedUrl, getPlatformIcon, getPlatformTypes, getSourceLinks, getStorePlatforms, getWebPlatform,
+  games, gamesWithTags, getEmbedUrl, getPlatformIcon, getPlatformTypes, getSourceLinks, getStore, getStorePlatforms,
+  getWebPlatform,
 } from '../../data/games.js';
 import Button from '../../components/common/Button/Button';
+import { Collapsible, DisclosureButton, useDisclosure } from '../../components/common/Disclosure/Disclosure';
 import ExternalLink from '../../components/common/ExternalLink/ExternalLink';
+import Message from '../../components/common/Message/Message';
+import Popover from '../../components/common/Popover/Popover';
+import Tag from '../../components/common/Tag/Tag';
 import GooglePlayBadge, { GOOGLE_PLAY_TRADEMARK } from '../../components/common/GooglePlayBadge/GooglePlayBadge.jsx';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGameStats } from '../../contexts/LibraryContext';
@@ -18,9 +23,11 @@ import { askToConfirm } from '../../lib/confirm';
 import { calendarDate } from '../../lib/dates';
 import { useGameBridge } from '../../lib/gameBridge';
 import { noteGameOpened } from '../../lib/install';
+import { canOpenApp, openAppUrl } from '../../lib/nativeApps';
 import { useDownloads, useOnline } from '../../lib/offline';
 import { usePlayTime } from '../../lib/playTime';
 import { useRuns } from '../../lib/runs';
+import { useFit } from '../../lib/useFit';
 import { showToast } from '../../lib/toast';
 import DownloadGame from '../../components/layout/game/DownloadGame/DownloadGame.jsx';
 import GameControls from '../../components/layout/game/GameControls/GameControls.jsx';
@@ -178,35 +185,26 @@ const RatingChip = ({ stats }) => {
 const GameTags = ({ game }) => {
   const [picked, setPicked] = useState([]);
   const toggle = (tag) => setPicked((current) => (current.includes(tag) ? current.filter((t) => t !== tag) : [...current, tag]));
-  // A chip, by kind (its title says which; a plain tag has none)
-  const chip = (tag, className, kind = null) => (
-    <button
-      key={`${kind}:${tag}`}
-      type="button"
-      className={`${className} ${picked.includes(tag) ? styles.picked : ''}`}
-      title={kind ?? undefined}
-      aria-pressed={picked.includes(tag)}
-      onClick={() => toggle(tag)}
-    >
-      {kind && <span className="visually-hidden">{kind}: </span>}
+  // A chip, by kind: genre, difficulty (easy, medium, hard), platform, or a plain tag
+  const chip = (tag, kind = 'tag') => (
+    <Tag key={`${kind}:${tag}`} kind={kind} size="md" selected={picked.includes(tag)} onClick={() => toggle(tag)}>
       {tag}
-    </button>
+    </Tag>
   );
   return (
     <div className={styles.tagsCard} role="group" aria-label="Pick tags to find games that have them all">
       <div className={styles.gameMeta}>
-        {game.genre.map((genre) => chip(genre, `${styles.metaChip} ${styles.genre}`, 'Genre'))}
-        {game.difficulty && chip(game.difficulty, `${styles.metaChip} ${styles[game.difficulty]}`, 'Difficulty')}
-        {getPlatformTypes(game).map((platform) => chip(platform, `${styles.metaChip} ${styles.platform}`, 'Platform'))}
+        {game.genre.map((genre) => chip(genre, 'genre'))}
+        {game.difficulty && chip(game.difficulty, game.difficulty)}
+        {getPlatformTypes(game).map((platform) => chip(platform, 'platform'))}
       </div>
-      <div className={styles.tagsContainer}>{game.tags.map((tag) => chip(tag, styles.tag))}</div>
+      <div className={styles.tagsContainer}>{game.tags.map((tag) => chip(tag))}</div>
       {picked.length > 0 && (
         <div className={styles.tagsFind}>
-          <Button as={Link} to={gamesWithTags(picked)} variant="outline">
-            <CiFilter aria-hidden="true" />
+          <Button to={gamesWithTags(picked)} variant="outline" icon={CiFilter}>
             {picked.length === 1 ? `Find games tagged ${picked[0]}` : `Find games with these ${picked.length}`}
           </Button>
-          <button type="button" className={styles.textButton} onClick={() => setPicked([])}>Clear</button>
+          <Button variant="text" onClick={() => setPicked([])}>Clear</Button>
         </div>
       )}
     </div>
@@ -228,15 +226,15 @@ const SaveStatus = ({ bridge, signedIn, accountsAvailable, online, ticketsLeft, 
   if (!online) {
     if (signedIn && ticketsLeft === 0) {
       return (
-        <p className={`${styles.saveStatus} ${styles.saveProblem}`} role="status">
+        <Message tone="warning" role="status">
           You&rsquo;re offline, and out of tickets for {title}: the games you play now won&rsquo;t be saved to your
           account, only on this device (they can&rsquo;t be checked). Your progress still goes up once you&rsquo;re
           back online. Connect to the internet to get more tickets.
-        </p>
+        </Message>
       );
     }
     return (
-      <p className={styles.saveStatus}>
+      <Message>
         You&rsquo;re offline. Your progress is kept on this device
         {signedIn ? ', and goes up to your account the next time you play this game online.' : '.'}
         {signedIn && ticketsLeft > 0 && (
@@ -245,19 +243,19 @@ const SaveStatus = ({ bridge, signedIn, accountsAvailable, online, ticketsLeft, 
             checked and saved to your account once you&rsquo;re back online.
           </>
         )}
-      </p>
+      </Message>
     );
   }
   // Games only connect a moment after they load; until then (or if they never do) nothing is claimed
   if (!accountsAvailable || !bridge.connected) return null;
   if (!signedIn) {
-    return <p className={styles.saveStatus}>Your progress is saved in this browser. Sign in to keep it in your account.</p>;
+    return <Message>Your progress is saved in this browser. Sign in to keep it in your account.</Message>;
   }
   let text = 'Your progress is saved to your account.';
   if (bridge.saving) text = 'Saving to your account…';
   else if (bridge.saveFailed) text = "Couldn't reach your account. Your progress is safe in this browser, and it'll try again.";
   else if (bridge.savedAt) text = `Saved to your account at ${bridge.savedAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}.`;
-  return <p className={`${styles.saveStatus} ${bridge.saveFailed ? styles.saveProblem : ''}`}>{text}</p>;
+  return <Message tone={bridge.saveFailed ? 'warning' : 'note'}>{text}</Message>;
 };
 
 const GamePageContent = ({ gameId }) => {
@@ -282,7 +280,7 @@ const GamePageContent = ({ gameId }) => {
   const [controlsExpandedMaximized, setControlsExpandedMaximized] = useState(true);
   const focusControlsRef = useRef(false); // their own button moved them, so focus goes with them
   const [showStyle, setShowStyle] = useState(false);
-  const [showFeatures, setShowFeatures] = useState(false);
+  const features = useDisclosure();
   // The frame (Enable Resize): Maximize puts the game across the whole row, with the info below;
   // Collapse Width gives it the game's own width instead of its column's; dragging an edge gives it
   // a width or height of its own
@@ -295,6 +293,8 @@ const GamePageContent = ({ gameId }) => {
   const frameContainerRef = useRef(null);
   const frameSectionRef = useRef(null);
   const infoRef = useRef(null); // the info cards
+  // The title with its buttons beside it, at full size if they fit, else smaller; else the buttons on a row of their own
+  const [headerLook, headerRef] = useFit(['', styles.compact, `${styles.compact} ${styles.stacked}`]);
   const [columnWidth, setColumnWidth] = useState(null); // the game's column, for Expand / Collapse Width
   const dragRef = useRef(null); // the drag in progress: which edge, where it started
   const dimensions = game?.dimensions; // the game frame's sizes and centring (the catalogue), if it has them
@@ -674,13 +674,14 @@ const GamePageContent = ({ gameId }) => {
   const webPlatform = getWebPlatform(game);
   const WebIcon = webPlatform && getPlatformIcon(webPlatform);
   const storePlatforms = getStorePlatforms(game);
+  const app = storePlatforms.find(canOpenApp); // on Android, Play on its picture tries the app
   const sourceLinks = getSourceLinks(game);
   // When it came out, and who made it: with the features (or under the description, for entries without any)
   const credits = (game.released || game.developer) && (
-    <p className={styles.credits}>
+    <Message className={styles.credits}>
       {game.released && <>Released <time dateTime={game.released}>{calendarDate(game.released)}</time></>}
       {game.developer && <>{game.released ? ' by ' : 'By '}<DeveloperName developer={game.developer} /></>}
-    </p>
+    </Message>
   );
   // The keys, mouse buttons and gestures the game uses: small in the info column at first, or
   // every device under the game (or its picture)
@@ -699,7 +700,7 @@ const GamePageContent = ({ gameId }) => {
 
   return (
     <div className={`${styles.gamePage} ${maximized ? styles.maximized : ''}`}>
-      <div className={styles.gameHeader}>
+      <div ref={headerRef} className={`${styles.gameHeader} ${headerLook}`}>
         {/* The title, after the game's icon, which is also the way back: pointing at it (or tabbing to
             it) slides a back arrow in before it. Touch screens get no arrow: tapping the icon or the
             title goes back. A game without an icon shows the arrow when its title is pointed at. */}
@@ -716,16 +717,15 @@ const GamePageContent = ({ gameId }) => {
           {embedUrl && (
             <DownloadGame game={game} offline={bridge.offline} recorded={Boolean(downloads[gameId])} onSetDownload={bridge.setDownload} />
           )}
-          <button
-            type="button"
-            className={styles.helpButton}
-            onClick={() => setHelpOpen(true)}
+          <Button
+            variant="soft"
+            shape="round"
+            icon={CiCircleQuestion}
+            label="Help"
             title="Help: report a bug, reset progress"
-            aria-label="Help"
+            onClick={() => setHelpOpen(true)}
             aria-haspopup="dialog"
-          >
-            <CiCircleQuestion aria-hidden="true" />
-          </button>
+          />
         </div>
       </div>
       {helpOpen && (
@@ -747,11 +747,11 @@ const GamePageContent = ({ gameId }) => {
               {blockedOffline && (
                 <div className={styles.offlineNotice} role="status">
                   <p>You&rsquo;re offline, and {game.title} isn&rsquo;t downloaded.</p>
-                  <p className={styles.offlineHint}>
+                  <Message className={styles.offlineHint}>
                     Connect to the internet to play it. To play it offline next time, download it from this page
                     (the Download button at the top).
-                  </p>
-                  <button type="button" className={styles.sizeButton} onClick={() => setTryAnyway(true)}>Try anyway</button>
+                  </Message>
+                  <Button variant="outline" font="secondary" shape="rounded" onClick={() => setTryAnyway(true)}>Try anyway</Button>
                 </div>
               )}
               {frameId && !blockedOffline && (
@@ -773,15 +773,14 @@ const GamePageContent = ({ gameId }) => {
               {/* Narrower screens (nothing to resize): Fullscreen sits on the frame instead of under
                   it, out of the way while the game has the focus */}
               {!wideScreen && frameId && !blockedOffline && (
-                <button
-                  type="button"
+                <Button
+                  font="secondary"
+                  shape="rounded"
+                  icon={CiMaximize2}
+                  label="Fullscreen"
                   className={`${styles.frameFullscreen} ${gameFocused ? styles.hidden : ''}`}
                   onClick={enterFullscreen}
-                  title="Fullscreen"
-                  aria-label="Fullscreen"
-                >
-                  <CiMaximize2 aria-hidden="true" />
-                </button>
+                />
               )}
 
               {resizeEnabled && RESIZE_EDGES.map((edge) => (
@@ -801,14 +800,16 @@ const GamePageContent = ({ gameId }) => {
             {wideScreen && (
               <div className={styles.gameFrameActions}>
                 <div className={styles.resizeControls}>
-                  <button
-                    type="button"
-                    className={`${styles.resizeToggle} ${resizeEnabled ? styles.active : ''}`}
+                  {/* Pink while on, like the dashed line and the handles it shows */}
+                  <Button
+                    tone={resizeEnabled ? 'secondary' : 'primary'}
+                    font="secondary"
+                    shape="rounded"
+                    icon={PiResizeDuotone}
                     onClick={() => setResizeEnabled((enabled) => !enabled)}
                   >
-                    <PiResizeDuotone aria-hidden="true" />
                     {resizeEnabled ? 'Disable Resize' : 'Enable Resize'}
-                  </button>
+                  </Button>
 
                   {resizeEnabled && (
                     <div className={styles.sizeControls}>
@@ -816,38 +817,40 @@ const GamePageContent = ({ gameId }) => {
                           column's width, at the game's height), also after a drag. Only when it would
                           change something. */}
                       {(canCollapse || dragged) && (
-                        <button
-                          type="button"
-                          className={`${styles.sizeButton} ${expanded ? styles.active : ''}`}
+                        <Button
+                          variant="outline"
+                          font="secondary"
+                          shape="rounded"
+                          icon={expanded ? LuChevronsRightLeft : LuChevronsLeftRight}
+                          active={expanded}
                           onClick={toggleWidth}
                         >
-                          {expanded
-                            ? <LuChevronsRightLeft aria-hidden="true" />
-                            : <LuChevronsLeftRight aria-hidden="true" />}
                           {expanded ? 'Collapse Width' : 'Expand Width'}
-                        </button>
+                        </Button>
                       )}
                       {/* Maximize: the game across the whole row, the info below */}
-                      <button
-                        type="button"
-                        className={`${styles.sizeButton} ${maximized ? styles.active : ''}`}
+                      <Button
+                        variant="outline"
+                        font="secondary"
+                        shape="rounded"
+                        icon={maximized ? CiMinimize1 : CiMaximize1}
+                        active={maximized}
                         onClick={toggleMaximized}
                       >
-                        {maximized ? <CiMinimize1 aria-hidden="true" /> : <CiMaximize1 aria-hidden="true" />}
                         {maximized ? 'Minimize' : 'Maximize'}
-                      </button>
+                      </Button>
                     </div>
                   )}
                 </div>
-                <button
-                  type="button"
+                <Button
+                  variant="outline"
+                  font="secondary"
+                  shape="rounded"
+                  icon={CiMaximize2}
+                  label="Fullscreen"
                   className={styles.fullscreenButton}
                   onClick={enterFullscreen}
-                  title="Fullscreen"
-                  aria-label="Fullscreen"
-                >
-                  <CiMaximize2 aria-hidden="true" />
-                </button>
+                />
               </div>
             )}
             {/* Up once the game has connected, and through the reloads for a replay and back */}
@@ -878,40 +881,59 @@ const GamePageContent = ({ gameId }) => {
               />
             )}
             {offerReload && (
-              <p className={styles.saveStatus}>
+              <Message>
                 You&rsquo;re back online. Reload the game to send the progress you made offline to your account.{' '}
-                <button type="button" className={styles.textButton} onClick={bridge.reloadGame}>Reload the game</button>
-              </p>
+                <Button variant="text" onClick={bridge.reloadGame}>Reload the game</Button>
+              </Message>
             )}
             {showControlsExpanded && controls}
           </section>
         ) : (
           <section className={styles.heroSection}>
-            {game.thumb ? (
-              <img src={game.thumb} alt={game.title} className={styles.heroImage} />
-            ) : (
-              <div className={`${styles.heroImage} ${styles.heroFallback}`} aria-hidden="true">
-                <span>{game.title}</span>
-              </div>
-            )}
-            <div className={styles.heroActions}>
-              {storePlatforms.map((store) => (
-                <GooglePlayBadge key={store.url} url={store.url} />
-              ))}
-              {webPlatform && (
-                <ExternalLink href={webPlatform.url} className={styles.openButton} arrow>
-                  <WebIcon aria-hidden="true" />
-                  Open {game.title}
-                </ExternalLink>
+            {/* An app, on Android: glassed over, with Play in the middle, which opens it (or its store's page) */}
+            <div className={`${styles.heroPicture} ${app ? styles.withPlay : ''}`}>
+              {game.thumb ? (
+                <img src={game.thumb} alt={game.title} className={styles.heroImage} />
+              ) : (
+                <div className={`${styles.heroImage} ${styles.heroFallback}`} aria-hidden="true">
+                  <span>{game.title}</span>
+                </div>
               )}
-              {game.website && (
-                <ExternalLink href={game.website} className={styles.openButton} arrow>
-                  <CiGlobe aria-hidden="true" />
-                  Visit website
-                </ExternalLink>
+              {app && (
+                <Button
+                  href={openAppUrl(app)}
+                  sameTab
+                  size="lg"
+                  icon={PiPlayFill}
+                  title={`Opens ${game.title}, or ${getStore(app).name} if it isn't installed`}
+                  className={styles.heroPlay}
+                >
+                  Play
+                </Button>
               )}
             </div>
-            {storePlatforms.length > 0 && <p className={styles.storeLegal}>{GOOGLE_PLAY_TRADEMARK}</p>}
+            <div className={styles.heroActions}>
+              {storePlatforms.map((store) => (store.type === 'android' ? (
+                <GooglePlayBadge key={store.url} url={store.url} />
+              ) : (
+                <Button key={store.url} href={store.url} tone="warning" size="lg" icon={getStore(store).Icon} arrow>
+                  {getStore(store).get}
+                </Button>
+              )))}
+              {webPlatform && (
+                <Button href={webPlatform.url} size="lg" icon={WebIcon} arrow>
+                  Open {game.title}
+                </Button>
+              )}
+              {game.website && (
+                <Button href={game.website} variant={webPlatform ? 'outline' : 'filled'} size="lg" icon={CiGlobe} arrow>
+                  Visit website
+                </Button>
+              )}
+            </div>
+            {storePlatforms.some((store) => store.type === 'android') && (
+              <Message className={styles.storeLegal}>{GOOGLE_PLAY_TRADEMARK}</Message>
+            )}
             {showControlsExpanded && controls}
           </section>
         )}
@@ -922,29 +944,18 @@ const GamePageContent = ({ gameId }) => {
               <>
                 <div className={styles.sectionHeader}>
                   <h2>Details</h2>
-                  <button
-                    type="button"
-                    className={styles.toggleFeaturesBtn}
-                    onClick={() => setShowFeatures((shown) => !shown)}
-                    aria-expanded={showFeatures}
-                    aria-label={showFeatures ? 'Hide features' : 'Show features'}
-                    title={showFeatures ? 'Hide features' : 'Show features'}
-                  >
-                    <span aria-hidden="true">▼</span>
-                  </button>
+                  <DisclosureButton label={features.open ? 'Hide features' : 'Show features'} {...features.buttonProps} />
                 </div>
                 <p>{game.description}</p>
-                <div className={`${styles.gameFeatures} ${showFeatures ? styles.expanded : ''}`}>
-                  <div>
-                    <h2>Features</h2>
-                    <ul>
-                      {game.features.map((feature) => (
-                        <li key={feature}>{feature}</li>
-                      ))}
-                    </ul>
-                    {credits}
-                  </div>
-                </div>
+                <Collapsible className={styles.gameFeatures} {...features.panelProps}>
+                  <h2>Features</h2>
+                  <ul>
+                    {game.features.map((feature) => (
+                      <li key={feature}>{feature}</li>
+                    ))}
+                  </ul>
+                  {credits}
+                </Collapsible>
               </>
               ) : (
               <>
@@ -964,9 +975,10 @@ const GamePageContent = ({ gameId }) => {
             <section>
               <h2>Style</h2>
               <div className={styles.styleToggle}>
-                <button
-                  type="button"
-                  className={styles.styleButton}
+                <Button
+                  variant="dashed"
+                  shape="rounded"
+                  block
                   onMouseEnter={() => setShowStyle(true)}
                   onMouseLeave={() => setShowStyle(false)}
                   onFocus={() => setShowStyle(true)}
@@ -974,12 +986,10 @@ const GamePageContent = ({ gameId }) => {
                   aria-expanded={showStyle}
                 >
                   View style details
-                </button>
-                {showStyle && (
-                  <div className={styles.stylePopup}>
-                    <p>{game.style}</p>
-                  </div>
-                )}
+                </Button>
+                <Popover open={showStyle} className={styles.stylePopup}>
+                  <p>{game.style}</p>
+                </Popover>
               </div>
             </section>
           )}
@@ -993,16 +1003,14 @@ const GamePageContent = ({ gameId }) => {
           {(embedUrl || sourceLinks.length > 0) && (
             <section className={styles.gameLinks}>
               {embedUrl && (
-                <ExternalLink href={embedUrl} className={styles.playButton} arrow>
-                  <WebIcon aria-hidden="true" />
+                <Button href={embedUrl} size="lg" icon={WebIcon} arrow>
                   Play Directly
-                </ExternalLink>
+                </Button>
               )}
               {sourceLinks.map(({ url, label, Icon }) => (
-                <ExternalLink key={url} href={url} className={styles.sourceLink} arrow>
-                  <Icon aria-hidden="true" />
+                <Button key={url} href={url} variant="outline" size="lg" icon={Icon} arrow>
                   {label ?? 'View Source Code'}
-                </ExternalLink>
+                </Button>
               ))}
             </section>
           )}

@@ -22,6 +22,21 @@ h1, h2, h3, h4, h5, h6 {
   line-height: 1.2;
 }
 
+// A link in running text (one with no class of its own: an ExternalLink or a Link in a sentence). In the reset layer, so
+// any class on a link (a Button, a card, a nav row) or a page's own rule wins over it.
+@layer reset {
+  a:not([class]) {
+    color: $color-primary-light;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    transition: color $transition-fast ease;
+
+    &:hover {
+      color: $color-secondary;
+    }
+  }
+}
+
 // Keyboard focus ring (inputs and buttons included: nothing turns it off)
 :focus-visible {
   outline: 2px solid $color-primary-light;

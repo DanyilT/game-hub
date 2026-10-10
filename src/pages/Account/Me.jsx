@@ -1,6 +1,8 @@
 import { Navigate } from 'react-router';
 import { useAuth } from '../../contexts/AuthContext';
 import Button from '../../components/common/Button/Button';
+import PageTitle from '../../components/common/PageTitle/PageTitle';
+import Status from '../../components/common/Status/Status';
 import styles from './Account.module.scss';
 
 /**
@@ -15,7 +17,7 @@ const Me = () => {
 
   const page = (content) => (
     <div className={`${styles.page} ${styles.narrow}`}>
-      <h1 className={styles.title}>Your profile</h1>
+      <PageTitle>Your profile</PageTitle>
       {content}
     </div>
   );
@@ -25,13 +27,14 @@ const Me = () => {
   }
   // Signed in, but the profile is still on its way
   if (loading || (user && !profileError)) {
-    return page(<p className={styles.muted} aria-live="polite">Loading…</p>);
+    return page(<Status kind="loading" />);
   }
   if (user) {
     return page(
       <section className={styles.card}>
-        <p className={styles.error} role="alert">Couldn't load your profile. Check your connection and try again.</p>
-        <div className={styles.actions}><Button onClick={refreshProfile}>Try again</Button></div>
+        <Status kind="error" onRetry={refreshProfile}>
+          Couldn&rsquo;t load your profile. Check your connection and try again.
+        </Status>
       </section>,
     );
   }

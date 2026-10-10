@@ -1,4 +1,5 @@
 @use '../../../styles/abstracts/variables' as *;
+@use '../../../styles/abstracts/surfaces';
 
 // Under the games list, as wide as it
 .activity {
@@ -29,8 +30,7 @@
   align-items: center;
   gap: $spacing-sm;
   padding: $spacing-sm $spacing-md;
-  background: $color-section;
-  border-radius: $radius-lg;
+  @include surfaces.outlined;
   scroll-snap-align: start;
 }
 

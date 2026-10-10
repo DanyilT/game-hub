@@ -1,0 +1,85 @@
+@use 'variables' as *;
+
+// ==========================================
+// Surfaces: what content sits on, one look for each, the same everywhere
+// ==========================================
+// Use with `@use '<path>/styles/abstracts/surfaces';` and `@include surfaces.card;`. Each sets how the box looks and its
+// padding; where it goes is up to the page. The cards also lay out what's in them one under another, with a gap
+// (`$stack: false` leaves that to the page).
+// - card: a block of content on the game page, filled and rounded (its info cards, the panel under the game). Only there.
+// - card-outlined: a block anywhere else, with no fill, the brand's edge and square corners (account pages, legal
+//   pages, the error page); `outlined` is that look alone, for a small box with its own padding (recent activity)
+// - panel: frosted, over the page's background (the games list's filters)
+// - window: the neon window, over everything (dialogs, messages at the bottom of the screen, installing the app)
+// - popup: a small box under the button that opened it: the Popover component's look (ⓘ notes, menus). Moved sideways
+//   by --shift, which useKeepInView (src/lib/keepInView.js) sets so it isn't cut off at the window's edge.
+
+// A card's padding (less on phones), and what's in it one under another
+@mixin -inside($stack) {
+  padding: $spacing-lg;
+
+  @if $stack {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+  }
+
+  @media (width <= $breakpoint-mobile) {
+    padding: $spacing-md;
+  }
+}
+
+@mixin card($stack: true) {
+  @include -inside($stack);
+  background: $color-section;
+  border-radius: $radius-lg;
+
+  h2 {
+    font-size: $font-size-lg;
+  }
+}
+
+@mixin outlined {
+  border: 1px solid $color-primary;
+}
+
+@mixin card-outlined($stack: true) {
+  @include -inside($stack);
+  @include outlined;
+}
+
+@mixin panel {
+  background: $color-panel;
+  backdrop-filter: blur($blur-length);
+  border: 1px solid $color-primary;
+  border-radius: $radius-lg;
+}
+
+@mixin window {
+  background: linear-gradient(235deg, rgba($color-black, 0.95), rgba($color-black-light, 0.92));
+  backdrop-filter: blur($blur-length);
+  border: 2px solid $color-primary;
+  box-shadow: 0 0 24px rgba($color-black, 0.8), 0 0 12px rgba($color-primary-light, 0.25);
+  color: $color-text-primary;
+  transition: border-color $transition-fast ease;
+
+  &:hover {
+    border-color: $color-secondary;
+  }
+}
+
+@mixin popup {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 10;
+  width: max-content;
+  max-width: min(350px, 100vw - 16px);
+  padding: $spacing-md;
+  translate: var(--shift, 0) 0;
+  background: $color-black-light;
+  border: 1px solid $color-primary;
+  border-radius: $radius-md;
+  box-shadow: 0 4px 12px rgba($color-black, 0.4);
+  animation: global(fade-in) $transition-fast ease;
+}

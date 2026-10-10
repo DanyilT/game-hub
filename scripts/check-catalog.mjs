@@ -10,7 +10,7 @@ export const CATALOG_PATH = fileURLToPath(new URL('../src/data/games.json', impo
 
 const KINDS = ['game', 'portal'];
 // iOS can be added here once the site shows App Store links
-const PLATFORM_TYPES = ['web', 'android'];
+const PLATFORM_TYPES = ['web', 'android', 'ios'];
 const DIFFICULTIES = ['easy', 'medium', 'hard'];
 // Sites the hub may put in an iframe. The CSP's `frame-src` is built from this list (vite.config.js).
 export const EMBED_ORIGINS = ['https://*.dt-games.pages.dev'];
@@ -31,7 +31,7 @@ export const isEmbedOrigin = (origin) => EMBED_ORIGINS.some((allowed) => {
 const ENTRY_KEYS = ['id', 'kind', 'title', 'description', 'developer', 'released', 'style', 'genre', 'tags', 'features',
   'difficulty', 'controls', 'iconUrl', 'thumb', 'sourceCode', 'website', 'dimensions', 'platforms'];
 const GAME_DEVELOPER_KEYS = ['name', 'url'];
-const PLATFORM_KEYS = ['type', 'url', 'embed', 'storeId', 'icon'];
+const PLATFORM_KEYS = ['type', 'url', 'embed', 'storeId', 'appLink', 'icon'];
 const DIMENSION_KEYS = ['sizes', 'center'];
 const SIZE_KEYS = ['w', 'h'];
 const CONTROLS_KEYS = ['keys', 'mobile', 'touch'];
@@ -290,6 +290,16 @@ export function validateCatalog(catalog) {
       if (platform.type === 'android') {
         if (!isText(platform.storeId) || !/^[a-zA-Z]\w*(\.[a-zA-Z]\w*)+$/.test(platform.storeId)) at('android needs a package name in `storeId`');
         else if (platform.url !== `https://play.google.com/store/apps/details?id=${platform.storeId}`) at('android `url` must be the Play listing for `storeId`');
+      }
+      if (platform.type === 'ios' && isHttpsUrl(platform.url) && new URL(platform.url).hostname !== 'apps.apple.com') {
+        at('ios `url` must be the App Store listing (https://apps.apple.com/…)');
+      }
+      // The link the app opens itself with: a scheme of its own (chillzone://open) or an https App Link
+      if (platform.appLink !== undefined) {
+        if (platform.type === 'web') at('`appLink` is only for store apps (android, ios)');
+        else if (typeof platform.appLink !== 'string' || !/^[a-z][a-z0-9+.-]*:\/\/\S+$/i.test(platform.appLink) || /^(javascript|data|intent):/i.test(platform.appLink)) {
+          at('`appLink` must be a link like chillzone://open or https://…');
+        }
       }
       checkIcon(platform.icon, at);
     });

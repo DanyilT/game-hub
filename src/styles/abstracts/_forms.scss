@@ -1,7 +1,8 @@
 @use 'variables' as *;
 
-// Form fields in the neon look of the first rewrite's sign-in window (AuthModal):
-// green uppercase labels, transparent fields with a purple edge and green text.
+// Form fields in the neon look of the first rewrite's sign-in window (AuthModal): green uppercase labels, transparent
+// fields with a purple edge and green text. The fields themselves are components/common/Field; these are for them (and
+// a group's title that looks like a field's name), and the status colours for the Message and Badge tones.
 
 @mixin label {
   color: $color-accent-light;
@@ -40,13 +41,6 @@
   &[aria-invalid='true'] {
     border-color: $color-error;
   }
-}
-
-// Messages under a field or form ("Saved", "That username is taken")
-@mixin form-status {
-  min-height: 1.5em;
-  font-size: $font-size-sm;
-  color: $color-text-secondary;
 }
 
 $color-status-ok: $color-success;

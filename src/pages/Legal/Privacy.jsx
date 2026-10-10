@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 import ExternalLink from '../../components/common/ExternalLink/ExternalLink';
 import { developer } from '../../data/games';
+import PageTitle from '../../components/common/PageTitle/PageTitle';
 import styles from './Legal.module.scss';
 
 // Change this whenever the policy changes. Keep it in step with what the site really does:
@@ -10,7 +11,7 @@ const LAST_UPDATED = '4 October 2026';
 const Privacy = () => (
   <div className={styles.page}>
     <div className={styles.container}>
-      <h1>Privacy Policy</h1>
+      <PageTitle align="center" className={styles.title}>Privacy Policy</PageTitle>
 
       <p className={styles.intro}>
         GameHub is a hobby project by{' '}

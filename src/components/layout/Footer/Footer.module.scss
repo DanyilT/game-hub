@@ -51,6 +51,7 @@
     gap: $spacing-xs; // an icon (if the link has one) and the label
     padding: $spacing-xs 0;
     color: $color-text-secondary;
+    text-decoration: none; // its own line draws in on hover (below)
     transition: color $transition-base ease;
 
     // Underline that draws in from the left on hover
@@ -82,6 +83,16 @@
   p {
     color: $color-text-secondary;
     font-size: 0.9rem;
+  }
+
+  // "Made by …": the name as plain text, lighter on hover
+  a {
+    color: inherit;
+    text-decoration: none;
+
+    &:hover {
+      color: $color-text-primary;
+    }
   }
 }
 

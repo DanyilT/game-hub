@@ -4,6 +4,7 @@ import {
   PiArrowsIn, PiDeviceMobile, PiDeviceMobileCamera, PiDeviceMobileSlash, PiHandGrabbing, PiHandPointing,
   PiHandSwipeRight, PiHandTap,
 } from 'react-icons/pi';
+import Button from '../../../common/Button/Button';
 import InfoTip from '../../../common/InfoTip/InfoTip';
 import { GESTURES, KEYBOARD_KEYS, KEYBOARD_SIZE, MOUSE_BUTTONS } from '../../../../data/controls';
 import styles from './GameControls.module.scss';
@@ -156,26 +157,26 @@ const GameControls = ({ controls, expanded, onToggleExpanded, takeFocus }) => {
         )}
         <div className={styles.headerButtons}>
           {canSwitch && (
-            <button
-              type="button"
-              className={styles.headerButton}
-              onClick={() => setShowPhone((shown) => !shown)}
-              aria-label={showPhone ? `Show the ${main} controls` : 'Show the phone controls'}
+            <Button
+              variant="outline"
+              shape="rounded"
+              size="sm"
+              icon={showPhone ? CiCircleChevLeft : CiCircleChevRight}
+              label={showPhone ? `Show the ${main} controls` : 'Show the phone controls'}
               title={showPhone ? `${main === 'mouse' ? 'Mouse' : 'Keyboard'} controls` : 'Phone controls'}
-            >
-              {showPhone ? <CiCircleChevLeft aria-hidden="true" /> : <CiCircleChevRight aria-hidden="true" />}
-            </button>
+              onClick={() => setShowPhone((shown) => !shown)}
+            />
           )}
-          <button
+          <Button
             ref={toggleRef}
-            type="button"
-            className={styles.headerButton}
-            onClick={onToggleExpanded}
-            aria-label={expanded ? 'Show the controls small, in the info column' : 'Show every control, under the game'}
+            variant="outline"
+            shape="rounded"
+            size="sm"
+            icon={expanded ? CiMinimize1 : CiMaximize1}
+            label={expanded ? 'Show the controls small, in the info column' : 'Show every control, under the game'}
             title={expanded ? 'Minimize' : 'Maximize'}
-          >
-            {expanded ? <CiMinimize1 aria-hidden="true" /> : <CiMaximize1 aria-hidden="true" />}
-          </button>
+            onClick={onToggleExpanded}
+          />
         </div>
       </div>
 

@@ -1,0 +1,300 @@
+@use '../../../styles/abstracts/variables' as *;
+@use '../../../styles/abstracts/forms';
+
+// The form fields (Field.jsx), in the neon look of the first rewrite's sign-in window: green uppercase names,
+// see-through fields with a purple edge and green text. In the `components` layer (main.scss): a page's own class on
+// one wins over these (where it goes, how wide).
+@layer reset, components;
+
+@layer components {
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+    min-width: 0;
+  }
+
+  .label {
+    @include forms.label;
+  }
+
+  // The control, with what goes beside it (a button), which goes under it when there's no room
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-sm;
+
+    > :first-child {
+      flex: 1 1 12rem;
+      min-width: 0;
+    }
+  }
+
+  .input {
+    @include forms.text-input;
+  }
+
+  // A sign at the start inside the field (@)
+  .prefixed {
+    position: relative;
+    display: block;
+  }
+
+  .prefix {
+    position: absolute;
+    top: 50%;
+    left: 14px;
+    color: $color-accent;
+    pointer-events: none;
+    transform: translateY(-50%);
+  }
+
+  .withPrefix {
+    padding-left: calc(14px + 1.1em);
+  }
+
+  .textarea {
+    min-height: 6rem;
+    resize: vertical;
+    font-family: $font-secondary;
+  }
+
+  .select {
+    font-family: $font-secondary;
+
+    option {
+      background: $color-black-light;
+      color: $color-text-primary;
+    }
+  }
+
+  // A checkbox or a switch, its label beside it
+  .check {
+    display: flex;
+    align-items: flex-start;
+    gap: $spacing-sm $spacing-md;
+  }
+
+  .checkText {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xs;
+    min-width: 0;
+  }
+
+  .checkLabel {
+    font-family: $font-secondary;
+    font-size: $font-size-sm;
+    cursor: pointer;
+  }
+
+  .box {
+    flex-shrink: 0;
+    margin-top: 0.2em;
+    accent-color: $color-primary-light;
+    cursor: pointer;
+  }
+
+  // A checkbox drawn as a switch: a track, and a knob that slides across when it's on
+  .switch {
+    position: relative;
+    flex-shrink: 0;
+    width: 44px;
+    height: 24px;
+    border: 1px solid $color-primary-light;
+    border-radius: $radius-full;
+    background: transparent;
+    appearance: none;
+    cursor: pointer;
+    transition: background $transition-fast ease, border-color $transition-fast ease;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 16px;
+      height: 16px;
+      border-radius: $radius-full;
+      background: $color-primary-light;
+      transition: transform $transition-fast ease, background $transition-fast ease;
+    }
+
+    &:checked {
+      border-color: $color-accent-light;
+      background: color-mix(in srgb, $color-accent-light 25%, transparent);
+
+      &::after {
+        transform: translateX(20px);
+        background: $color-accent-light;
+      }
+    }
+
+    + .checkText .label {
+      cursor: pointer;
+    }
+  }
+
+  // A set of choices (RadioGroup): its name, then the options
+  .choices {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+    min-width: 0;
+  }
+
+  .choicesLabel {
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+  }
+
+  // The name and the choices on one row (they wrap under it when there's no room)
+  .inline {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: $spacing-sm $spacing-md;
+  }
+
+  .options {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+    min-width: 0;
+  }
+
+  .option {
+    cursor: pointer;
+    transition: background $transition-fast ease, border-color $transition-fast ease, color $transition-fast ease;
+
+    // A hidden radio (cards, segmented) shows its focus on its option
+    &:has(input:focus-visible) {
+      outline: 2px solid $color-primary-light;
+      outline-offset: 2px;
+    }
+
+    &:has(input:disabled) {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+  }
+
+  .optionText {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .optionLabel {
+    font-weight: $font-weight-semibold;
+  }
+
+  .optionHint {
+    color: $color-text-secondary;
+    font-family: $font-secondary;
+    font-size: $font-size-sm;
+  }
+
+  // list: a row each, the radio first
+  .list .option {
+    display: flex;
+    align-items: flex-start;
+    gap: $spacing-sm;
+    padding: $spacing-sm $spacing-md;
+    border: 1px solid $color-primary;
+
+    &:hover,
+    &.chosen {
+      border-color: $color-primary-light;
+      background: color-mix(in srgb, $color-primary-light 12%, transparent);
+    }
+
+    &:has(input:focus-visible) {
+      outline-offset: 0;
+    }
+  }
+
+  .radio {
+    flex-shrink: 0;
+    margin-top: 0.3em;
+    accent-color: $color-primary-light;
+  }
+
+  // cards: side by side when there's room, each with its picture
+  .cards .options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  }
+
+  .cards .option {
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
+    padding: $spacing-md;
+    border: 1px solid color-mix(in srgb, $color-primary 60%, transparent);
+
+    &:hover {
+      border-color: $color-primary-light;
+    }
+
+    &.chosen {
+      border-color: $color-secondary;
+      background: color-mix(in srgb, $color-primary 25%, transparent);
+    }
+  }
+
+  // segmented: a word each, side by side in one box with rounded corners; the chosen one filled
+  .segmented .options {
+    flex-direction: row;
+    gap: 0;
+    width: fit-content;
+    max-width: 100%;
+    overflow: hidden;
+    border: 1px solid $color-primary;
+    border-radius: $radius-md;
+  }
+
+  .segmented.square .options {
+    border-radius: 0;
+  }
+
+  // Stretched by its row (as tall as a field beside it), the box fills the group, and its words stay in the middle
+  .segmented:not(.inline) .options {
+    flex-grow: 1;
+  }
+
+  .segmented .option {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 32px;
+    padding: 0 0.625rem;
+    color: $color-text-secondary;
+    font-family: $font-secondary;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+    white-space: nowrap;
+
+    & + & {
+      border-left: 1px solid color-mix(in srgb, $color-primary 60%, transparent);
+    }
+
+    &:hover {
+      background: color-mix(in srgb, $color-primary 20%, transparent);
+      color: $color-text-primary;
+    }
+
+    // Its focus ring inside the box, which clips what's outside it
+    &:has(input:focus-visible) {
+      outline-offset: -3px;
+    }
+
+    &.chosen {
+      background: $color-primary;
+      color: $color-text-primary;
+    }
+  }
+}

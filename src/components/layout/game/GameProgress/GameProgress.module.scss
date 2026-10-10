@@ -1,23 +1,16 @@
 @use '../../../../styles/abstracts/variables' as *;
-@use '../../../../styles/abstracts/buttons'; // %button-outline
+@use '../../../../styles/abstracts/surfaces';
 @use '../../../../styles/abstracts/mixins';
 
 $line: color-mix(in srgb, $color-white 10%, transparent);
 
 // Under the game: a card like the info cards beside it
 .panel {
-  @include mixins.info-card;
+  @include surfaces.card;
 
   h3 {
     font-size: $font-size-base;
   }
-}
-
-.note {
-  color: $color-text-secondary;
-  font-family: $font-secondary;
-  font-size: $font-size-xs;
-  opacity: 0.85;
 }
 
 // ==========================================
@@ -62,40 +55,22 @@ $line: color-mix(in srgb, $color-white 10%, transparent);
   }
 }
 
-// Its arrow (▼) turns to point up while the rest is open, like the info cards' round toggles
+// More (a DisclosureButton), at the right
 .moreButton {
-  display: inline-flex;
-  align-items: center;
-  gap: $spacing-xs;
   margin-left: auto; // on the right, also when it wraps under the numbers
-  padding: $spacing-xs $spacing-sm;
-  border-radius: $radius-full;
-  color: $color-primary-light;
-  font-family: $font-secondary;
-  font-size: $font-size-sm;
-  font-weight: $font-weight-semibold;
-  transition: background $transition-fast ease;
-
-  &:hover {
-    background: color-mix(in srgb, $color-primary 20%, transparent);
-  }
-
-  > span {
-    display: inline-block;
-    font-size: 0.7em;
-    transition: transform $transition-slow ease;
-  }
-
-  &[aria-expanded='true'] > span {
-    transform: rotate(180deg);
-  }
 }
 
-.more {
-  @include mixins.collapsible;
+// Short of room (GameProgress.jsx's useFit): More's ▼ alone, in a round box like an icon button, its word for screen
+// readers only
+.compact {
+  .moreButton {
+    --text: 1.25rem;
+    width: var(--box);
+    padding: 0;
+  }
 
-  &.open {
-    @include mixins.collapsible-open;
+  .moreLabel {
+    @include mixins.visually-hidden;
   }
 }
 
@@ -196,27 +171,16 @@ $line: color-mix(in srgb, $color-white 10%, transparent);
   }
 }
 
-.runPlay {
+
+// The result, and the record's star at the right of its line
+.runTop {
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: $radius-full;
-  background: $color-primary;
-  color: $color-text-primary;
-  font-size: 0.8rem;
-  cursor: pointer;
-  transition: transform $transition-fast ease, background $transition-fast ease;
+  gap: $spacing-xs $spacing-md;
+  min-width: 0;
 
-  &:hover {
-    transform: scale(1.1);
-    background: color-mix(in srgb, $color-primary 80%, $color-primary-light);
-  }
-
-  &:focus-visible {
-    outline: 2px solid $color-primary-light;
-    outline-offset: 2px;
+  .best {
+    margin-left: auto;
   }
 }
 
@@ -351,25 +315,10 @@ $line: color-mix(in srgb, $color-white 10%, transparent);
   }
 }
 
-.moreRuns {
-  @include mixins.collapsible($spacing-sm);
 
-  &.open {
-    @include mixins.collapsible-open;
-  }
-}
-
-.textButton {
+// Show all (a text Button), under the runs
+.showAll {
   align-self: flex-start;
-  color: $color-primary-light;
-  font-family: $font-secondary;
-  font-size: $font-size-sm;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-
-  &:hover {
-    color: $color-secondary;
-  }
 }
 
 // ==========================================
@@ -432,47 +381,9 @@ $line: color-mix(in srgb, $color-white 10%, transparent);
   gap: $spacing-sm $spacing-md;
 }
 
-.playPause {
-  @extend %button-outline;
-  padding: $spacing-sm;
-  font-size: $font-size-lg; // the icon's size
-}
 
-.again {
-  font-family: $font-secondary;
-  font-size: $font-size-sm;
-}
 
-.speeds {
-  display: inline-flex;
-  overflow: hidden;
-  border: 1px solid $color-primary;
-  border-radius: $radius-md;
-
-  button {
-    padding: $spacing-xs 0.6rem;
-    color: $color-primary-light;
-    font-family: $font-secondary;
-    font-size: $font-size-sm;
-    font-weight: $font-weight-semibold;
-    transition: background $transition-fast ease, color $transition-fast ease;
-
-    &:hover:not(:disabled) {
-      background: color-mix(in srgb, $color-primary 30%, transparent);
-    }
-
-    &[aria-pressed='true'] {
-      background: $color-primary;
-      color: $color-text-primary;
-    }
-
-    &:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-  }
-}
-
+// The speeds: ghost Buttons side by side in one box, the one that's on filled
 .progress {
   display: flex;
   flex: 1 1 10rem;
@@ -516,8 +427,6 @@ $line: color-mix(in srgb, $color-white 10%, transparent);
 
 .back {
   margin-left: auto; // on the right, also when the others wrap
-  font-family: $font-secondary;
-  font-size: $font-size-sm;
 }
 
 // Small phones: the numbers a little smaller, so three fit in a row, and a run's best, length and

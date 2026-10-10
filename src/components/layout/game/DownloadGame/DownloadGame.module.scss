@@ -2,50 +2,25 @@
 @use '../../../../styles/abstracts/forms';
 @use '../../../../styles/abstracts/mixins';
 
-// A pill like the favorite and bookmark buttons beside it. Its faces (Downloaded, and Remove over it) share one
-// cell, so it keeps its size when one turns into the other.
+// A soft round Button like the favorite and bookmark ones beside it, green once downloaded
 .download {
-  position: relative;
-  display: inline-grid;
-  min-height: 36px;
-  padding: $spacing-xs $spacing-md;
-  overflow: hidden;
-  border: 1px solid transparent;
-  border-radius: $radius-full;
-  background: $color-surface;
-  color: $color-text-primary;
-  font-family: $font-secondary;
-  font-size: 0.9rem;
-  font-weight: $font-weight-semibold;
-  transition: background $transition-fast ease, border-color $transition-fast ease, color $transition-fast ease,
-    transform $transition-fast ease;
-
-  svg {
-    font-size: 1.25rem;
-  }
-
-  &:hover:not(:disabled, [aria-disabled='true']) {
-    background: color-mix(in srgb, $color-white 18%, transparent);
-    transform: translateY(-1px);
-  }
-
-  &:disabled {
-    cursor: default;
-    opacity: 0.6;
-  }
-
-  &.downloaded {
-    border-color: color-mix(in srgb, $color-accent-light 60%, transparent);
-    color: $color-accent-light;
-  }
-
+  // Busy, it ignores clicks (aria-disabled) but isn't greyed out: its icon bobs instead
   &.busy {
     cursor: progress;
+    opacity: 1;
 
     svg {
       animation: bob 900ms ease-in-out infinite;
     }
   }
+}
+
+// Its faces (Downloaded, and Remove over it) share one cell, so it keeps its size when one turns into the other, and
+// slide in and out of it. The cell clips them, not the button: that would cut off the strip that keeps a lifted button
+// under the pointer (mixins.lift).
+.faces {
+  display: grid;
+  overflow: hidden;
 }
 
 .face {
@@ -55,6 +30,10 @@
   justify-content: center;
   gap: $spacing-xs;
   transition: opacity $transition-fast ease, transform $transition-fast ease;
+
+  svg {
+    font-size: 1.2em;
+  }
 }
 
 // Remove waits below, out of sight
@@ -92,11 +71,11 @@
 }
 
 // Phones and tablets, where the game page's header is short of room: only the icon, in a circle like the help
-// button beside it
+// button beside it (the Button's own box: --box)
 @media (width <= $breakpoint-mobile) {
   .download {
-    width: 36px;
-    height: 36px;
+    width: var(--box);
+    height: var(--box);
     padding: 0;
   }
 

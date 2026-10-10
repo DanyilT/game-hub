@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { NavLink, useLocation } from 'react-router';
 import { PiX } from 'react-icons/pi';
 import Avatar from '../../common/Avatar/Avatar';
+import Badge from '../../common/Badge/Badge';
 import useNavItems from '../useNavItems';
 import styles from './FloatingNav.module.scss';
 
@@ -80,9 +81,9 @@ const FloatingNav = ({ corner = 'right' }) => {
           : <Icon className={styles.icon} aria-hidden="true" />}
         <span className={styles.label}>{short ?? label}</span>
         {badge > 0 && (
-          <span className={styles.badge}>
+          <Badge className={styles.badge}>
             {badge}<span className="visually-hidden"> {badge === 1 ? 'friend request' : 'friend requests'}</span>
-          </span>
+          </Badge>
         )}
         {soon && <span className="visually-hidden"> (coming soon)</span>}
       </>
@@ -135,7 +136,7 @@ const FloatingNav = ({ corner = 'right' }) => {
         >
           <span className={styles.logo} aria-hidden="true">GH</span>
           <span className={styles.close} aria-hidden="true"><PiX /></span>
-          {waiting > 0 && !open && <span className={styles.mainDot} aria-hidden="true" />}
+          {waiting > 0 && !open && <Badge variant="dot" className={styles.mainDot} aria-hidden="true" />}
         </button>
       </div>
     </>

@@ -1,6 +1,6 @@
 @use '../../styles/abstracts/variables' as *;
+@use '../../styles/abstracts/surfaces';
 @use '../../styles/abstracts/mixins';
-@use '../../styles/abstracts/buttons'; // %button-filled, %button-outline
 
 $handle-size: 20px;
 $pinch-cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewport='0 0 32 32'><text y='20' font-size='24'>🤌</text></svg>");
@@ -10,11 +10,11 @@ $shadow: 0 4px 20px rgba($color-black, 0.2);
   padding: $spacing-xl $spacing-xl $spacing-xl*2;
 }
 
+// The title, with the rating, the favorite and bookmark buttons and help beside it. When they don't fit side by side,
+// the buttons get smaller (.compact, below), and then go onto a row of their own (.stacked): GamePage.jsx's useFit
 .gameHeader {
-  // The title, with the rating, the favorite and bookmark buttons and help beside it
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas: 'title actions';
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: $spacing-md;
   max-width: 1200px;
@@ -25,7 +25,7 @@ $shadow: 0 4px 20px rgba($color-black, 0.2);
 // The title, after the game's icon (the back button, below). The icon and the arrow are sized in em,
 // so they follow the title's size on phones.
 .gameTitle {
-  grid-area: title;
+  flex: 1 1 auto;
   display: flex;
   align-items: center;
   min-width: 0;
@@ -35,6 +35,7 @@ $shadow: 0 4px 20px rgba($color-black, 0.2);
   h1 {
     min-width: 0;
     font-size: inherit;
+    overflow-wrap: break-word;
   }
 }
 
@@ -80,31 +81,12 @@ $shadow: 0 4px 20px rgba($color-black, 0.2);
 }
 
 .gameReactions {
-  grid-area: actions;
   display: flex;
+  margin-left: auto; // on the right, on its own row too
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
   gap: $spacing-sm;
-}
-
-// The ? button: help, bug reports, resetting progress
-.helpButton {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: $radius-full;
-  background: $color-surface;
-  color: $color-text-primary;
-  font-size: 1.6rem;
-  transition: background $transition-fast ease, color $transition-fast ease, transform $transition-fast ease;
-
-  &:hover {
-    background: color-mix(in srgb, $color-primary-light 30%, transparent);
-    transform: translateY(-1px);
-  }
 }
 
 // The game's own icon, before its title
@@ -123,45 +105,11 @@ $shadow: 0 4px 20px rgba($color-black, 0.2);
   gap: $spacing-md;
 }
 
-// The Tags card's chips can be picked (GameTags): picked, they have a ring, and a button finds the games with them all
+// The Tags card's chips (Tag) can be picked (GameTags), and with some picked, a button finds the games with them all
 .tagsCard {
   display: flex;
   flex-direction: column;
   gap: $spacing-md;
-}
-
-.metaChip {
-  padding: $spacing-sm $spacing-md;
-  border: 2px solid transparent;
-  border-radius: $radius-full;
-  background: $color-surface;
-  font-size: 0.9rem;
-  font-weight: $font-weight-semibold;
-  cursor: pointer;
-  transition: border-color $transition-fast ease, transform $transition-fast ease;
-
-  &.genre { background: $color-genre; }
-  &.easy { background: $color-easy; }
-  &.medium { background: $color-medium; }
-  &.hard { background: $color-hard; }
-  &.platform { background: $color-platform; }
-}
-
-.metaChip,
-.tag {
-  &:hover {
-    transform: translateY(-1px);
-  }
-
-  &:focus-visible {
-    outline: 2px solid $color-primary-light;
-    outline-offset: 2px;
-  }
-
-  &.picked {
-    border-color: $color-secondary;
-    box-shadow: 0 0 0 1px $color-secondary;
-  }
 }
 
 .tagsFind {
@@ -172,44 +120,30 @@ $shadow: 0 4px 20px rgba($color-black, 0.2);
   animation: global(fade-in) $transition-fast ease;
 }
 
-// The players' average rating, a pill like the favorite and bookmark buttons beside it
+// The players' average rating, a pill the size of the favorite and bookmark buttons beside it (soft round Buttons)
 .ratingChip {
   display: inline-flex;
   align-items: center;
-  gap: $spacing-xs;
-  min-height: 36px;
-  padding: $spacing-xs $spacing-md;
+  gap: $spacing-sm;
+  min-height: 40px;
+  padding: $spacing-sm $spacing-md;
   border-radius: $radius-full;
   background: $color-surface;
   color: $color-gold;
   font-family: $font-secondary;
-  font-size: 0.9rem;
   font-weight: $font-weight-semibold;
+  line-height: 1.2;
   cursor: help;
 
   svg {
-    font-size: 1.25rem;
+    font-size: 1.2em;
   }
 }
 
-// When the game came out and who made it, with its features
+// When the game came out and who made it (a Message), with its features
 .credits {
-  color: $color-text-secondary;
-  font-family: $font-secondary;
-  font-size: $font-size-sm;
-
   .gameFeatures & {
     margin-top: $spacing-md;
-  }
-
-  a {
-    color: $color-primary-light;
-    text-decoration: underline;
-    text-underline-offset: 2px;
-
-    &:hover {
-      color: $color-secondary;
-    }
   }
 }
 
@@ -265,27 +199,6 @@ $shadow: 0 4px 20px rgba($color-black, 0.2);
   border: none;
 }
 
-// Where the game's progress is saved (the account, or this browser)
-.saveStatus {
-  color: $color-text-secondary;
-  font-family: $font-secondary;
-  font-size: $font-size-sm;
-}
-
-.saveProblem {
-  color: $color-warning;
-}
-
-.textButton {
-  color: $color-primary-light;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-
-  &:hover {
-    color: $color-secondary;
-  }
-}
-
 // In place of the game, offline when it isn't downloaded
 .offlineNotice {
   display: flex;
@@ -300,11 +213,9 @@ $shadow: 0 4px 20px rgba($color-black, 0.2);
   text-align: center;
 }
 
+// (a Message)
 .offlineHint {
   max-width: 32rem;
-  color: $color-text-secondary;
-  font-family: $font-secondary;
-  font-size: $font-size-sm;
 }
 
 .gameFrameActions {
@@ -325,30 +236,18 @@ $shadow: 0 4px 20px rgba($color-black, 0.2);
   gap: $spacing-md;
 }
 
-.resizeToggle {
-  @extend %button-filled;
-  @extend %button-secondary-font;
-}
-
-// Just an icon (its name is in title and aria-label)
 .fullscreenButton {
-  @extend %button-outline;
   align-self: flex-start;
   margin-left: auto; // on the right, also when the buttons before it wrap
-  padding: $spacing-sm;
-  font-size: $font-size-xl; // the icon's size
 }
 
 // Narrower screens (nothing to resize): the same button on the frame's top-right corner, gone
 // while the game has the focus
 .frameFullscreen {
-  @extend %button-filled;
   position: absolute;
   top: $spacing-sm;
   right: $spacing-sm;
   z-index: 5;
-  padding: $spacing-sm;
-  font-size: $font-size-xl;
   box-shadow: $shadow;
   transition: background $transition-base ease, transform $transition-base ease, opacity $transition-fast ease,
     visibility $transition-fast;
@@ -357,21 +256,6 @@ $shadow: 0 4px 20px rgba($color-black, 0.2);
   &.hidden {
     opacity: 0;
     visibility: hidden;
-  }
-}
-
-.resizeToggle.active {
-  background: $color-secondary;
-  color: $color-black;
-}
-
-.sizeButton {
-  @extend %button-outline;
-  @extend %button-secondary-font;
-
-  &.active {
-    background: $color-primary;
-    color: $color-text-primary;
   }
 }
 
@@ -438,7 +322,32 @@ $shadow: 0 4px 20px rgba($color-black, 0.2);
   min-width: 0;
 }
 
+// The picture; for an app on Android (src/lib/nativeApps.js), glassed over, with Play in the middle
+.heroPicture {
+  position: relative;
+}
+
+.withPlay::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: $radius-lg;
+  background: color-mix(in srgb, $color-black 25%, transparent);
+  backdrop-filter: blur(2px);
+  pointer-events: none;
+}
+
+// (a Button, as it is anywhere, in the middle)
+.heroPlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 1;
+  translate: -50% -50%;
+}
+
 .heroImage {
+  display: block;
   width: 100%;
   aspect-ratio: 16/9;
   object-fit: cover;
@@ -474,16 +383,10 @@ $shadow: 0 4px 20px rgba($color-black, 0.2);
   gap: $spacing-lg;
 }
 
-.openButton {
-  @extend %button-filled;
-  padding: 0.75rem $spacing-lg;
-}
-
 // Google Play trademark line, under the whole row so the badge and buttons stay level
+// (a Message, smaller)
 .storeLegal {
-  color: $color-text-secondary;
   font-size: $font-size-xs;
-  opacity: 0.8;
   text-align: center;
 }
 
@@ -496,7 +399,7 @@ $shadow: 0 4px 20px rgba($color-black, 0.2);
 
   section {
     position: relative;
-    @include mixins.info-card;
+    @include surfaces.card;
   }
 }
 
@@ -519,20 +422,8 @@ $shadow: 0 4px 20px rgba($color-black, 0.2);
   position: relative;
 }
 
-.styleButton {
-  @extend %button-outline;
-  width: 100%;
-  border-width: 1px;
-  border-style: dashed;
-
-  &:hover {
-    background: $color-section;
-    color: $color-primary-light;
-  }
-}
-
+// The style details (a Popover), as wide as its card at most
 .stylePopup {
-  @include mixins.popup;
   max-width: 100%;
 }
 
@@ -542,18 +433,8 @@ $shadow: 0 4px 20px rgba($color-black, 0.2);
   align-items: center;
 }
 
-.toggleFeaturesBtn {
-  @include mixins.round-toggle;
-}
-
-// The features (and when the game came out), opened by Details' arrow
+// The features (and when the game came out): a Collapsible, opened by Details' arrow
 .gameFeatures {
-  @include mixins.collapsible;
-
-  &.expanded {
-    @include mixins.collapsible-open;
-  }
-
   h2 {
     margin-bottom: $spacing-xs;
   }
@@ -570,30 +451,10 @@ $shadow: 0 4px 20px rgba($color-black, 0.2);
   gap: $spacing-sm;
 }
 
-.tag {
-  padding: $spacing-xs $spacing-sm;
-  background: $color-surface;
-  border: 1px solid color-mix(in srgb, $color-white 20%, transparent);
-  border-radius: $radius-xl;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: border-color $transition-fast ease, transform $transition-fast ease;
-}
-
 .gameLinks {
   display: flex;
   flex-direction: column;
   gap: $spacing-md;
-}
-
-.playButton {
-  @extend %button-filled;
-  padding: 0.75rem $spacing-lg;
-}
-
-.sourceLink {
-  @extend %button-outline;
-  padding: 0.75rem $spacing-lg;
 }
 
 // Narrower screens: the info goes under the game (GamePage.jsx's WIDE_QUERY must match)
@@ -617,13 +478,42 @@ $shadow: 0 4px 20px rgba($color-black, 0.2);
   }
 }
 
-// Small phones: the buttons go under the title
+// Smaller buttons: the Buttons' sm size, through their custom properties (the rating pill to match), beside the title
+// while that fits, and on a row of their own (.stacked: the title takes the first row) when it doesn't
+.stacked .gameTitle {
+  flex-basis: 100%;
+}
+
+.compact {
+  .gameReactions {
+    gap: $spacing-xs;
+
+    > div {
+      gap: $spacing-xs; // the favorite and bookmark (GameReactions' own row)
+    }
+
+    :is(button, a) {
+      --box: 32px;
+      --pad-y: #{$spacing-xs};
+      --pad-x: #{$spacing-sm};
+      --gap: #{$spacing-xs};
+      --text: #{$font-size-sm};
+      --edge: 1px;
+    }
+  }
+
+  .ratingChip {
+    gap: $spacing-xs;
+    min-height: 32px;
+    padding: $spacing-xs $spacing-sm;
+    font-size: $font-size-sm;
+  }
+}
+
+// Small phones: less room around the header
 @media (width <= $breakpoint-small) {
   .gameHeader {
     margin: 0 auto $spacing-md;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-      'title'
-      'actions';
+    padding-inline: 0;
   }
 }

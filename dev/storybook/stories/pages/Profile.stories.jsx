@@ -3,8 +3,9 @@ import { AppRoutes } from '../../../../src/App';
 /**
  * Player profiles: /u/<username>. The tabs: Played (another player's only when they let you see it), Friends,
  * Favorites, and on your own the private ones (a lock on the icon): Bookmarks, Ratings, and your friend requests
- * inside Friends. Someone else's has the friend buttons and the ⋯ menu (block, report). The made-up players are in
- * dev/storybook/mocks/data.js.
+ * inside Friends. Someone else's has, at the top right, the friend button (Add friend, or a menu once there's something
+ * between you: Friends, Request sent, Friend request, Blocked) and the ⋯ menu (block while you aren't friends, report).
+ * The made-up players are in dev/storybook/mocks/data.js.
  */
 export default {
   title: 'Pages/Profile',
@@ -32,6 +33,15 @@ export const PrivateTabTip = {
 
 /** A friend, playing Tetris right now */
 export const AFriend = { parameters: { route: '/u/cosmic_narwhal42' } };
+
+/** A friend's Friends menu: remove them, or block them */
+export const FriendMenu = {
+  parameters: { route: '/u/cosmic_narwhal42' },
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(await canvas.findByRole('button', { name: 'Friends' }));
+    await canvas.findByRole('menuitem', { name: 'Remove friend' });
+  },
+};
 
 /** Someone you could add */
 export const SomeoneElse = { parameters: { route: '/u/turbo_taco19' } };

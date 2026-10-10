@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { GiPerspectiveDiceSixFacesRandom } from 'react-icons/gi';
 import { useAuth } from '../../../contexts/AuthContext';
 import { USERNAME_HINT, USERNAME_PATTERN, randomUsername } from '../../../lib/account';
+import Button from '../../common/Button/Button';
+import { TextField } from '../../common/Field/Field';
 import styles from './UsernameField.module.scss';
 
 /**
@@ -40,9 +42,9 @@ export const useUsernameCheck = (value, current) => {
 };
 
 /**
- * Username input with a die icon for a random fun name, and a live "is it free?" line underneath.
- * Typing is lowercased as you go, because usernames are lowercase.
- * @param {string} id - input id (the status line gets `${id}-status`)
+ * Username input (a TextField, with an @ at its start) with a die for a random fun name, and a live "is it free?"
+ * line under it. Typing is lowercased as you go, because usernames are lowercase.
+ * @param {string} id - input id
  * @param {string} value - what's typed
  * @param {function} onChange - receives the new value
  * @param {string} status - from useUsernameCheck()
@@ -57,44 +59,37 @@ const UsernameField = ({ id, label = 'Username', value, onChange, status, disabl
     error: "Couldn't check that name right now. You can still try to save it.",
   };
 
+  const tones = { available: 'success', invalid: 'error', taken: 'error' };
+
   return (
-    <div className={styles.field}>
-      <label htmlFor={id} className={styles.label}>{label}</label>
-      <div className={styles.inputRow}>
-        <div className={styles.inputWrap}>
-          <span className={styles.at} aria-hidden="true">@</span>
-          <input
-            ref={inputRef}
-            id={id}
-            className={styles.input}
-            value={value}
-            onChange={(e) => onChange(e.target.value.toLowerCase())}
-            maxLength={20}
-            autoComplete="off"
-            autoCapitalize="none"
-            spellCheck={false}
-            disabled={disabled}
-            aria-invalid={status === 'invalid' || status === 'taken'}
-            aria-describedby={`${id}-status`}
-          />
-        </div>
-        <button
-          type="button"
+    <TextField
+      ref={inputRef}
+      id={id}
+      label={label}
+      prefix="@"
+      value={value}
+      onChange={(e) => onChange(e.target.value.toLowerCase())}
+      maxLength={20}
+      autoComplete="off"
+      autoCapitalize="none"
+      spellCheck={false}
+      disabled={disabled}
+      invalid={status === 'invalid' || status === 'taken'}
+      hint={disabled ? null : messages[status]}
+      hintTone={tones[status] ?? 'note'}
+      live
+      after={(
+        <Button
+          variant="outline"
+          icon={GiPerspectiveDiceSixFacesRandom}
+          label="Random username"
+          title="Magicaze a random username"
           className={styles.generate}
           onClick={() => onChange(randomUsername())}
           disabled={disabled}
-          title="Magicaze a random username"
-          aria-label="Random username"
-        >
-          <GiPerspectiveDiceSixFacesRandom aria-hidden="true" />
-        </button>
-      </div>
-      {!disabled && (
-        <p id={`${id}-status`} className={`${styles.status} ${styles[status] ?? ''}`} aria-live="polite">
-          {messages[status]}
-        </p>
+        />
       )}
-    </div>
+    />
   );
 };
 

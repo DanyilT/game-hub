@@ -5,46 +5,35 @@ import { PiBookmarkSimple, PiBookmarkSimpleFill, PiCloudCheck } from 'react-icon
 import { useAuth } from '../../../../contexts/AuthContext';
 import { useLibrary } from '../../../../contexts/LibraryContext';
 import {
-  getEmbedUrl, getPlatformIcon, getPlatformTypes, getSourceLinks, getStorePlatforms, getWebPlatform,
+  getEmbedUrl, getPlatformIcon, getPlatformTypes, getSourceLinks, getStore, getStorePlatforms, getWebPlatform,
 } from '../../../../data/games';
 import { calendarDate } from '../../../../lib/dates';
 import { useDownloads, useOnline } from '../../../../lib/offline';
+import Badge from '../../../common/Badge/Badge';
+import Button from '../../../common/Button/Button';
+import Tag from '../../../common/Tag/Tag';
 import styles from './GameCard.module.scss';
 
-/**
- * A round icon action on the card: a button (`onClick`), a link inside the hub (`to`) or
- * a link out (`href`, new tab). The tooltip is short; the accessible name adds the game,
- * e.g. "Snake Game: Play in Hub" rather than six identical "View Code"s.
- */
-const ActionButton = ({ icon: Icon, label, gameTitle, variant, onClick, to, href, ...rest }) => {
-  const props = {
-    title: label,
-    'aria-label': `${gameTitle}: ${label}${href ? ' (opens in a new tab)' : ''}`,
-    className: `${styles.actionButton} ${styles[variant] ?? ''}`,
-    ...rest,
-  };
-  const icon = <Icon aria-hidden="true" />;
-  if (onClick) return <button type="button" onClick={onClick} {...props}>{icon}</button>;
-  if (to) return <Link to={to} {...props}>{icon}</Link>;
-  return <a href={href} target="_blank" rel="noopener noreferrer" {...props}>{icon}</a>;
-};
+// Each kind of action's colour (its glass): Info has none; an app's store is yellow
+const ACTION_TONES = { info: 'neutral', play: 'success', direct: 'info', code: 'primary', store: 'warning' };
 
 /**
- * A tag that toggles the same filter chip in the list
- * @param {string} kind - for the tooltip ("Genre: arcade")
- * @param {string} [className] - colour for the difficulty, genre and platform tags
+ * A round icon action on the card (a glass Button over the picture): a button (`onClick`), a link inside the hub (`to`)
+ * or a link out (`href`, new tab). The tooltip is short; the accessible name adds the game, e.g. "Snake Game: Play in
+ * Hub" rather than six identical "View Code"s.
  */
-const TagButton = ({ tag, kind = 'Tag', className = '', selected, onToggle, ...rest }) => (
-  <button
-    type="button"
-    title={`${kind}: ${tag}`}
-    className={`${styles.gameTag} ${className} ${selected ? styles.active : ''}`}
-    onClick={() => onToggle(tag)}
-    aria-pressed={selected}
+const ActionButton = ({ icon, label, gameTitle, variant, href, ...rest }) => (
+  <Button
+    variant="glass"
+    tone={ACTION_TONES[variant]}
+    shape="round"
+    icon={icon}
+    label={`${gameTitle}: ${label}${href ? ' (opens in a new tab)' : ''}`}
+    title={label}
+    className={styles.actionButton}
+    href={href}
     {...rest}
-  >
-    {tag}
-  </button>
+  />
 );
 
 const GameCard = ({ game, index = 0, onTagClick, selectedTags = [] }) => {
@@ -99,16 +88,17 @@ const GameCard = ({ game, index = 0, onTagClick, selectedTags = [] }) => {
     setOpen((value) => !value);
   };
 
-  const tag = (value, kind, className, attributes) => (
-    <TagButton
-      key={value}
-      tag={value}
+  // A tag that toggles the same filter chip in the list
+  const tag = (value, kind = 'tag') => (
+    <Tag
+      key={`${kind}:${value}`}
       kind={kind}
-      className={className}
       selected={selectedTags.includes(value)}
-      onToggle={onTagClick}
-      {...attributes}
-    />
+      onClick={() => onTagClick(value)}
+      className={styles.gameTag}
+    >
+      {value}
+    </Tag>
   );
 
   return (
@@ -133,26 +123,32 @@ const GameCard = ({ game, index = 0, onTagClick, selectedTags = [] }) => {
 
       {/* Downloaded to play offline (from the game's page), or, offline, a game that needs the internet */}
       {(downloaded || needsInternet) && (
-        <span className={`${styles.offlineBadge} ${downloaded ? styles.ready : ''}`} title={downloaded ? 'Downloaded: plays offline' : 'Needs the internet'}>
-          {downloaded && <PiCloudCheck aria-hidden="true" />}
+        <Badge
+          variant="soft"
+          tone={downloaded ? 'accent' : 'neutral'}
+          icon={downloaded ? PiCloudCheck : null}
+          className={styles.offlineBadge}
+          title={downloaded ? 'Downloaded: plays offline' : 'Needs the internet'}
+        >
           {downloaded ? 'Offline' : 'Needs internet'}
-        </span>
+        </Badge>
       )}
 
       {/* Bookmark to play later (private; the profile lists them). Always shown once bookmarked,
           otherwise with the rest of the card's buttons. Signed out, it opens the sign-in window. */}
       {isAvailable && (
-        <button
-          type="button"
+        <Button
+          variant="glass"
+          tone="neutral"
+          shape="round"
+          icon={bookmarked ? PiBookmarkSimpleFill : PiBookmarkSimple}
+          label={`${game.title}: Bookmark`}
+          title={bookmarked ? 'Bookmarked to play later (only you see it)' : 'Bookmark to play later'}
           className={`${styles.bookmarkButton} ${bookmarked ? styles.bookmarked : ''}`}
           onClick={() => toggleBookmark(game.id)}
           aria-pressed={bookmarked}
-          aria-label={`${game.title}: Bookmark`}
-          title={bookmarked ? 'Bookmarked to play later (only you see it)' : 'Bookmark to play later'}
           inert={showInfo || undefined}
-        >
-          {bookmarked ? <PiBookmarkSimpleFill aria-hidden="true" /> : <PiBookmarkSimple aria-hidden="true" />}
-        </button>
+        />
       )}
 
       {/* Hidden under the info panel while it's open, so it's taken out of the tab order then */}
@@ -207,11 +203,12 @@ const GameCard = ({ game, index = 0, onTagClick, selectedTags = [] }) => {
           {game.website && (
             <ActionButton icon={CiGlobe} label="Website" gameTitle={game.title} variant="direct" href={game.website} />
           )}
+          {/* An app: its store's page (Google Play, the App Store), in yellow with the store's logo */}
           {getStorePlatforms(game).map((store) => (
             <ActionButton
               key={store.url}
-              icon={getPlatformIcon(store)}
-              label="Get it on Google Play"
+              icon={getStore(store).Icon}
+              label={getStore(store).get}
               gameTitle={game.title}
               variant="store"
               href={store.url}
@@ -245,9 +242,9 @@ const GameCard = ({ game, index = 0, onTagClick, selectedTags = [] }) => {
         <div className={styles.gameInfoContent}>
           <h3><Link to={gamePage} className={styles.titleLink}>{game.title}</Link></h3>
           <div className={styles.gameMetaTags}>
-            {game.difficulty && tag(game.difficulty, 'Difficulty', styles[game.difficulty])}
-            {game.genre.map((genre) => tag(genre, 'Genre', styles.genre))}
-            {getPlatformTypes(game).map((platform) => tag(platform, 'Platform', styles.platform))}
+            {game.difficulty && tag(game.difficulty, game.difficulty)}
+            {game.genre.map((genre) => tag(genre, 'genre'))}
+            {getPlatformTypes(game).map((platform) => tag(platform, 'platform'))}
           </div>
           <p className={styles.gameDescription}>{game.description}</p>
           {(game.released || game.developer) && (

@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 import ExternalLink from '../../components/common/ExternalLink/ExternalLink';
 import { GAMES_ISSUES_URL, HUB_ISSUES_URL, HUB_REPO_URL, hubBugReportUrl } from '../../lib/support';
+import PageTitle from '../../components/common/PageTitle/PageTitle';
 import styles from './Legal.module.scss';
 
 // Change this whenever the terms text changes
@@ -10,7 +11,7 @@ const LAST_UPDATED = '4 October 2026';
 const Terms = () => (
   <div className={styles.page}>
     <div className={styles.container}>
-      <h1>Terms & Conditions</h1>
+      <PageTitle align="center" className={styles.title}>Terms & Conditions</PageTitle>
 
       <section className={styles.section}>
         <h2>1. Introduction</h2>

@@ -48,25 +48,13 @@
 }
 
 // Opens the sidebar drawer; phones only. Absolutely placed so the logo stays centred.
+// The menu button (a ghost Button), phones only: at the left, in the middle of the bar
 .menuButton {
   display: none;
   position: absolute;
   left: $spacing-md;
   top: 50%;
   transform: translateY(-50%);
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: $radius-md;
-  color: $color-text-secondary;
-  font-size: 1.75rem;
-  transition: background $transition-fast, color $transition-fast;
-
-  &:hover {
-    background: rgba($color-white, 0.08);
-    color: $color-text-primary;
-  }
 }
 
 @media (width <= $breakpoint-mobile) {

@@ -5,7 +5,11 @@ import { FaDiscord } from 'react-icons/fa6';
 import { useAuth } from '../../../contexts/AuthContext';
 import { LOCAL_EMAILS_URL, fetchAuthSettings, isLocalSupabase } from '../../../lib/supabase';
 import { safeReturnPath } from '../../../lib/account';
+import Badge from '../../common/Badge/Badge';
+import Button from '../../common/Button/Button';
 import ExternalLink from '../../common/ExternalLink/ExternalLink';
+import { TextField } from '../../common/Field/Field';
+import Message from '../../common/Message/Message';
 import Modal from '../../common/Modal/Modal';
 import styles from '../AccountModal.module.scss';
 
@@ -87,97 +91,100 @@ const SignInModal = () => {
   return (
     <Modal title={emailMode ? 'Sign in with email' : 'Sign in'} onClose={closeSignIn}>
       {enabled === false && (
-        <div className={styles.error} role="alert">Can't reach the sign-in service right now. Try again in a minute.</div>
+        <Message tone="error" boxed className={styles.notice}>Can't reach the sign-in service right now. Try again in a minute.</Message>
       )}
-      {error && <div className={styles.error} role="alert">{error}</div>}
+      {error && <Message tone="error" boxed className={styles.notice}>{error}</Message>}
       {sentTo && (
-        <div className={styles.success} role="status">
+        <Message tone="success" boxed role="status" className={styles.notice}>
           Check your email! We sent a sign-in link to {sentTo}. Open it in this browser.
-        </div>
+        </Message>
       )}
 
       {emailMode ? (
         <>
           {!sentTo && (
-            <form onSubmit={sendLink}>
-              <div className={styles.formGroup}>
-                <label htmlFor="sign-in-email" className={styles.label}>Email</label>
-                <input
-                  ref={emailRef}
-                  id="sign-in-email"
-                  type="email"
-                  required
-                  autoComplete="email"
-                  placeholder="your@email.com"
-                  className={styles.input}
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-                {isLocalSupabase && (
-                  <span className={styles.hint}>
+            <form className={styles.form} onSubmit={sendLink}>
+              <TextField
+                ref={emailRef}
+                id="sign-in-email"
+                label="Email"
+                type="email"
+                required
+                autoComplete="email"
+                placeholder="your@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                hint={isLocalSupabase && (
+                  <>
                     Local testing: the email lands at{' '}
                     <ExternalLink href={LOCAL_EMAILS_URL}>{LOCAL_EMAILS_URL.replace('http://', '')}</ExternalLink>
-                  </span>
+                  </>
                 )}
-              </div>
-              <button type="submit" className={styles.submit} disabled={Boolean(busy)}>
+              />
+              <Button type="submit" size="lg" block disabled={Boolean(busy)}>
                 {busy === 'email' ? 'Sending…' : 'Send sign-in link'}
-              </button>
+              </Button>
             </form>
           )}
           {sentTo && isLocalSupabase && (
-            <p className={styles.text}>
+            <Message>
               Local testing: open{' '}
-              <ExternalLink href={LOCAL_EMAILS_URL} className={styles.switchButton}>
-                {LOCAL_EMAILS_URL.replace('http://', '')}
-              </ExternalLink>
+              <ExternalLink href={LOCAL_EMAILS_URL}>{LOCAL_EMAILS_URL.replace('http://', '')}</ExternalLink>
               {' '}and click the link in the email.
-            </p>
+            </Message>
           )}
           <div className={styles.switch}>
-            <button type="button" className={styles.switchButton} onClick={() => { setEmailMode(false); setSentTo(null); }}>
+            <Button variant="text" size="sm" onClick={() => { setEmailMode(false); setSentTo(null); }}>
               Back to {liveNames(' / ')}
-            </button>
+            </Button>
           </div>
         </>
       ) : (
         <>
           <div className={styles.providers}>
             {PROVIDERS.map(({ id, name, icon: Icon, soon }) => (
-              <button
+              <Button
                 key={id}
-                type="button"
-                className={`${styles.submit} ${soon ? styles.soon : ''}`}
+                size="lg"
+                block
+                className={soon ? styles.soon : undefined}
                 onClick={() => start(id)}
                 disabled={soon || Boolean(busy) || enabled === false || Boolean(enabled && !enabled[id])}
               >
                 <Icon className={styles.providerIcon} aria-hidden="true" />
                 <span className={styles.providerLabel}>{busy === id ? `Opening ${name}…` : `Continue with ${name}`}</span>
-                {soon && <span className={styles.soonBadge}><span className="visually-hidden">: coming </span>soon</span>}
-              </button>
+                {soon && <Badge variant="outline"><span className="visually-hidden">: coming </span>soon</Badge>}
+              </Button>
             ))}
           </div>
           {providersOff && (
-            <span className={styles.hint}>
+            <Message>
               {isLocalSupabase
                 ? `${liveNames(' and ')} sign-in isn't set up in the local Supabase: use the email link below.`
                 : `${liveNames(' and ')} sign-in isn't switched on yet.`}
-            </span>
+            </Message>
           )}
 
           <div className={styles.divider}><span>or</span></div>
 
           {/* The real site needs a domain of its own to send email from */}
-          <button type="button" className={styles.alt} onClick={() => setEmailMode(true)} disabled={!emailWorks}>
-            <span className={styles.altLabel}>✉ Sign in with email link (passwordless)</span>
-            {!emailWorks && <span className={styles.soonBadge}><span className="visually-hidden">: coming </span>soon</span>}
-          </button>
+          <Button
+            variant="outline"
+            tone="accent"
+            block
+            className={emailWorks ? undefined : styles.soon}
+            onClick={() => setEmailMode(true)}
+            disabled={!emailWorks}
+          >
+            <span className={styles.providerLabel}>✉ Sign in with email link (passwordless)</span>
+            {!emailWorks && <Badge variant="outline"><span className="visually-hidden">: coming </span>soon</Badge>}
+          </Button>
 
-          <p className={styles.finePrint}>
+          <Message className={styles.finePrint}>
             {liveNames(' or ')} tells GameHub your name, email address and profile picture. Other players never see
             your email. By signing in you agree to the <Link to="/terms" onClick={closeSignIn}>Terms</Link> and
             the <Link to="/privacy" onClick={closeSignIn}>Privacy Policy</Link>.
-          </p>
+          </Message>
         </>
       )}
     </Modal>

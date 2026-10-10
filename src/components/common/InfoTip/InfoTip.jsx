@@ -1,4 +1,6 @@
 import { useId, useState } from 'react';
+import Button from '../Button/Button';
+import Popover from '../Popover/Popover';
 import styles from './InfoTip.module.scss';
 
 /**
@@ -12,19 +14,20 @@ const InfoTip = ({ label, children }) => {
   const noteId = useId();
   return (
     <span className={styles.infoTip}>
-      <button
-        type="button"
-        className={styles.button}
-        aria-label={label}
+      <Button
+        size="xs"
+        shape="round"
+        icon={<span className={styles.glyph}>ℹ</span>}
+        label={label}
+        title=""
         aria-describedby={noteId}
         onMouseEnter={() => setOpen(true)}
         onMouseLeave={() => setOpen(false)}
         onFocus={() => setOpen(true)}
         onBlur={() => setOpen(false)}
-      >
-        <span aria-hidden="true">ℹ</span>
-      </button>
-      <span id={noteId} role="tooltip" className={open ? styles.note : 'visually-hidden'}>{children}</span>
+      />
+      {/* Opens to the right of the button (or as far left as it takes to stay in the window) */}
+      <Popover open={open} keepMounted as="span" id={noteId} role="tooltip" className={styles.note}>{children}</Popover>
     </span>
   );
 };

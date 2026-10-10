@@ -1,32 +1,23 @@
 @use '../../../styles/abstracts/variables' as *;
-@use '../../../styles/abstracts/mixins';
 
 .infoTip {
   position: relative;
   display: inline-flex;
 }
 
-.button {
-  width: 24px;
-  height: 24px;
-  border-radius: $radius-full;
-  background: $color-primary;
+// The ⓘ (a Button): an italic letter, as in a road sign
+.glyph {
   font-style: italic;
   font-weight: $font-weight-bold;
-  transition: background $transition-base ease;
-
-  &:hover {
-    background: color-mix(in srgb, $color-primary 75%, $color-primary-light);
-  }
 }
 
-// Opens to the right of the button
+// The note (a Popover)
 .note {
-  @include mixins.popup;
-  left: 0;
-  right: auto;
-  max-width: 16rem;
+  max-width: min(16rem, 100vw - 16px);
   font-family: $font-secondary;
   font-size: $font-size-sm;
+  font-weight: normal;
   line-height: 1.4;
+  text-transform: none;
+  letter-spacing: normal;
 }

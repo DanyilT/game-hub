@@ -42,7 +42,7 @@ export const InstallSteps = () => {
 
   return (
     <section className={styles.panel} role="dialog" aria-labelledby={titleId}>
-      <button type="button" className={styles.close} onClick={closeInstallSteps} aria-label="Close"><PiX aria-hidden="true" /></button>
+      <Button variant="outline" size="sm" icon={PiX} label="Close" title="" className={styles.close} onClick={closeInstallSteps} />
       <h2 id={titleId} className={styles.title}>Install GameHub</h2>
       <p className={styles.text}>Add GameHub to your home screen, and it opens full screen, like an app:</p>
       {platform === 'ios' ? (
