@@ -1,6 +1,6 @@
 // tetris's rules: a copy of the game's own js/rules.js (DanyilT/dt-games, branch tetris), made by `npm run games:pull`
 // (worker/games/index.js plays runs again with it). Don't change it here: change the game, then pull again.
-// Source sha-256: cea033755434dee5f3e1e4d1703b56228ce9d08917cd27d62402bc93c19a82a4
+// Source sha-256: c29bc1f37ed671c1c5f45de45d15e08599ec1ef6f8cd456738b3769c3ce85987
 
 /**
  * Tetris: the rules
@@ -146,6 +146,14 @@ const GameRules = (() => {
         return false;
     }
 
+    // The row the piece would land on, dropped straight down now: where a hard drop puts it (js/tetris.js draws a ghost piece there)
+    function dropRow(game) {
+        const piece = game.current;
+        let y = piece.y;
+        while (!collision(game, piece.x, y + 1, piece.shape)) y++;
+        return y;
+    }
+
     // The fall speed for the level; the next fall counts from now
     function updateGameSpeed(game) {
         game.gameSpeed = Math.max(100, GAME_SPEED - (game.level - 1) * 100);
@@ -169,6 +177,61 @@ const GameRules = (() => {
         game.current = randomPiece(game);
         game.next = randomPiece(game);
         updateGameSpeed(game);
+        return game;
+    }
+
+    // A game under way as plain data, to save with it (all but its random numbers, which its run keeps)
+    function saveState(game) {
+        const piece = ({ type, shape, x, y }) => ({ type, shape: shape.map((row) => row.slice()), x, y });
+        return {
+            board: game.board.map((row) => row.slice()),
+            current: piece(game.current),
+            next: piece(game.next),
+            score: game.score,
+            level: game.level,
+            lines: game.lines,
+            stepsSinceFall: game.stepsSinceFall,
+        };
+    }
+
+    // The game saveState() gave, carrying on with random (the run's numbers, from where they were); null if it isn't one
+    function loadState(data, random) {
+        const sameShape = (a, b) => a.length === b.length
+            && a.every((row, y) => Array.isArray(row) && row.length === b[y].length && row.every((cell, x) => cell === b[y][x]));
+        // A piece: one of the seven, turned one of its four ways, near the board
+        const isPiece = (piece) => {
+            if (piece === null || typeof piece !== 'object') return false;
+            if (!Number.isInteger(piece.type) || piece.type < 0 || piece.type >= SHAPES.length || !Array.isArray(piece.shape)) return false;
+            if (!Number.isInteger(piece.x) || !Number.isInteger(piece.y) || Math.abs(piece.x) > COLS || Math.abs(piece.y) > ROWS) return false;
+            let shape = SHAPES[piece.type];
+            for (let turn = 0; turn < 4; turn++, shape = rotate(shape)) {
+                if (sameShape(shape, piece.shape)) return true;
+            }
+            return false;
+        };
+        const isCell = (cell) => Number.isInteger(cell) && cell >= 0 && cell <= SHAPES.length; // 0, or a type + 1
+        if (data === null || typeof data !== 'object' || !Array.isArray(data.board) || data.board.length !== ROWS) return null;
+        if (!data.board.every((row) => Array.isArray(row) && row.length === COLS && row.every(isCell))) return null;
+        if (!isPiece(data.current) || !isPiece(data.next)) return null;
+        if (!Number.isInteger(data.score) || !Number.isInteger(data.lines) || data.lines < 0) return null;
+        if (data.level !== Math.floor(data.lines / 10) + 1) return null; // A level every 10 rows
+        if (!Number.isInteger(data.stepsSinceFall) || data.stepsSinceFall < 0) return null;
+
+        const piece = ({ type, shape, x, y }) => ({ type, shape: shape.map((row) => row.slice()), x, y });
+        const game = {
+            random,
+            board: data.board.map((row) => row.slice()),
+            score: data.score,
+            level: data.level,
+            lines: data.lines,
+            gameSpeed: GAME_SPEED,
+            stepsSinceFall: 0,
+            current: piece(data.current),
+            next: piece(data.next),
+            over: false,
+        };
+        updateGameSpeed(game); // The level's fall speed
+        game.stepsSinceFall = Math.min(data.stepsSinceFall, game.gameSpeed / TICK - 1);
         return game;
     }
 
@@ -241,12 +304,9 @@ const GameRules = (() => {
         } else if (code === 'D') {
             return moveDown(game);
         } else if (code === 'H') {
-            let dropped = 0;
-            while (!collision(game, piece.x, piece.y + 1, piece.shape)) {
-                piece.y++;
-                dropped++;
-            }
-            game.score += dropped; // A point a row
+            const landing = dropRow(game);
+            game.score += landing - piece.y; // A point a row
+            piece.y = landing;
             return lockPiece(game);
         }
         return 'moved';
@@ -306,7 +366,9 @@ const GameRules = (() => {
         };
     }
 
-    return Object.freeze({ TICK, COLS, ROWS, MOVES, seededRandom, newGame, collision, move, step, simulate });
+    return Object.freeze({
+        TICK, COLS, ROWS, MOVES, seededRandom, newGame, saveState, loadState, collision, dropRow, move, step, simulate,
+    });
 })();
 
 export const { simulate } = GameRules;

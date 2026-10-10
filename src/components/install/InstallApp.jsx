@@ -5,6 +5,7 @@ import { PiX } from 'react-icons/pi';
 import {
   bannerDue, canInstall, closeInstallSteps, getInstallState, install, installLater, subscribe,
 } from '../../lib/install';
+import { announceOverlay } from '../../lib/overlays';
 import Button from '../common/Button/Button';
 import styles from './InstallApp.module.scss';
 
@@ -29,6 +30,7 @@ export const InstallSteps = () => {
 
   useEffect(() => {
     const previous = document.activeElement;
+    announceOverlay(); // a game behind it pauses
     okRef.current?.focus();
     const onKeyDown = (e) => {
       if (e.key === 'Escape') closeInstallSteps();

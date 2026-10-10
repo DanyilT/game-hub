@@ -19,9 +19,11 @@ const join = (...names) => names.filter(Boolean).join(' ') || undefined;
  * @param {boolean} [live] - the hint changes as you type, and screen readers hear it (role="status")
  * @param {React.ReactNode} [error] - under it in red, announced, and the control is marked invalid
  * @param {React.ReactNode} [after] - beside the control (a button), going under it when there's no room
+ * @param {'lg'|'md'} [size] - a one-line field's height: a Button's of the same size (48px, 40px); md also has a
+ *   text box padded less
  */
-const Frame = ({ ids, label, hideLabel, hint, hintTone = 'note', live, error, after, className, children }) => (
-  <div className={join(styles.field, className)}>
+const Frame = ({ ids, label, hideLabel, hint, hintTone = 'note', live, error, after, size = 'lg', className, children }) => (
+  <div className={join(styles.field, styles[size], className)}>
     <label htmlFor={ids.id} className={hideLabel ? 'visually-hidden' : styles.label}>{label}</label>
     {after ? <div className={styles.row}>{children}{after}</div> : children}
     {hint && <Message id={ids.hint} tone={hintTone} role={live ? 'status' : null}>{hint}</Message>}
@@ -39,15 +41,16 @@ const controlProps = (ids, { hint, error, invalid }) => ({
 /**
  * A one-line text field. Everything else (value, onChange, type, placeholder, maxLength, ref…) goes to its <input>.
  * @param {string} label
+ * @param {'lg'|'md'} [size] - as tall as a Button of that size: lg (the default) for a form, md beside an md Button
  * @param {boolean} [hideLabel] - read by screen readers only (a search box whose placeholder says what it's for)
  * @param {React.ReactNode} [prefix] - shown at the start inside it (the @ of a username)
  * @param {boolean} [invalid] - marks it invalid without an error under it (the hint says why)
  */
-export const TextField = ({ id, label, hideLabel, hint, hintTone, live, error, after, prefix, invalid, className, ...rest }) => {
+export const TextField = ({ id, label, hideLabel, hint, hintTone, live, error, after, size, prefix, invalid, className, ...rest }) => {
   const ids = useFieldIds(id);
   const input = <input className={join(styles.input, prefix && styles.withPrefix)} {...controlProps(ids, { hint, error, invalid })} {...rest} />;
   return (
-    <Frame {...{ ids, label, hideLabel, hint, hintTone, live, error, after, className }}>
+    <Frame {...{ ids, label, hideLabel, hint, hintTone, live, error, after, size, className }}>
       {prefix ? (
         <span className={styles.prefixed}>
           <span className={styles.prefix} aria-hidden="true">{prefix}</span>
@@ -59,20 +62,20 @@ export const TextField = ({ id, label, hideLabel, hint, hintTone, live, error, a
 };
 
 /** A text box for a few lines (a message). Its props are TextField's, without `prefix`; the rest go to its <textarea>. */
-export const TextArea = ({ id, label, hideLabel, hint, hintTone, live, error, after, invalid, className, rows = 4, ...rest }) => {
+export const TextArea = ({ id, label, hideLabel, hint, hintTone, live, error, after, size, invalid, className, rows = 4, ...rest }) => {
   const ids = useFieldIds(id);
   return (
-    <Frame {...{ ids, label, hideLabel, hint, hintTone, live, error, after, className }}>
+    <Frame {...{ ids, label, hideLabel, hint, hintTone, live, error, after, size, className }}>
       <textarea className={join(styles.input, styles.textarea)} rows={rows} {...controlProps(ids, { hint, error, invalid })} {...rest} />
     </Frame>
   );
 };
 
 /** A list to pick one from: its <option>s are its children. Its props are TextField's, without `prefix`. */
-export const Select = ({ id, label, hideLabel, hint, hintTone, live, error, after, invalid, className, children, ...rest }) => {
+export const Select = ({ id, label, hideLabel, hint, hintTone, live, error, after, size, invalid, className, children, ...rest }) => {
   const ids = useFieldIds(id);
   return (
-    <Frame {...{ ids, label, hideLabel, hint, hintTone, live, error, after, className }}>
+    <Frame {...{ ids, label, hideLabel, hint, hintTone, live, error, after, size, className }}>
       <select className={join(styles.input, styles.select)} {...controlProps(ids, { hint, error, invalid })} {...rest}>
         {children}
       </select>

@@ -464,8 +464,7 @@ const DeleteSection = ({ profile, onDelete }) => {
     e.preventDefault();
     const yes = await askToConfirm({
       title: 'Delete your account?',
-      message: `@${profile.username} and everything tied to it go for good: your profile, saves, ratings, favorites, `
-        + 'bookmarks, friends, runs and play history. It can’t be undone.',
+      message: `@${profile.username} and everything tied to it go for good: your profile, saves, ratings, favorites, bookmarks, friends, runs and play history. It can’t be undone.`,
       confirmLabel: 'Delete my account',
       danger: true,
     });
@@ -489,6 +488,7 @@ const DeleteSection = ({ profile, onDelete }) => {
         <TextField
           id="settings-delete-confirm"
           label={`Type your username, ${profile.username}, to confirm`}
+          size="md"
           value={typed}
           onChange={(e) => setTyped(e.target.value)}
           autoComplete="off"

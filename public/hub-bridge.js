@@ -7,7 +7,8 @@
  * game's saves reach the player's account. The game never sees the player's sign-in.
  *
  * The messages (the hub page's side is src/lib/gameBridge.js):
- * - game → hub: { type: 'gamehub:hello', version: 1, game } (game: its gamehub.js version, 1 to 3)
+ * - game → hub: { type: 'gamehub:hello', version: 1, game, playable } (game: its gamehub.js version, 1 to 3, a newer
+ *   one counting as 3; playable: whether it sends gamehub:playable, below)
  *   hub → game: { type: 'gamehub:welcome', version: 1, signedIn, player } (player: a name for the
  *   signed-in account that means nothing outside this game, or null for a guest; see "Whose copy")
  * - game → hub: { type: 'gamehub:load', id }
@@ -35,12 +36,26 @@
  *   | { …, action: 'speed', speed }, in a game GameHub opened with #gamehub-replay (GameHub.replaying)
  *   game → hub: { type: 'gamehub:replay-state', state, position, length } ('playing', 'paused',
  *   'ended' or 'error'; how far it has got, in ms of the game's time)
- * Two go from the GameHub page straight to the game's own gamehub.js, not through this file (GamePage.jsx):
+ * These go between the GameHub page and the game's own gamehub.js, not through this file (GamePage.jsx); the frame has
+ * `allowFullScreen`, for a game's own full-screen button (Minesweeper's □):
  * - hub → game: { type: 'gamehub:center' } after a load and when the frame changes size, for games with
  *   `dimensions.center`: the game scrolls its play area (data-play-area) to the middle of the frame
  * - hub → game: { type: 'gamehub:view', view: 'frame' | 'full' } after each load and when the frame goes
  *   in or out of full screen: in the frame, the game shows only what's needed to play; full screen, its
  *   whole page (gamehub.js puts it in data-gamehub-view on the game's <html>)
+ * - game → hub: { type: 'gamehub:playable' } once per load, when the game is on screen and ready (a replay: once it's
+ *   hooked up). GameHub covers the frame with "Loading…" until then; for games whose hello doesn't say `playable`,
+ *   until the frame's load, and never more than 6 s after it.
+ * - game → hub: { type: 'gamehub:fullscreen', full } when the game's own full screen (GameHub.fullScreen) needs
+ *   GameHub: full: false, to leave the full screen GameHub put the frame in (only GameHub can); full: true, when the
+ *   browser refused the game's own request, so GameHub asks for the frame
+ * - hub → game: { type: 'gamehub:pause' } when the player can't see or reach the game: the frame scrolled mostly out
+ *   of view, a GameHub window or sheet over it, or before the frame is replaced (a replay, a reload). Games that move
+ *   by themselves pause (and save); the others ignore it. Safe to send any time.
+ * And one from this file that the game page reads itself (GamePage.jsx, not gameBridge.js):
+ * - game → hub: { type: 'gamehub:fullscreen-key' } when F is pressed in the game (not while typing in a text field):
+ *   GameHub's page has F for full screen on or off, but keys pressed in the game reach only the game. The browser
+ *   counts the key press for GameHub's page too, so it can still go full screen (Chrome; Safari may refuse).
  * Messages go only to GameHub's address (where this file came from), and only messages from the
  * GameHub page itself are read.
  *
@@ -71,7 +86,8 @@
   const hub = window.parent;
   if (!script || hub === window || !window.GameHub) return;
   const hubOrigin = new URL(script.src).origin;
-  const gameVersion = [2, 3].includes(window.GameHub.version) ? window.GameHub.version : 1;
+  // A newer gamehub.js than this bridge knows is treated as the newest it does (3), so games can move on first
+  const gameVersion = window.GameHub.version >= 3 ? 3 : (window.GameHub.version === 2 ? 2 : 1);
   const replaying = window.GameHub.replaying === true; // GameHub opened the game to play a replay
 
   // The game's id, from its gamehub.js tag: that file keeps the save in this browser under <id>GameData,
@@ -314,5 +330,18 @@
     window.addEventListener(type, onInput, { capture: true, passive: true });
   }
 
-  send({ type: 'gamehub:hello', version: VERSION, game: gameVersion });
+  // F: GameHub's full screen, on or off (the game's own keys go first: one it used stays its own). Not while typing in
+  // a text field; a number field (Sudoku's cells) never types an F, so it goes up from there.
+  const typing = (target) => target instanceof Element && (
+    target.closest('textarea, select, [contenteditable]:not([contenteditable="false"])')
+    || (target.matches('input') && !['number', 'checkbox', 'radio', 'range', 'button', 'submit', 'reset'].includes(target.type))
+  );
+  window.addEventListener('keydown', (event) => {
+    if (event.key?.toLowerCase() !== 'f' || event.ctrlKey || event.metaKey || event.altKey || event.repeat) return;
+    if (event.defaultPrevented || typing(event.target)) return;
+    send({ type: 'gamehub:fullscreen-key' });
+  });
+
+  // `playable`: the game says when it's on screen and ready (gamehub:playable), so GameHub covers the frame until then
+  send({ type: 'gamehub:hello', version: VERSION, game: gameVersion, playable: typeof window.GameHub.playable === 'function' });
 })();

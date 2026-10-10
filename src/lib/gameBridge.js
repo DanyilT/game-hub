@@ -191,12 +191,13 @@ const isTime = (value) => Number.isFinite(value) && value >= 0;
  * @param {object|null} session - the signed-in player's session (AuthContext), null for guests
  * @param {object|null} replay - { run, speed, key } while the frame holds a game opened to play that
  *   run (a new key for each time it's played); null for a game to play
- * @return {{ frameKey: number, connected: boolean, gameVersion: number, saving: boolean,
+ * @return {{ frameKey: number, connected: boolean, gameVersion: number, playable: boolean, saving: boolean,
  *   savedAt: Date|null, saveFailed: boolean, offline: object, setDownload: function,
  *   reloadGame: function, resetProgress: function, activity: object, gameStatus: object|null,
  *   replayState: object|null, controlReplay: function }} - frameKey changes when
  *   the game has to start again (a key for its <iframe>); gameVersion is its gamehub.js version (1 to
- *   3, once connected); offline is { supported, downloaded, busy, error } (see OFFLINE_UNKNOWN);
+ *   3, once connected); playable, whether it says when it's on screen and ready (gamehub:playable, read by
+ *   GamePage.jsx); offline is { supported, downloaded, busy, error } (see OFFLINE_UNKNOWN);
  *   activity.current is when the player last pressed a key or tapped in the game (Date.now(), 0
  *   before they have); gameStatus is what the game says its panel shows (src/lib/gameStatus.js);
  *   replayState is { state, position, length } of a replay under way
@@ -206,7 +207,9 @@ export const useGameBridge = ({ frameRef, gameId, origin, session, replay = null
   const userId = session?.user?.id ?? null;
   const activity = useRef(0);
   const [frameKey, setFrameKey] = useState(0);
-  const [status, setStatus] = useState({ connected: false, gameVersion: 1, saving: false, savedAt: null, saveFailed: false });
+  const [status, setStatus] = useState({
+    connected: false, gameVersion: 1, playable: false, saving: false, savedAt: null, saveFailed: false,
+  });
   const [offline, setOffline] = useState(OFFLINE_UNKNOWN);
   const [gameStatus, setGameStatus] = useState(null);
   const [replayState, setReplayState] = useState(null);
@@ -266,8 +269,9 @@ export const useGameBridge = ({ frameRef, gameId, origin, session, replay = null
           if (message.version !== VERSION) return;
           connectedRef.current = true;
           queue.resume(); // a fresh page (a reset reloads the game)
-          const gameVersion = [2, 3].includes(message.game) ? message.game : 1;
-          setStatus((previous) => ({ ...previous, connected: true, gameVersion }));
+          const gameVersion = message.game >= 3 ? 3 : (message.game === 2 ? 2 : 1);
+          // Whether the game says when it's playable (gamehub:playable, to GamePage.jsx)
+          setStatus((previous) => ({ ...previous, connected: true, gameVersion, playable: message.playable === true }));
           reply({ type: 'gamehub:welcome', version: VERSION, signedIn, player: userId ? playerName(userId, gameId) : null });
           reply({ type: 'gamehub:offline', action: 'status' }); // is it downloaded?
           // A game opened for a replay plays it (the bridge holds it until the game is ready); a game to play gets the
@@ -344,7 +348,7 @@ export const useGameBridge = ({ frameRef, gameId, origin, session, replay = null
   const replayKey = replay?.key ?? null;
   useEffect(() => {
     connectedRef.current = false;
-    setStatus((previous) => ({ ...previous, connected: false }));
+    setStatus((previous) => ({ ...previous, connected: false, playable: false }));
     setOffline(OFFLINE_UNKNOWN);
     setReplayState(null);
   }, [frameKey, signedIn, replayKey]);

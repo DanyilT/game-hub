@@ -9,7 +9,7 @@ import { GESTURES, KEYBOARD_KEYS, MOUSE_BUTTONS } from '../src/data/controls.js'
 export const CATALOG_PATH = fileURLToPath(new URL('../src/data/games.json', import.meta.url));
 
 const KINDS = ['game', 'portal'];
-// iOS can be added here once the site shows App Store links
+// android: a Google Play listing; ios: an App Store listing (both shown as store buttons)
 const PLATFORM_TYPES = ['web', 'android', 'ios'];
 const DIFFICULTIES = ['easy', 'medium', 'hard'];
 // Sites the hub may put in an iframe. The CSP's `frame-src` is built from this list (vite.config.js).

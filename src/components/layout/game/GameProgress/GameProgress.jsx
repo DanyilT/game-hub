@@ -214,12 +214,14 @@ const RunRow = ({ row, watching, isRecord, signedIn, onWatch }) => {
   );
 };
 
-/** The player's runs of the game, newest first, to watch again */
+/** The player's runs of the game, to watch again: their record (the best) first, then the rest, newest first */
 const Replays = ({ runs, records, replay, onWatch, signedIn }) => {
   const all = useDisclosure();
   const headingId = useId();
   const watching = replay?.row.key ?? null;
   const record = recordKeys(runs, records, signedIn);
+  // The record (the best: a star) first, then the rest, newest first
+  const ordered = [...runs.filter((item) => record.has(item.key)), ...runs.filter((item) => !record.has(item.key))];
 
   const row = (item) => (
     <RunRow
@@ -246,11 +248,11 @@ const Replays = ({ runs, records, replay, onWatch, signedIn }) => {
         <Message>Finish a game, and you can watch it again here.</Message>
       ) : (
         <>
-          <ul className={styles.runList}>{runs.slice(0, SHOWN_RUNS).map(row)}</ul>
+          <ul className={styles.runList}>{ordered.slice(0, SHOWN_RUNS).map(row)}</ul>
           {runs.length > SHOWN_RUNS && (
             <>
               <Collapsible gap="sm" {...all.panelProps}>
-                <ul className={styles.runList}>{runs.slice(SHOWN_RUNS).map(row)}</ul>
+                <ul className={styles.runList}>{ordered.slice(SHOWN_RUNS).map(row)}</ul>
               </Collapsible>
               <Button variant="text" size="sm" font="secondary" className={styles.showAll} {...all.buttonProps}>
                 {all.open ? 'Show fewer' : `Show all ${runs.length}`}

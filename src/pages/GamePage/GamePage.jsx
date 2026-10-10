@@ -14,6 +14,7 @@ import { Collapsible, DisclosureButton, useDisclosure } from '../../components/c
 import ExternalLink from '../../components/common/ExternalLink/ExternalLink';
 import Message from '../../components/common/Message/Message';
 import Popover from '../../components/common/Popover/Popover';
+import Status from '../../components/common/Status/Status';
 import Tag from '../../components/common/Tag/Tag';
 import GooglePlayBadge, { GOOGLE_PLAY_TRADEMARK } from '../../components/common/GooglePlayBadge/GooglePlayBadge.jsx';
 import { useAuth } from '../../contexts/AuthContext';
@@ -28,6 +29,7 @@ import { useDownloads, useOnline } from '../../lib/offline';
 import { usePlayTime } from '../../lib/playTime';
 import { useRuns } from '../../lib/runs';
 import { useFit } from '../../lib/useFit';
+import { onOverlay } from '../../lib/overlays';
 import { showToast } from '../../lib/toast';
 import DownloadGame from '../../components/layout/game/DownloadGame/DownloadGame.jsx';
 import GameControls from '../../components/layout/game/GameControls/GameControls.jsx';
@@ -156,6 +158,22 @@ const tellView = (frame) => {
   const full = (document.fullscreenElement ?? document.webkitFullscreenElement) === frame;
   frame.contentWindow.postMessage({ type: 'gamehub:view', view: full ? 'full' : 'frame' }, new URL(frame.src).origin);
 };
+
+/**
+ * Tells an embedded game to pause (gamehub:pause) when the player can't see or reach it: its frame scrolled mostly out
+ * of view, a GameHub window or sheet over it, or the frame about to be replaced (a replay, a reload). Games that move by
+ * themselves pause and save; the others ignore it. Safe to send any time.
+ */
+const pauseGame = (frame) => {
+  if (!frame?.contentWindow || !frame.src) return;
+  frame.contentWindow.postMessage({ type: 'gamehub:pause' }, new URL(frame.src).origin);
+};
+
+// The frame's "Loading…" cover lifts when the game says it's playable (gamehub:playable). A game that doesn't say so
+// (its hello has no `playable`) is uncovered at the frame's load; one that hasn't said hello by HELLO_WAIT after the
+// load never will (no gamehub.js); and none stays covered longer than COVER_MAX after the load.
+const HELLO_WAIT = 1500; // ms
+const COVER_MAX = 6000; // ms
 
 /**
  * The game's size for a frame `width` pixels wide, from its `dimensions.sizes` (narrowest first): the widest
@@ -306,6 +324,12 @@ const GamePageContent = ({ gameId }) => {
   // with links out. The game in the frame talks to the hub through the bridge (cloud saves, and the
   // panel under it).
   const embedUrl = game ? getEmbedUrl(game) : null;
+  // The game's controls, with GameHub's own F (full screen) on the keyboard of a game played here with keys
+  const gameControls = useMemo(() => {
+    const keys = game?.controls?.keys;
+    if (!embedUrl || !keys?.length || keys.some((binding) => binding.keys.includes('f'))) return game?.controls;
+    return { ...game.controls, keys: [...keys, { keys: ['f'], action: 'Full screen on or off (GameHub)' }] };
+  }, [game, embedUrl]);
   // A run being watched again: { row, speed, key }. The frame then holds the game opened to play it
   // (#gamehub-replay), a fresh one each time (key), and the game the player was playing comes back after.
   const [replay, setReplay] = useState(null);
@@ -348,6 +372,22 @@ const GamePageContent = ({ gameId }) => {
     frameId = `${player}:${bridge.frameKey}`;
   }
   if (frameId && replay) frameId += `:replay${replay.key}`;
+
+  // The frame's "Loading…" cover: which frame has loaded, has said it's playable, or was uncovered without that
+  const [loadedFrame, setLoadedFrame] = useState(null);
+  const [playableFrame, setPlayableFrame] = useState(null);
+  const [uncoveredFrame, setUncoveredFrame] = useState(null);
+  const frameCovered = Boolean(frameId) && playableFrame !== frameId && uncoveredFrame !== frameId;
+  useEffect(() => {
+    if (!frameId || loadedFrame !== frameId) return undefined;
+    const uncover = () => setUncoveredFrame(frameId);
+    if (bridge.connected && !bridge.playable) {
+      uncover(); // it doesn't say when it's playable: loaded will do
+      return undefined;
+    }
+    const timer = setTimeout(uncover, bridge.connected ? COVER_MAX : HELLO_WAIT);
+    return () => clearTimeout(timer);
+  }, [frameId, loadedFrame, bridge.connected, bridge.playable]);
 
   // The player's runs of the game, to watch again: the ones kept in this browser (src/lib/runs.js), and
   // a signed-in player's kept on GameHub's server, from any browser; and their records: their best
@@ -398,10 +438,12 @@ const GamePageContent = ({ gameId }) => {
       }
       watched = { ...row, run: { ...row.run, inputs } };
     }
+    pauseGame(iframeRef.current); // the frame is replaced: the game in it pauses (and saves) first
     replayCountRef.current += 1;
     setReplay((current) => ({ row: watched, speed: current?.speed ?? 1, key: replayCountRef.current }));
   };
   const watchAgain = () => {
+    pauseGame(iframeRef.current);
     replayCountRef.current += 1;
     setReplay((current) => current && { ...current, key: replayCountRef.current });
   };
@@ -652,9 +694,70 @@ const GamePageContent = ({ gameId }) => {
 
   const enterFullscreen = () => {
     const frame = iframeRef.current;
-    // Older Safari only has the prefixed version
-    (frame?.requestFullscreen ?? frame?.webkitRequestFullscreen)?.call(frame);
+    // Older Safari only has the prefixed version; a refusal (Safari, without the player's own click) changes nothing
+    const request = frame?.requestFullscreen ?? frame?.webkitRequestFullscreen;
+    Promise.resolve(request?.call(frame)).catch(() => {});
   };
+  // Out of the full screen, when it's the game's frame that fills it
+  const leaveFullscreen = () => {
+    if ((document.fullscreenElement ?? document.webkitFullscreenElement) !== iframeRef.current) return;
+    Promise.resolve((document.exitFullscreen ?? document.webkitExitFullscreen)?.call(document)).catch(() => {});
+  };
+  // F: the game full screen, or back
+  const toggleFullscreen = () => {
+    if ((document.fullscreenElement ?? document.webkitFullscreenElement) === iframeRef.current) leaveFullscreen();
+    else enterFullscreen();
+  };
+
+  // F on this page (while the game doesn't have the keyboard; in the game, hub-bridge.js passes it up). Not while
+  // typing, nor in a window open over the page.
+  useEffect(() => {
+    if (!embedUrl || blockedOffline) return undefined;
+    const onKeyDown = (e) => {
+      if (e.key?.toLowerCase() !== 'f' || e.ctrlKey || e.metaKey || e.altKey || e.repeat || e.defaultPrevented) return;
+      if (e.target.closest?.('input, textarea, select, [contenteditable], dialog') || !iframeRef.current) return;
+      e.preventDefault();
+      toggleFullscreen();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [embedUrl, blockedOffline]);
+
+  // What the game's page tells this one outside gameBridge.js:
+  // - its own gamehub.js: it's playable (the cover lifts), and its full screen (GameHub.fullScreen: a game's own
+  //   button, Minesweeper's □) when it needs GameHub: out of the full screen GameHub put the frame in (only GameHub can
+  //   end it), or in, when the browser refused the game's own request;
+  // - hub-bridge.js: F was pressed in the game. The browser counts the key press for this page too, so it may still
+  //   go full screen.
+  useEffect(() => {
+    const onMessage = (event) => {
+      const frame = iframeRef.current;
+      if (!frame || event.source !== frame.contentWindow || event.origin !== new URL(frame.src).origin) return;
+      const message = event.data;
+      if (message?.type === 'gamehub:playable') setPlayableFrame(frame.dataset.frame);
+      else if (message?.type === 'gamehub:fullscreen' && message.full === true) enterFullscreen();
+      else if (message?.type === 'gamehub:fullscreen' && message.full === false) leaveFullscreen();
+      else if (message?.type === 'gamehub:fullscreen-key') toggleFullscreen();
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, []);
+
+  // The player can't see or reach the game: it pauses when its frame scrolls mostly out of view, and when a window or
+  // sheet of GameHub's opens over it (src/lib/overlays.js)
+  useEffect(() => {
+    const frame = iframeRef.current;
+    if (!frame) return undefined;
+    let inView = true;
+    const observer = new IntersectionObserver(([entry]) => {
+      const nowInView = entry.intersectionRatio >= 0.5;
+      if (inView && !nowInView) pauseGame(frame);
+      inView = nowInView;
+    }, { threshold: 0.5 });
+    observer.observe(frame);
+    return () => observer.disconnect();
+  }, [frameId, blockedOffline]);
+  useEffect(() => onOverlay(() => pauseGame(iframeRef.current)), []);
 
   // Full screen, the game shows its whole page; back in its frame, what's needed to play (tellView)
   useEffect(() => {
@@ -686,9 +789,9 @@ const GamePageContent = ({ gameId }) => {
   // The keys, mouse buttons and gestures the game uses: small in the info column at first, or
   // every device under the game (or its picture)
   const showControlsExpanded = maximized ? controlsExpandedMaximized : controlsExpanded;
-  const controls = game.controls && (
+  const controls = gameControls && (
     <GameControls
-      controls={game.controls}
+      controls={gameControls}
       expanded={showControlsExpanded}
       onToggleExpanded={() => {
         focusControlsRef.current = true;
@@ -758,16 +861,32 @@ const GamePageContent = ({ gameId }) => {
                 <iframe
                   key={frameId}
                   ref={iframeRef}
+                  data-frame={frameId}
                   src={replay ? `${embedUrl}#gamehub-replay` : embedUrl}
                   title={replay ? `${game.title}: replay` : game.title}
                   className={styles.gameFrame}
+                  // A game's own full screen (Minesweeper's □) asks for its page from inside the frame
                   allowFullScreen
                   allow={FRAME_ALLOW}
                   onLoad={(e) => {
-                    tellView(e.currentTarget);
-                    if (dimensions?.center) askToCenter(e.currentTarget);
+                    const frame = e.currentTarget;
+                    setLoadedFrame(frameId);
+                    tellView(frame);
+                    if (dimensions?.center) askToCenter(frame);
+                    // Keys work at once: the game gets the keyboard, unless something else took it meanwhile, and not
+                    // on touch screens (where it would bring up nothing useful)
+                    if (document.activeElement === document.body && !window.matchMedia('(pointer: coarse)').matches) {
+                      frame.focus({ preventScroll: true });
+                    }
                   }}
                 />
+              )}
+              {/* Over the frame until the game is on screen and ready (it says so: gamehub:playable) */}
+              {frameId && !blockedOffline && (
+                <div className={`${styles.frameCover} ${frameCovered ? '' : styles.uncovered}`} aria-hidden={!frameCovered}>
+                  {game.iconUrl && <img src={game.iconUrl} alt="" className={styles.coverIcon} />}
+                  <Status kind="loading">Loading {game.title}…</Status>
+                </div>
               )}
 
               {/* Narrower screens (nothing to resize): Fullscreen sits on the frame instead of under
@@ -778,6 +897,8 @@ const GamePageContent = ({ gameId }) => {
                   shape="rounded"
                   icon={CiMaximize2}
                   label="Fullscreen"
+                  title="Fullscreen (F)"
+                  aria-keyshortcuts="F"
                   className={`${styles.frameFullscreen} ${gameFocused ? styles.hidden : ''}`}
                   onClick={enterFullscreen}
                 />
@@ -848,6 +969,8 @@ const GamePageContent = ({ gameId }) => {
                   shape="rounded"
                   icon={CiMaximize2}
                   label="Fullscreen"
+                  title="Fullscreen (F)"
+                  aria-keyshortcuts="F"
                   className={styles.fullscreenButton}
                   onClick={enterFullscreen}
                 />
@@ -883,7 +1006,15 @@ const GamePageContent = ({ gameId }) => {
             {offerReload && (
               <Message>
                 You&rsquo;re back online. Reload the game to send the progress you made offline to your account.{' '}
-                <Button variant="text" onClick={bridge.reloadGame}>Reload the game</Button>
+                <Button
+                  variant="text"
+                  onClick={() => {
+                    pauseGame(iframeRef.current); // it saves before the frame starts again
+                    bridge.reloadGame();
+                  }}
+                >
+                  Reload the game
+                </Button>
               </Message>
             )}
             {showControlsExpanded && controls}

@@ -34,6 +34,22 @@
     @include forms.text-input;
   }
 
+  // A one-line field (and a list to pick from) is as tall as a Button of its size: lg 48px, md 40px; a text box grows
+  // with its lines, md padded less
+  .lg .input:not(.textarea) {
+    height: 48px;
+    padding-block: 0;
+  }
+
+  .md .input:not(.textarea) {
+    height: 40px;
+    padding-block: 0;
+  }
+
+  .md .textarea {
+    padding: $spacing-sm 0.75rem;
+  }
+
   // A sign at the start inside the field (@)
   .prefixed {
     position: relative;
@@ -59,7 +75,15 @@
     font-family: $font-secondary;
   }
 
+  // A list to pick from: the browser's own arrow sits on the field's edge, so it draws a ▼ of its own, inside it, in
+  // the field's text colour ($color-accent-light)
   .select {
+    padding-right: 2.75rem;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%235ef38c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 6l4.5 4.5L12.5 6'/%3E%3C/svg%3E");
+    background-position: right 14px center;
+    background-repeat: no-repeat;
+    background-size: 14px;
     font-family: $font-secondary;
 
     option {

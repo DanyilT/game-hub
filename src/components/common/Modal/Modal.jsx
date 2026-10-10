@@ -1,5 +1,6 @@
 import { useId, useLayoutEffect, useRef } from 'react';
 import { PiX } from 'react-icons/pi';
+import { announceOverlay } from '../../../lib/overlays';
 import Button from '../Button/Button';
 import styles from './Modal.module.scss';
 
@@ -18,6 +19,7 @@ const Modal = ({ title, onClose, initialFocusRef, children }) => {
   useLayoutEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog.open) dialog.showModal();
+    announceOverlay(); // a game behind it pauses
     initialFocusRef?.current?.focus();
     // Closing before it's removed hands focus back to where it was
     return () => dialog.close();

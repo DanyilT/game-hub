@@ -200,6 +200,12 @@ The build checks the list (`npm run check:catalog` checks `games.json` on its ow
     window.scrollBy({ top: box.top - (innerHeight - box.height) / 2, left: box.left - (innerWidth - box.width) / 2 });
   });
   ```
+- **Messages between the game page and a game's own `gamehub.js`** (besides `gamehub:view` and `gamehub:center`, above; the rest go through `public/hub-bridge.js`, whose header lists them all):
+  - game → hub `{ type: 'gamehub:playable' }`, once per load, when the game is on screen and ready (a replay: once it's hooked up). The hub covers the frame with "Loading…" until then. A game whose hello doesn't say `playable` (an older `gamehub.js`) is uncovered at the frame's load, and none stays covered more than 6 s after it.
+  - game → hub `{ type: 'gamehub:fullscreen', full }`, from the game's own full screen (`GameHub.fullScreen`, e.g. Minesweeper's □ button), when it needs the hub: `false` to leave the full screen the hub put the frame in (only the hub can), `true` when the browser refused the game's own request. The frame has `allowFullScreen`, so a game can ask for its own page first.
+  - The game page has **F** for full screen on or off (shown on its Fullscreen buttons). A key pressed in the game reaches only the game, so `hub-bridge.js` passes F up from there: game → hub `{ type: 'gamehub:fullscreen-key' }` (not while typing in a text field). The games themselves have no F key.
+  - hub → game `{ type: 'gamehub:pause' }` when the player can't see or reach the game: its frame scrolled mostly out of view, a GameHub window or sheet over it, or before the frame is replaced (a replay, a reload). Games that move by themselves pause and save; the others can ignore it.
+  - The hub also gives the frame the keyboard once it loads (not on touch screens, nor when something else took the focus meanwhile), so a game's keys work at once.
 - **`description`** is the one text about a game: the game page and the card's info panel both show it.
 - **`controls`** fill the game page's Controls card: the keys drawn where they sit on a keyboard, mouse buttons on a mouse, and gestures on a 16:9 phone. Hovering or tapping one shows what it does. The card starts small in the info column (the keyboard, with an arrow to show the phone instead); maximize puts every device side by side under the game.
   ```jsonc

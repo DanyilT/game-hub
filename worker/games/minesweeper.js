@@ -1,6 +1,6 @@
 // minesweeper's rules: a copy of the game's own js/rules.js (DanyilT/dt-games, branch minesweeper), made by `npm run games:pull`
 // (worker/games/index.js plays runs again with it). Don't change it here: change the game, then pull again.
-// Source sha-256: bc57a61e217b7a6a78c266f4af383bff93f69d0eb9b9ec1a8efeabccfe862d2c
+// Source sha-256: 2951730164378e8634d615e1c7589d1266e40562a2d4250f94da62bbe2e6b13d
 
 /**
  * Minesweeper: the rules
@@ -109,11 +109,59 @@ const GameRules = (() => {
                 planted++;
             }
         }
+        countNeighbors(game);
+    }
+
+    // Each cell's mines around it (the mines are in)
+    function countNeighbors(game) {
         for (let r = 0; r < game.rows; r++) {
             for (let c = 0; c < game.cols; c++) {
                 if (!game.board[r][c].isMine) game.board[r][c].neighbors = countAround(game, r, c, (cell) => cell.isMine);
             }
         }
+    }
+
+    // A board under way as plain data, to save with it (all but its random numbers, which its run keeps): each cell as
+    // one number, 1 for a mine, + 2 if it's open, + 4 if it's flagged
+    function saveState(game) {
+        return {
+            level: game.level,
+            cells: game.board.map((row) => row.map((cell) => (cell.isMine ? 1 : 0) + (cell.isRevealed ? 2 : 0) + (cell.isFlagged ? 4 : 0))),
+            firstClick: game.firstClick,
+            firstClickAt: game.firstClickAt,
+        };
+    }
+
+    // The board saveState() gave, carrying on with random (the run's numbers, from where they were); null if it isn't one
+    // still being played
+    function loadState(data, random) {
+        if (data === null || typeof data !== 'object' || !Object.hasOwn(LEVELS, data.level)) return null;
+        if (typeof data.firstClick !== 'boolean' || !Number.isInteger(data.firstClickAt) || data.firstClickAt < 0) return null;
+        const game = newGame(random, data.level);
+        const isCell = (value) => Number.isInteger(value) && value >= 0 && value <= 7;
+        if (!Array.isArray(data.cells) || data.cells.length !== game.rows) return null;
+        if (!data.cells.every((row) => Array.isArray(row) && row.length === game.cols && row.every(isCell))) return null;
+
+        let mines = 0;
+        for (let r = 0; r < game.rows; r++) {
+            for (let c = 0; c < game.cols; c++) {
+                const value = data.cells[r][c];
+                const cell = game.board[r][c];
+                cell.isMine = (value & 1) !== 0;
+                cell.isRevealed = (value & 2) !== 0;
+                cell.isFlagged = (value & 4) !== 0;
+                if (cell.isMine) mines++;
+                if (cell.isRevealed) game.revealedCount++;
+                if (cell.isRevealed && (cell.isMine || cell.isFlagged)) return null; // An open mine, or a flag on an open cell
+            }
+        }
+        // No mines before the first open, all of them after it, and not won yet
+        if (mines !== (data.firstClick ? 0 : game.mines)) return null;
+        if (data.firstClick ? game.revealedCount > 0 : game.revealedCount >= game.rows * game.cols - game.mines) return null;
+        countNeighbors(game);
+        game.firstClick = data.firstClick;
+        game.firstClickAt = data.firstClickAt;
+        return game;
     }
 
     // Open a cell, and the cells around it if it has no mines around (not a flagged one, or one already open)
@@ -232,7 +280,7 @@ const GameRules = (() => {
         };
     }
 
-    return Object.freeze({ LEVELS, seededRandom, newGame, openCell, flagCell, simulate });
+    return Object.freeze({ LEVELS, seededRandom, newGame, saveState, loadState, openCell, flagCell, simulate });
 })();
 
 export const { simulate } = GameRules;
