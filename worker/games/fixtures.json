@@ -24,5 +24,25 @@
     "seed": 2466199924, "mode": "beginner", "tick": null, "length": 0,
     "inputs": [0, 3, 0, 18, 0, 34, 0, 77, 0, 70, 0, 76, 0, 85, 0, 136, 0, 141, 0, 154, 0, 163, 0, 196, 0, 201, 0, 283, 0, 314, 0, 417, 0, 498, 0, 547, 0, 572, 0, 677, 0, 769, 0, 803],
     "outcome": "won", "result": [{ "label": "Level", "value": "For a Bread" }, { "label": "Time", "value": 0, "format": "time" }]
+  },
+  "flappyBird": {
+    "seed": 1360374880, "mode": null, "tick": 16, "length": 1030,
+    "inputs": [0, "F", 36, "F", 22, "F", 44, "F", 37, "F", 36, "F", 27, "F", 32, "F", 37, "F", 21, "F", 37, "F", 36, "F", 51, "F", 36, "F", 15, "F", 34, "F", 36, "F", 45, "F", 37, "F", 23, "F", 37, "F", 36, "F", 27, "F", 37, "F", 36, "F", 33, "F", 37, "F", 42, "F", 37, "F"],
+    "outcome": "over", "result": [{ "label": "Score", "value": 10 }]
+  },
+  "ticTacToeWon": {
+    "seed": 3586096169, "mode": "easy", "tick": null, "length": 0,
+    "inputs": [0, 8, 0, 3, 0, 7, 0, 2, 0, 0, 0, 1, 0, 6, 0, 2, 0, 4, 0, 7, 0, 0, 0, 3, 0, 2, 0, 1, 0, 0, 0, 6, 0, 3, 0, 8, 0, 4, 0, 0],
+    "outcome": "won", "result": [{ "label": "Level", "value": "Easy", "format": null }, { "label": "Points", "value": 9, "format": null }, { "label": "Won-drawn-lost", "value": "4-1-0", "format": null }]
+  },
+  "ticTacToeLost": {
+    "seed": 1965824074, "mode": "medium", "tick": null, "length": 0,
+    "inputs": [0, 4, 0, 7, 0, 5, 0, 6, 0, 0, 0, 6, 0, 2, 0, 0, 0, 2, 0, 7, 0, 5, 0, 3, 0, 1, 0, 7, 0, 2, 0, 4, 0, 8, 0, 5],
+    "outcome": "lost", "result": [{ "label": "Level", "value": "Medium", "format": null }, { "label": "Points", "value": 3, "format": null }, { "label": "Won-drawn-lost", "value": "1-1-3", "format": null }]
+  },
+  "ticTacToeDrawn": {
+    "seed": 682213278, "mode": "easy", "tick": null, "length": 0,
+    "inputs": [0, 4, 0, 8, 0, 3, 0, 1, 0, 5, 0, 2, 0, 7, 0, 5, 0, 8, 0, 2, 0, 3, 0, 0, 0, 7, 0, 5, 0, 7, 0, 2, 0, 6, 0, 0, 0, 8, 0, 5],
+    "outcome": "over", "result": [{ "label": "Level", "value": "Easy", "format": null }, { "label": "Points", "value": 5, "format": null }, { "label": "Won-drawn-lost", "value": "2-1-2", "format": null }]
   }
 }

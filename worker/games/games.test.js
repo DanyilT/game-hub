@@ -9,7 +9,17 @@ import { claimMatches, replayRun } from './index.js';
 import { simulate as tetris } from './tetris.js';
 
 const fixtures = JSON.parse(readFileSync(new URL('./fixtures.json', import.meta.url), 'utf8'));
-const games = { snake: 'snake', tetris: 'tetris', minesweeperWon: 'minesweeper', minesweeperLost: 'minesweeper', sudoku: 'sudoku' };
+const games = {
+  snake: 'snake',
+  tetris: 'tetris',
+  minesweeperWon: 'minesweeper',
+  minesweeperLost: 'minesweeper',
+  sudoku: 'sudoku',
+  flappyBird: 'flappy-bird',
+  ticTacToeWon: 'tic-tac-toe',
+  ticTacToeLost: 'tic-tac-toe',
+  ticTacToeDrawn: 'tic-tac-toe',
+};
 // A copy of a run with some inputs changed: [index, wait, code] for each
 const edited = (run, changes) => {
   const inputs = run.inputs.slice();
@@ -82,6 +92,37 @@ test('runs a game could never have made are refused', () => {
   const sudoku = fixtures.sudoku;
   assert.equal(replayRun('sudoku', { ...sudoku, inputs: [0, 21, ...sudoku.inputs] }).reason, 'clue'); // cell 2 is a clue
   assert.equal(replayRun('sudoku', { ...sudoku, inputs: sudoku.inputs.slice(0, -2) }).reason, 'not-over');
+});
+
+test('Flappy Bird: runs it could never have made are refused', () => {
+  const run = fixtures.flappyBird; // 29 flaps, the last after step 964; the bird falls at step 1030
+  assert.equal(replayRun('flappy-bird', { ...run, mode: 'easy' }).reason, 'mode');
+  assert.equal(replayRun('flappy-bird', { ...run, tick: 50 }).reason, 'tick');
+  assert.equal(replayRun('flappy-bird', edited(run, [[0, 5, 'F']])).reason, 'input'); // the game starts with a flap
+  assert.equal(replayRun('flappy-bird', edited(run, [[3, 44, 'U']])).reason, 'input'); // flaps are all it has
+  assert.equal(replayRun('flappy-bird', { ...run, inputs: [...run.inputs, 80, 'F'] }).reason, 'after-end');
+  assert.equal(replayRun('flappy-bird', { ...run, length: 1000 }).reason, 'not-over');
+  assert.equal(replayRun('flappy-bird', { ...run, length: 1100 }).reason, 'ended-early');
+  const other = replayRun('flappy-bird', { ...run, seed: run.seed + 1 }); // other pipes
+  assert.ok(!other.ok || other.score !== 10);
+});
+
+test('Tic-Tac-Toe: the bot\'s answers come from the seed, and the moves must fit them', () => {
+  const won = fixtures.ticTacToeWon;
+  // A square already taken (the player's own first one), one off the board, something that isn't a square
+  assert.equal(replayRun('tic-tac-toe', edited(won, [[1, 0, 8]])).reason, 'input');
+  assert.equal(replayRun('tic-tac-toe', edited(won, [[1, 0, 9]])).reason, 'input');
+  assert.equal(replayRun('tic-tac-toe', edited(won, [[1, 0, 'F']])).reason, 'input');
+  assert.equal(replayRun('tic-tac-toe', { ...won, inputs: [...won.inputs, 0, 4] }).reason, 'after-end');
+  assert.equal(replayRun('tic-tac-toe', { ...won, inputs: won.inputs.slice(0, -2) }).reason, 'not-over');
+  assert.equal(replayRun('tic-tac-toe', { ...won, mode: 'impossible' }).reason, 'mode');
+  assert.equal(replayRun('tic-tac-toe', { ...won, tick: 100 }).reason, 'tick');
+  // The same moves against another seed's bot: another match, or moves that no longer fit it
+  const other = replayRun('tic-tac-toe', { ...won, seed: won.seed + 1 });
+  assert.ok(!other.ok || !claimMatches(won.result, other.result));
+  // On another level the bot answers differently too
+  const harder = replayRun('tic-tac-toe', { ...won, mode: 'hard' });
+  assert.ok(!harder.ok || harder.outcome !== 'won');
 });
 
 test('a run that breaks the rules\' code is refused, not thrown', () => {

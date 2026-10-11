@@ -24,6 +24,246 @@
   },
   "games": [
     {
+      "id": "flappy-bird",
+      "kind": "game",
+      "title": "Flappy Bird",
+      "description": "Flap through the gaps between the pipes, as far as you can: the classic one-button game, in the original's style.",
+      "developer": {
+        "name": "Dany",
+        "url": "https://github.com/DanyilT"
+      },
+      "released": "2026-10-11",
+      "style": "The original's look, drawn in code: the little yellow bird, the green pipes, a city skyline with bushes, the striped ground and the blocky score, in crisp pixel art.",
+      "genre": [
+        "arcade",
+        "casual"
+      ],
+      "tags": [
+        "classic",
+        "retro",
+        "endless",
+        "high score",
+        "one button"
+      ],
+      "features": [
+        "The original's look",
+        "Medals",
+        "Sounds",
+        "Auto-pause",
+        "Mobile-friendly",
+        "Easter Egg"
+      ],
+      "difficulty": "hard",
+      "controls": {
+        "keys": [
+          {
+            "keys": [
+              "space",
+              "up",
+              "w"
+            ],
+            "action": "Flap (and start, carry on after a pause, or leave the scoreboard)"
+          },
+          {
+            "keys": [
+              "click"
+            ],
+            "action": "Flap (or pause, on the button at the top left)"
+          },
+          {
+            "keys": [
+              "p",
+              "esc"
+            ],
+            "action": "Pause or resume"
+          },
+          {
+            "keys": [
+              "r"
+            ],
+            "action": "Back to Get Ready"
+          },
+          {
+            "keys": [
+              "m"
+            ],
+            "action": "Sound on or off"
+          },
+          {
+            "keys": [
+              "i"
+            ],
+            "action": "Show or hide the instructions"
+          }
+        ],
+        "mobile": true,
+        "touch": [
+          {
+            "gesture": "tap",
+            "action": "Flap (or pause, on the button at the top left)"
+          }
+        ]
+      },
+      "iconUrl": "https://flappy-bird.dt-games.pages.dev/img/icon.svg",
+      "thumb": "https://flappy-bird.dt-games.pages.dev/img/desktop-screenshot.png",
+      "dimensions": {
+        "sizes": [
+          {
+            "w": 320,
+            "h": 569
+          },
+          {
+            "w": 360,
+            "h": 640
+          },
+          {
+            "w": 405,
+            "h": 720
+          }
+        ]
+      },
+      "platforms": [
+        {
+          "type": "web",
+          "url": "https://flappy-bird.dt-games.pages.dev/",
+          "embed": true
+        }
+      ],
+      "sourceCode": {
+        "url": "https://github.com/DanyilT/dt-games/tree/flappy-bird"
+      }
+    },
+    {
+      "id": "tic-tac-toe",
+      "kind": "game",
+      "title": "Tic-Tac-Toe",
+      "description": "Noughts and crosses against a minimax bot, drawn in pencil on notebook paper. Three levels; on Hard, a draw is the best you can do.",
+      "developer": {
+        "name": "Dany",
+        "url": "https://github.com/DanyilT"
+      },
+      "released": "2026-10-11",
+      "style": "Pencil on notebook paper: a ruled sheet with its margin line, and the grid, each X and O and the line through three in a row drawn by hand as you watch.",
+      "genre": [
+        "board",
+        "logic"
+      ],
+      "tags": [
+        "classic",
+        "levels",
+        "grid",
+        "vs bot",
+        "hand-drawn"
+      ],
+      "features": [
+        "Minimax bot",
+        "Three levels",
+        "5-round matches",
+        "Pencil on paper",
+        "Saved match in progress",
+        "Easter Egg"
+      ],
+      "difficulty": "easy",
+      "controls": {
+        "keys": [
+          {
+            "keys": [
+              "click"
+            ],
+            "action": "Play a square"
+          },
+          {
+            "keys": [
+              "1",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6",
+              "7",
+              "8",
+              "9"
+            ],
+            "action": "Play a square (1 is the top left, 9 the bottom right)"
+          },
+          {
+            "keys": [
+              "up",
+              "down",
+              "left",
+              "right"
+            ],
+            "action": "Move between the squares (Enter plays one)"
+          },
+          {
+            "keys": [
+              "n"
+            ],
+            "action": "New match"
+          },
+          {
+            "keys": [
+              "e"
+            ],
+            "action": "Level: Easy"
+          },
+          {
+            "keys": [
+              "m"
+            ],
+            "action": "Level: Medium"
+          },
+          {
+            "keys": [
+              "h"
+            ],
+            "action": "Level: Hard"
+          },
+          {
+            "keys": [
+              "i"
+            ],
+            "action": "Show or hide the instructions"
+          }
+        ],
+        "mobile": true,
+        "touch": [
+          {
+            "gesture": "tap",
+            "action": "Play a square"
+          }
+        ]
+      },
+      "iconUrl": "https://tic-tac-toe.dt-games.pages.dev/img/icon.svg",
+      "thumb": "https://tic-tac-toe.dt-games.pages.dev/img/desktop-screenshot.png",
+      "dimensions": {
+        "sizes": [
+          {
+            "w": 320,
+            "h": 553
+          },
+          {
+            "w": 360,
+            "h": 529
+          },
+          {
+            "w": 480,
+            "h": 649
+          }
+        ]
+      },
+      "platforms": [
+        {
+          "type": "web",
+          "url": "https://tic-tac-toe.dt-games.pages.dev/",
+          "embed": true
+        }
+      ],
+      "sourceCode": {
+        "url": "https://github.com/DanyilT/dt-games/tree/tic-tac-toe"
+      }
+    },
+    {
       "id": "snake",
       "kind": "game",
       "title": "Snake Game",
