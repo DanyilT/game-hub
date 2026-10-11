@@ -3,6 +3,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
+import { appManifest } from './scripts/app-shortcuts.mjs';
 import { CATALOG_PATH, EMBED_ORIGINS } from './scripts/check-catalog.mjs';
 import { loadCatalog } from './scripts/catalog-source.mjs';
 import { gamePage, siteFiles } from './scripts/site-files.mjs';
@@ -269,6 +270,56 @@ function securityHeaders() {
   };
 }
 
+/**
+ * The installed app's shortcuts to the games (scripts/app-shortcuts.mjs): the build writes public/manifest.json with
+ * them, and their icons (icons/games/…); the dev server answers /manifest.json and the icons the same way.
+ */
+function appShortcuts() {
+  let config;
+  let made = null; // the dev server's, until the game list changes
+
+  const make = async () => {
+    const { catalog } = await catalogSource.get();
+    return appManifest({
+      catalog, manifestFile: `${config.publicDir}/manifest.json`, base: config.base, warn: (message) => config.logger.warn(message),
+    });
+  };
+
+  return {
+    name: 'gamehub-app-shortcuts',
+    configResolved(resolved) {
+      config = resolved;
+    },
+    async generateBundle() {
+      const { manifest, icons } = await make();
+      for (const [fileName, source] of icons) this.emitFile({ type: 'asset', fileName, source });
+      this.emitFile({ type: 'asset', fileName: 'manifest.json', source: `${JSON.stringify(manifest, null, 2)}\n` });
+    },
+    configureServer(server) {
+      server.watcher.on('change', (file) => {
+        if (file === CATALOG_PATH || file === `${config.publicDir}/manifest.json`) made = null;
+      });
+      server.middlewares.use(async (req, res, next) => {
+        const path = req.url?.split('?')[0] ?? '';
+        if (!['GET', 'HEAD'].includes(req.method) || !path.startsWith(config.base)) return next();
+        const file = path.slice(config.base.length);
+        if (file !== 'manifest.json' && !file.startsWith('icons/games/')) return next();
+        try {
+          made ??= make();
+          const { manifest, icons } = await made;
+          const body = file === 'manifest.json' ? JSON.stringify(manifest, null, 2) : icons.get(file);
+          if (!body) return next();
+          res.setHeader('Content-Type', file === 'manifest.json' ? 'application/manifest+json' : 'image/png');
+          res.end(req.method === 'HEAD' ? undefined : body);
+        } catch (error) {
+          made = null;
+          next(error);
+        }
+      });
+    },
+  };
+}
+
 // The site's service worker, built from this template (src/lib/offline.js registers it)
 const SERVICE_WORKER = fileURLToPath(new URL('./src/service-worker.js', import.meta.url));
 
@@ -304,6 +355,7 @@ function serviceWorker() {
         const template = await readFile(SERVICE_WORKER, 'utf8');
         const hash = createHash('sha256').update(template).update(JSON.stringify(appFiles));
         for (const file of built) hash.update(bundle[file].type === 'chunk' ? bundle[file].code : bundle[file].source);
+        if (bundle['manifest.json']) hash.update(bundle['manifest.json'].source); // its shortcuts (appShortcuts())
 
         const values = {
           "'__VERSION__'": JSON.stringify(hash.digest('hex').slice(0, 12)),
@@ -360,7 +412,7 @@ function runChecker() {
 }
 
 export default defineConfig({
-  plugins: [react(), gamesCatalog(), appPages(), rootFiles(), securityHeaders(), serviceWorker(), runChecker()],
+  plugins: [react(), gamesCatalog(), appPages(), rootFiles(), securityHeaders(), appShortcuts(), serviceWorker(), runChecker()],
   build: {
     rolldownOptions: {
       output: {
