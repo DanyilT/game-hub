@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router';
+import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import {
   CiCircleQuestion, CiFilter, CiGlobe, CiMaximize1, CiMaximize2, CiMinimize1, CiSquareChevLeft,
 } from 'react-icons/ci';
@@ -229,10 +229,15 @@ const GameTags = ({ game }) => {
   );
 };
 
-/** Who made the game: their name, linking to their page when the catalogue has one */
-const DeveloperName = ({ developer }) => (developer.url ? (
-  <ExternalLink href={developer.url} arrow>{developer.name}</ExternalLink>
-) : developer.name);
+/**
+ * Who made the game: their name, linking to their GameHub profile when it names their account (the games table's
+ * developer_id), else to their own page when the catalogue has one
+ */
+const DeveloperName = ({ developer }) => {
+  if (developer.username) return <Link to={`/u/${developer.username}`}>{developer.name}</Link>;
+  if (developer.url) return <ExternalLink href={developer.url} arrow>{developer.name}</ExternalLink>;
+  return developer.name;
+};
 
 /**
  * Where the game's progress is going, under the game: the account (signed in, once the game has

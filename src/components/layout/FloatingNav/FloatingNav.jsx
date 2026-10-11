@@ -67,7 +67,7 @@ const FloatingNav = ({ corner = 'right' }) => {
   };
 
   const renderItem = (item, index, angle, ring) => {
-    const { key, path, label, short, icon: Icon, soon, onClick, badge, danger, profile } = item;
+    const { key, path, also, label, short, icon: Icon, soon, onClick, badge, danger, profile } = item;
     const style = {
       '--dx': (side * Math.sin((angle * Math.PI) / 180)).toFixed(4),
       '--dy': (-Math.cos((angle * Math.PI) / 180)).toFixed(4),
@@ -95,7 +95,12 @@ const FloatingNav = ({ corner = 'right' }) => {
     else if (onClick) element = <button type="button" className={className} onClick={onClick} {...common}>{content}</button>;
     else {
       element = (
-        <NavLink to={path} end className={({ isActive }) => `${className} ${isActive ? styles.active : ''}`} {...common}>
+        <NavLink
+          to={path}
+          end
+          className={({ isActive }) => `${className} ${isActive || also?.includes(location.pathname) ? styles.active : ''}`}
+          {...common}
+        >
           {content}
         </NavLink>
       );

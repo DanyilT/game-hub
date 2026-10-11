@@ -5,8 +5,8 @@
 // favorite, a block) lasts until the story is drawn again.
 
 import {
-  BLOCKS, BOOKMARKS, FAVORITES, FRIENDSHIPS, GAME_STATS, ME, PLAYED, PLAYERS, PLAYING_NOW, PRIVACY, RATINGS,
-  RECENT_ACTIVITY, RECORDS, USERNAME_HISTORY, serverRuns,
+  BLOCKS, BOOKMARKS, DEVELOPER_PROFILES, FAVORITES, FRIENDSHIPS, GAME_STATS, ME, PLAYED, PLAYERS, PLAYING_NOW, PRIVACY,
+  RATINGS, RECENT_ACTIVITY, RECORDS, REPORTS, USERNAME_HISTORY, USER_ROLES, serverRuns,
 } from './data';
 import { scenario, signedIn } from './scenario';
 
@@ -28,7 +28,10 @@ export const resetDatabase = () => {
     friendships: copy(FRIENDSHIPS),
     blocks: copy(BLOCKS),
     feedback: [],
-    player_reports: [],
+    player_reports: copy(REPORTS),
+    user_roles: copy(USER_ROLES),
+    developer_profiles: DEVELOPER_PROFILES.map((row) => ({ ...row, links: [...row.links] })),
+    developers: [], // a view: filled in from the tables above each time it's read (developerRows())
     game_saves: [],
     privacy: { ...PRIVACY, ...scenario.privacy },
     // Play history: the games each player has played (player_played), and the recent activity
@@ -44,6 +47,13 @@ const hiddenHistory = (userId) => userId === ME.id && me() !== ME.id && !db.priv
 const hiddenPlaying = (userId) => userId === ME.id && !db.privacy.record_played;
 const profile = (id) => db.profiles.find((row) => row.id === id);
 const blockedBetween = (a, b) => db.blocks.some((row) => (row.blocker === a && row.blocked === b) || (row.blocker === b && row.blocked === a));
+const hasRole = (userId, role) => db.user_roles.some((row) => row.user_id === userId && row.role === role);
+
+// The developers view: each developer's profile, when they became one, and their bio and links
+const developerRows = () => db.user_roles.filter((row) => row.role === 'developer').map((row) => {
+  const info = db.developer_profiles.find((other) => other.user_id === row.user_id);
+  return { ...profile(row.user_id), developer_since: row.granted_at, bio: info?.bio ?? '', links: info?.links ?? [] };
+});
 
 // What each player may read of each table (supabase/migrations: the row level security)
 const READABLE = {
@@ -55,6 +65,11 @@ const READABLE = {
   friendships: (row) => row.status === 'accepted' || [row.user_a, row.user_b].includes(me()),
   blocks: (row) => row.blocker === me(),
   feedback: () => false,
+  player_reports: () => false,
+  // Being a developer is public; other roles only to their owner
+  user_roles: (row) => row.role === 'developer' || row.user_id === me(),
+  developer_profiles: (row) => hasRole(row.user_id, 'developer'),
+  developers: () => true,
   game_saves: (row) => row.user_id === me(),
 };
 
@@ -195,6 +210,13 @@ class Query {
 
   // The joins the site asks for: a player's own username history, and the players someone has blocked
   withRelations(row) {
+    if (this.table === 'profiles' && this.columns.includes('user_roles')) {
+      row.user_roles = db.user_roles.filter((entry) => entry.user_id === row.id && READABLE.user_roles(entry)).map(({ role }) => ({ role }));
+    }
+    if (this.table === 'profiles' && this.columns.includes('developer_profiles')) {
+      const info = db.developer_profiles.find((entry) => entry.user_id === row.id && READABLE.developer_profiles(entry));
+      row.developer_profiles = info ? { bio: info.bio, links: [...info.links] } : null;
+    }
     if (this.table === 'profiles' && this.columns.includes('username_history')) {
       row.username_history = db.username_history.filter((entry) => entry.user_id === row.id).map(({ user_id: _, ...entry }) => entry);
     }
@@ -237,6 +259,10 @@ const signedInOnly = (fn) => (args) => {
 };
 const pairOf = (a, b) => db.friendships.find((row) => row.user_a === [a, b].sort()[0] && row.user_b === [a, b].sort()[1]);
 const asPlayer = ({ id, username, display_name: displayName, avatar_url: avatarUrl }) => ({ id, username, display_name: displayName, avatar_url: avatarUrl });
+const adminOnly = (fn) => signedInOnly((args) => {
+  if (!hasRole(me(), 'admin')) throw fail('42501', 'Only admins can do that', 'not_admin');
+  return fn(args);
+});
 
 const FUNCTIONS = {
   ping: () => 1,
@@ -332,13 +358,55 @@ const FUNCTIONS = {
     db.blocks = db.blocks.filter((row) => !(row.blocker === me() && row.blocked === userId));
     return db.blocks.length < before;
   }),
-  report_player: signedInOnly(({ p_user: userId, p_reason: reason, p_message: message }) => {
+  report_player: signedInOnly(({ p_user: userId, p_reason: reason, p_game: gameId, p_message: message }) => {
     if (reason === 'other' && !message?.trim()) throw fail('P0001', 'Say what happened, so the developer knows what to look for.', 'report_message');
-    if (db.player_reports.some((row) => row.reported === userId)) {
+    if (db.player_reports.some((row) => row.reporter === me() && row.reported === userId)) {
       throw fail('P0001', "You've already reported this player today. The developer will look into it.", 'already_reported');
     }
-    db.player_reports.push({ reporter: me(), reported: userId, reason, message });
+    db.player_reports.push({
+      id: db.player_reports.length + 1, reporter: me(), reported: userId, reason, game_id: reason === 'cheating' ? gameId ?? null : null,
+      message: message?.trim() ?? '', created_at: new Date().toISOString(), resolved: false, resolved_at: null, resolved_by: null,
+    });
     return null;
+  }),
+
+  // Roles: a developer's bio and links, and what admins do
+  update_developer_profile: signedInOnly(({ p_bio: bio, p_links: links }) => {
+    if (!hasRole(me(), 'developer')) throw fail('42501', 'Only developers have a bio and links', 'not_developer');
+    const kept = links.map((link) => link.trim()).filter(Boolean);
+    const bad = kept.find((link) => !/^https:\/\/[^\s/?#]+\.[^\s/?#]+\S*$/.test(link));
+    if (bad) throw Object.assign(fail('P0001', 'Links are https addresses, like https://github.com/you', 'link_invalid'), { details: bad });
+    db.developer_profiles = db.developer_profiles.filter((row) => row.user_id !== me());
+    db.developer_profiles.push({ user_id: me(), bio: bio.trim(), links: kept });
+    return null;
+  }),
+  set_developer: adminOnly(({ p_user: userId, p_developer: developer }) => {
+    if (!profile(userId)) throw fail('P0001', "There's no such player", 'no_player');
+    const was = hasRole(userId, 'developer');
+    if (developer && !was) db.user_roles.push({ user_id: userId, role: 'developer', granted_at: new Date().toISOString() });
+    if (!developer) db.user_roles = db.user_roles.filter((row) => !(row.user_id === userId && row.role === 'developer'));
+    return developer !== was;
+  }),
+  admin_reports: adminOnly(({ p_resolved: resolved }) => db.player_reports
+    .filter((row) => resolved === null || resolved === undefined || row.resolved === resolved)
+    .sort((a, b) => b.created_at.localeCompare(a.created_at))
+    .map((row) => {
+      const from = profile(row.reporter);
+      const about = profile(row.reported);
+      return {
+        ...row,
+        resolved_by_username: row.resolved_by ? profile(row.resolved_by)?.username ?? null : null,
+        reporter_username: from.username, reporter_display_name: from.display_name, reporter_avatar_url: from.avatar_url,
+        reported_username: about.username, reported_display_name: about.display_name, reported_avatar_url: about.avatar_url,
+        reports_about_them: db.player_reports.filter((other) => other.reported === row.reported).length,
+      };
+    })),
+  open_report_count: adminOnly(() => db.player_reports.filter((row) => !row.resolved).length),
+  resolve_report: adminOnly(({ p_report: reportId, p_resolved: resolved }) => {
+    const row = db.player_reports.find((other) => other.id === reportId);
+    if (!row) return false;
+    Object.assign(row, { resolved, resolved_at: resolved ? new Date().toISOString() : null, resolved_by: resolved ? me() : null });
+    return true;
   }),
 
   // Checked runs
@@ -376,6 +444,7 @@ const announce = (event) => authListeners.forEach((listener) => listener(event, 
 const client = {
   from: (table) => {
     if (!db[table]) throw new Error(`Storybook's pretend Supabase has no table "${table}" (dev/storybook/mocks/supabase.js)`);
+    if (table === 'developers') db.developers = developerRows();
     return new Query(table);
   },
   rpc: (fn, args = {}) => {

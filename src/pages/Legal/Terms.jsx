@@ -5,7 +5,7 @@ import PageTitle from '../../components/common/PageTitle/PageTitle';
 import styles from './Legal.module.scss';
 
 // Change this whenever the terms text changes
-const LAST_UPDATED = '4 October 2026';
+const LAST_UPDATED = '11 October 2026';
 
 
 const Terms = () => (
@@ -44,7 +44,7 @@ const Terms = () => (
           <li>using a bug to get a record</li>
         </ul>
         <p>Games that don&rsquo;t check out are kept for a while, and so are odd ones. If we have reason to think an account cheats or tampers with GameHub&rsquo;s data, we&rsquo;ll look into it, and may remove its games and records, suspend it, or delete it for good (a permanent ban).</p>
-        <p>Think another player cheats? Report them with the <strong>⋯</strong> on their profile (signed in). Only the developer reads reports, and the player isn&rsquo;t told who sent one. Please only report what you really think happened: reports made to get at someone break these Terms too.</p>
+        <p>Think another player cheats? Report them with the <strong>⋯</strong> on their profile (signed in). Only GameHub&rsquo;s admins read reports, and the player isn&rsquo;t told who sent one. Please only report what you really think happened: reports made to get at someone break these Terms too.</p>
         <p>Found a way to cheat, fake a record, or get past the checks? Please don&rsquo;t use it: tell the developer on <ExternalLink href={HUB_ISSUES_URL}>GitHub issues</ExternalLink>, or, if it&rsquo;s serious, privately with the <strong>?</strong> button on a game&rsquo;s page (signed in), so it can be fixed before anyone else finds it. The same goes for any bug: reporting it keeps GameHub fair for everyone. Thank you!</p>
       </section>
 

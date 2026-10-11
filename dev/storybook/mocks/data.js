@@ -167,6 +167,42 @@ export const PRIVACY = { show_played: 'everyone', show_playing: 'friends', show_
 
 export const BLOCKS = [{ blocker: ME.id, blocked: player('silly_goblin46').id, created_at: ago(2 * DAY) }];
 
+// Roles: Dany is a developer and an admin (as on the real site), and Nora a developer too
+export const USER_ROLES = [
+  { user_id: ME.id, role: 'developer', granted_at: ago(5 * DAY) },
+  { user_id: ME.id, role: 'admin', granted_at: ago(5 * DAY) },
+  { user_id: player('cosmic_narwhal42').id, role: 'developer', granted_at: ago(1 * DAY) },
+];
+
+// Developers' bios and links (Settings → Developer)
+export const DEVELOPER_PROFILES = [
+  {
+    user_id: ME.id,
+    bio: 'I make small retro games for the browser: Snake, Tetris, Minesweeper and Sudoku, and GameHub to play them in.',
+    links: ['https://github.com/DanyilT', 'https://danyilt.itch.io', 'https://danyt.dev'],
+  },
+  { user_id: player('cosmic_narwhal42').id, bio: '', links: ['https://www.youtube.com/@nora'] },
+];
+
+// Reports players sent (admins read them on /admin)
+const report = (id, from, about, reason, gameId, message, minutes, resolved = false) => ({
+  id,
+  reporter: player(from).id,
+  reported: player(about).id,
+  reason,
+  game_id: gameId,
+  message,
+  created_at: ago(minutes),
+  resolved,
+  resolved_at: resolved ? ago(minutes / 2) : null,
+  resolved_by: resolved ? ME.id : null,
+});
+export const REPORTS = [
+  report(3, 'zippy_fox55', 'grumpy_dragon42', 'cheating', 'tetris', 'A score of 999,999 two minutes after joining.', 3 * HOUR),
+  report(2, 'mystic_yeti88', 'grumpy_dragon42', 'other', null, 'Their display name is an insult.', 1 * DAY),
+  report(1, 'cosmic_narwhal42', 'turbo_taco19', 'cheating', 'snake', '', 4 * DAY, true),
+];
+
 // ==========================================
 // The game page: what the game in the frame says (mocks/gameBridge.js), and the player's runs and records
 // ==========================================

@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
+import { PiCode } from 'react-icons/pi';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
-import { PROFILE_COLUMNS } from '../../lib/account';
+import { PROFILE_COLUMNS, noRolesYet, withRoles } from '../../lib/account';
 import { monthYear } from '../../lib/dates';
+import { gamesBy, isDeveloper } from '../../lib/roles';
 import Avatar from '../../components/common/Avatar/Avatar';
 import Badge from '../../components/common/Badge/Badge';
 import Button from '../../components/common/Button/Button';
@@ -14,25 +16,62 @@ import Status from '../../components/common/Status/Status';
 import styles from './Account.module.scss';
 
 const PAGE_SIZE = 24;
+
+// Who the page lists: everyone (/players), or the developers (/developers), each from its own table (the developers
+// view has their profiles, and when they became developers)
+const KINDS = {
+  players: {
+    path: '/players',
+    label: 'Players',
+    table: 'profiles',
+    columns: PROFILE_COLUMNS, // and their roles: developers among them get a badge (anyone may see who's a developer)
+    newest: 'created_at',
+    one: 'player',
+    many: 'players',
+  },
+  developers: {
+    path: '/developers',
+    label: 'Developers',
+    table: 'developers',
+    columns: `${PROFILE_COLUMNS}, developer_since`,
+    newest: 'developer_since',
+    one: 'developer',
+    many: 'developers',
+  },
+};
+
 const SORTS = [
-  { id: 'newest', label: 'Newest', column: 'created_at', ascending: false },
+  { id: 'newest', label: 'Newest', ascending: false },
   { id: 'name', label: 'A–Z', column: 'username', ascending: true },
 ];
 
 // Only letters, digits, spaces, _ and -: anything else would mean something to the search filter
 const cleanSearch = (text) => text.replace(/[^\p{L}\p{N} _-]/gu, '').trim();
 
-/** Everyone with an account: /players. Search by username or display name; newest first, or A–Z. */
-const Players = () => {
+// Under a developer's names: how many games they've made on GameHub, or since when they're a developer
+const developerLine = (developer) => {
+  const made = gamesBy(developer.username).length;
+  if (made > 0) return `${made} ${made === 1 ? 'game' : 'games'}`;
+  return `Developer since ${monthYear(developer.developer_since, 'short')}`;
+};
+
+/**
+ * Everyone with an account: /players, or only the developers: /developers (the switch beside the title). Search by
+ * username or display name; newest first (for developers: newest developers), or A–Z.
+ * @param {'players'|'developers'} [kind]
+ */
+const Players = ({ kind = 'players' }) => {
   const { isAvailable, profile: me } = useAuth();
+  const navigate = useNavigate();
+  const listing = KINDS[kind];
   const [search, setSearch] = useState(''); // as typed
   const [term, setTerm] = useState(''); // what's searched for, a moment after typing stops
   const [sort, setSort] = useState('newest');
   const [shown, setShown] = useState(PAGE_SIZE);
   const [attempt, setAttempt] = useState(0);
   // Tagged with the search it answers, so an older answer never replaces a newer one
-  const [result, setResult] = useState({ query: null, term: '', players: [], total: 0, error: null });
-  const query = `${sort}:${term}:${shown}:${attempt}`;
+  const [result, setResult] = useState({ query: null, term: '', people: [], total: 0, error: null });
+  const query = `${kind}:${sort}:${term}:${shown}:${attempt}`;
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -45,24 +84,33 @@ const Players = () => {
   useEffect(() => {
     if (!isAvailable) return undefined;
     let active = true;
-    const { column, ascending } = SORTS.find(({ id }) => id === sort);
-    let request = supabase
-      .from('profiles')
-      .select(PROFILE_COLUMNS, { count: 'exact' })
-      .order(column, { ascending })
-      .order('id') // ties in a fixed order, so "Show more" never repeats or skips anyone
-      .range(0, shown - 1);
-    if (term) {
-      // * is PostgREST's wildcard; _ would be one too, so it's matched as itself
-      const pattern = `*${term.replaceAll('_', '\\_')}*`;
-      request = request.or(`username.ilike.${pattern},display_name.ilike.${pattern}`);
-    }
+    const { table, columns, newest } = KINDS[kind];
+    const { column = newest, ascending } = SORTS.find(({ id }) => id === sort);
+    const build = (selected) => {
+      let request = supabase
+        .from(table)
+        .select(selected, { count: 'exact' })
+        .order(column, { ascending })
+        .order('id') // ties in a fixed order, so "Show more" never repeats or skips anyone
+        .range(0, shown - 1);
+      if (term) {
+        // * is PostgREST's wildcard; _ would be one too, so it's matched as itself
+        const pattern = `*${term.replaceAll('_', '\\_')}*`;
+        request = request.or(`username.ilike.${pattern},display_name.ilike.${pattern}`);
+      }
+      return request;
+    };
+    // A database without the roles migration yet: players without roles, and no developers
+    const request = kind === 'players'
+      ? withRoles((roles) => build(`${columns}${roles}`))
+      : build(columns).then((answer) => (noRolesYet(answer.error) ? { data: [], count: 0, error: null } : answer));
     request.then(({ data, count, error }) => {
       if (!active) return;
       setResult((previous) => ({
-        query: `${sort}:${term}:${shown}:${attempt}`,
+        query: `${kind}:${sort}:${term}:${shown}:${attempt}`,
         term,
-        players: data ?? previous.players,
+        // Another list's people never show under this one's switch
+        people: data ?? (previous.query?.startsWith(`${kind}:`) ? previous.people : []),
         total: count ?? previous.total,
         error,
       }));
@@ -70,11 +118,29 @@ const Players = () => {
     return () => {
       active = false;
     };
-  }, [isAvailable, sort, term, shown, attempt]);
+  }, [isAvailable, kind, sort, term, shown, attempt]);
+
+  const switchTo = (next) => {
+    setShown(PAGE_SIZE);
+    navigate(KINDS[next].path, { replace: true, state: { keepScroll: true } });
+  };
 
   const page = (content) => (
     <div className={`${styles.page} ${styles.wide}`}>
-      <PageTitle>Players</PageTitle>
+      <div className={styles.titleRow}>
+        <PageTitle>Users</PageTitle>
+        {isAvailable && (
+          <RadioGroup
+            variant="segmented"
+            shape="rounded"
+            label="Show"
+            hideLabel
+            options={Object.entries(KINDS).map(([value, { label }]) => ({ value, label }))}
+            value={kind}
+            onChange={switchTo}
+          />
+        )}
+      </div>
       {content}
     </div>
   );
@@ -83,13 +149,14 @@ const Players = () => {
     return page(<section className={styles.card}><p>The list of players is coming soon.</p></section>);
   }
 
-  const { players, total, error } = result;
+  const { people, total, error } = result;
   const loading = result.query !== query;
+  const { one, many } = listing;
   let summary;
-  if (result.query === null) summary = 'Loading players…';
-  else if (total === 0) summary = result.term ? `No players match “${result.term}”.` : 'No players yet.';
-  else if (result.term) summary = `${total} ${total === 1 ? 'player matches' : 'players match'} “${result.term}”`;
-  else summary = `${total} ${total === 1 ? 'player' : 'players'}`;
+  if (result.query === null || !result.query.startsWith(`${kind}:`)) summary = `Loading ${many}…`;
+  else if (total === 0) summary = result.term ? `No ${many} match “${result.term}”.` : `No ${many} yet.`;
+  else if (result.term) summary = `${total} ${total === 1 ? `${one} matches` : `${many} match`} “${result.term}”`;
+  else summary = `${total} ${total === 1 ? one : many}`;
 
   return page(
     <>
@@ -97,7 +164,7 @@ const Players = () => {
         <TextField
           id="users-search"
           type="search"
-          label="Search players by name"
+          label={`Search ${many} by name`}
           hideLabel
           className={styles.search}
           placeholder="Search by name"
@@ -121,28 +188,33 @@ const Players = () => {
 
       {error ? (
         <Status kind="error" onRetry={() => setAttempt((n) => n + 1)}>
-          Couldn&rsquo;t load the players. Check your connection and try again.
+          Couldn&rsquo;t load the {many}. Check your connection and try again.
         </Status>
       ) : (
         <Message aria-live="polite">{summary}</Message>
       )}
 
-      {players.length > 0 && (
+      {people.length > 0 && (
         <ul className={styles.playerGrid} aria-busy={loading}>
-          {players.map((player) => {
-            const name = player.display_name ?? player.username;
+          {people.map((person) => {
+            const name = person.display_name ?? person.username;
             return (
-              <li key={player.id}>
-                <Link to={`/u/${player.username}`} className={styles.playerCard}>
-                  <Avatar url={player.avatar_url} name={name} size={48} />
+              <li key={person.id}>
+                <Link to={`/u/${person.username}`} className={styles.playerCard}>
+                  <Avatar url={person.avatar_url} name={name} size={48} />
                   <span className={styles.playerNames}>
-                    {/* Only the name gets cut short ("…"), never the badge */}
+                    {/* Only the name gets cut short ("…"), never the badges */}
                     <span className={styles.playerNameRow}>
                       <span className={styles.playerName}>{name}</span>
-                      {player.id === me?.id && <Badge variant="outline" tone="accent">you</Badge>}
+                      {person.id === me?.id && <Badge variant="outline" tone="accent">you</Badge>}
+                      {kind === 'players' && isDeveloper(person) && (
+                        <Badge variant="soft" tone="accent" icon={PiCode} title="Developer">dev</Badge>
+                      )}
                     </span>
-                    <span className={styles.playerMeta}>@{player.username}</span>
-                    <span className={styles.playerMeta}>Joined {monthYear(player.created_at, 'short')}</span>
+                    <span className={styles.playerMeta}>@{person.username}</span>
+                    <span className={styles.playerMeta}>
+                      {kind === 'developers' ? developerLine(person) : `Joined ${monthYear(person.created_at, 'short')}`}
+                    </span>
                   </span>
                 </Link>
               </li>
@@ -151,10 +223,10 @@ const Players = () => {
         </ul>
       )}
 
-      {!error && players.length < total && (
+      {!error && people.length < total && result.query?.startsWith(`${kind}:`) && (
         <div className={styles.actions}>
           <Button variant="outline" onClick={() => setShown((n) => n + PAGE_SIZE)} disabled={loading}>
-            {loading ? 'Loading…' : `Show more (${total - players.length} more)`}
+            {loading ? 'Loading…' : `Show more (${total - people.length} more)`}
           </Button>
         </div>
       )}

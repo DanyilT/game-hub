@@ -42,10 +42,18 @@ export const supabaseProject = (env) => (env.VITE_SUPABASE_URL && env.VITE_SUPAB
   ? { url: env.VITE_SUPABASE_URL.replace(/\/+$/, ''), key: env.VITE_SUPABASE_PUBLISHABLE_KEY }
   : null);
 
+// The developer's account (developer_id), for its username: the game's `developer` gets it, for the game page's link
+const DEVELOPER_ACCOUNT = 'developer_account:profiles!games_developer_id_fkey(username)';
+
 /** A row of the games table as a catalogue entry: keys in games.json's order, empty columns left out */
-export const rowToEntry = (row) => Object.fromEntries(Object.entries(COLUMNS)
-  .filter(([column]) => row[column] !== null && row[column] !== undefined)
-  .map(([column, key]) => [key, row[column]]));
+export const rowToEntry = (row) => {
+  const entry = Object.fromEntries(Object.entries(COLUMNS)
+    .filter(([column]) => row[column] !== null && row[column] !== undefined)
+    .map(([column, key]) => [key, row[column]]));
+  const username = row.developer_account?.username;
+  if (username && entry.developer && typeof entry.developer === 'object') entry.developer = { ...entry.developer, username };
+  return entry;
+};
 
 /**
  * The published games, in order, through Supabase's REST API (anyone may read published rows)
@@ -53,11 +61,16 @@ export const rowToEntry = (row) => Object.fromEntries(Object.entries(COLUMNS)
  * @return {Promise<object[]>} - catalogue entries
  */
 export async function fetchGames({ url, key }) {
-  const query = `select=${Object.keys(COLUMNS).join(',')}&published=eq.true&order=position.asc,id.asc`;
-  const response = await fetch(`${url}/rest/v1/games?${query}`, {
+  const read = (columns) => fetch(`${url}/rest/v1/games?select=${columns.join(',')}&published=eq.true&order=position.asc,id.asc`, {
     headers: { apikey: key, Accept: 'application/json' },
     signal: AbortSignal.timeout(15_000),
   });
+  let response = await read([...Object.keys(COLUMNS), DEVELOPER_ACCOUNT]);
+  // Before the roles migration (supabase/migrations/*_roles_and_developers.sql) the table has no developer_id: the
+  // games come without their developers' accounts (the game page links to the developer's url instead)
+  if (response.status === 400 && (await response.clone().text()).includes('games_developer_id_fkey')) {
+    response = await read(Object.keys(COLUMNS));
+  }
   if (!response.ok) throw new Error(`HTTP ${response.status}: ${(await response.text()).slice(0, 300)}`);
   return (await response.json()).map(rowToEntry);
 }

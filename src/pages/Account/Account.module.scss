@@ -1,6 +1,7 @@
 @use '../../styles/abstracts/variables' as *;
 @use '../../styles/abstracts/surfaces';
 @use '../../styles/abstracts/mixins';
+@use '../../styles/abstracts/forms';
 
 // Shared by the account pages: AuthCallback, Me, Players, Profile, Settings (sign-in is a modal:
 // components/account). Square-cornered and see-through, like the legal pages and the neon windows.
@@ -71,6 +72,41 @@
   overflow-wrap: anywhere;
 }
 
+// A page's title with something beside it (Users: Players or Developers), going under it when there's no room
+.titleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-md $spacing-lg;
+}
+
+// Under the handle: Developer (and on your own profile, Admin)
+.roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+}
+
+// A developer's bio, links and games, between the header and the tabs
+.developerCard {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.bio {
+  white-space: pre-line; // their own line breaks
+  overflow-wrap: anywhere;
+}
+
+.developerLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+  list-style: none;
+}
+
 // Settings: the picture beside the display name (wrapping under it when there's no room)
 .profileRow {
   display: flex;
@@ -82,6 +118,62 @@
 .grow {
   flex: 1 1 16rem;
   min-width: 0;
+}
+
+// Admin → Reports: a card each, newest first; a resolved one dimmed
+.reportList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+  list-style: none;
+}
+
+.reportRow {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  padding: $spacing-md;
+  border: 1px solid color-mix(in srgb, $color-primary 60%, transparent);
+}
+
+.resolved {
+  border-style: dashed;
+  opacity: 0.75;
+}
+
+.reportHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-sm $spacing-md;
+}
+
+.reportTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+}
+
+// Settings → Developer: the links, a field each
+.linkFields {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.fieldsetTitle {
+  @include forms.label;
+  padding: 0;
 }
 
 // The picture is also the button that removes it (or puts the provider's back): the action

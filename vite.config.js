@@ -111,9 +111,9 @@ function gamesCatalog() {
 
 // The app's pages besides the home page (index.html, the games list) and the games' own pages
 // (g/<id>, from the catalogue). Keep in step with the routes in App.jsx.
-const PAGES = ['players', 'about', 'terms', 'privacy'];
+const PAGES = ['players', 'developers', 'about', 'terms', 'privacy'];
 // Account pages get a file of their own too, but stay out of sitemap.xml (robots.txt keeps crawlers out)
-const ACCOUNT_PAGES = ['settings', 'auth/callback', 'me'];
+const ACCOUNT_PAGES = ['settings', 'auth/callback', 'me', 'admin'];
 // Profiles (/u/<username>) can't have a file per player, so _redirects answers all of them with the app
 const PROFILE_PATHS = '/u/*';
 // Addresses that moved, sent on with a 301 (permanent, so bookmarks and search engines update).

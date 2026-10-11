@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { PROFILE_COLUMNS, rememberReturnPath } from '../lib/account';
+import { PROFILE_COLUMNS, rememberReturnPath, withRoles } from '../lib/account';
 import { flushSaves } from '../lib/gameBridge';
 
 // ==========================================
@@ -19,14 +19,15 @@ const requireSupabase = () => {
 /**
  * The signed-in player's own profile, plus `username_history`: the names they've picked or kept,
  * oldest first (lib/account.js reads it). Only they can see it; it's empty until they choose a name.
+ * Also their roles, and as a developer their bio and links (lib/roles.js reads them).
  * @return {Promise<{data: object|null, error: object|null}>}
  */
 const fetchOwnProfile = async (userId) => {
-  const { data, error } = await supabase
+  const { data, error } = await withRoles((roles) => supabase
     .from('profiles')
-    .select(`${PROFILE_COLUMNS}, username_history (id, username, set_at)`)
+    .select(`${PROFILE_COLUMNS}, username_history (id, username, set_at)${roles}`)
     .eq('id', userId)
-    .single();
+    .single());
   data?.username_history.sort((a, b) => a.id - b.id);
   return { data, error };
 };
@@ -142,6 +143,18 @@ export const AuthProvider = ({ children }) => {
     return data;
   }, [userId]);
 
+  /**
+   * Reads the profile again, once it's loaded (after a change saved elsewhere: a developer's bio and links)
+   * @return {Promise<object>} - the profile
+   */
+  const reloadProfile = useCallback(async () => {
+    requireSupabase();
+    const { data, error } = await fetchOwnProfile(userId);
+    if (error) throw error;
+    setProfileState({ userId, data, error: null });
+    return data;
+  }, [userId]);
+
   /** Deletes the account and everything tied to it, then signs out this device */
   const deleteAccount = useCallback(async () => {
     requireSupabase();
@@ -179,10 +192,11 @@ export const AuthProvider = ({ children }) => {
     sendSignInLink,
     signOut,
     updateProfile,
+    reloadProfile,
     deleteAccount,
     isUsernameAvailable,
   }), [sessionLoaded, profileLoaded, session, user, profile, profileError, refreshProfile, signInOpen, openSignIn,
-    closeSignIn, signInWith, sendSignInLink, signOut, updateProfile, deleteAccount, isUsernameAvailable]);
+    closeSignIn, signInWith, sendSignInLink, signOut, updateProfile, reloadProfile, deleteAccount, isUsernameAvailable]);
 
   return (
     <AuthContext.Provider value={value}>

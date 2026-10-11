@@ -10,6 +10,30 @@ export const PROVIDER_NAMES = { google: 'Google', discord: 'Discord' };
 
 /** A profile's public columns (the `profiles` table): what anyone can read about a player */
 export const PROFILE_COLUMNS = 'id, username, display_name, avatar_url, created_at';
+/** For a profile query: its roles (the ones the viewer may see) and, for a developer, their bio and links (roles.js) */
+export const ROLE_COLUMNS = 'user_roles!user_roles_user_id_fkey (role), developer_profiles (bio, links)';
+
+// A database without the roles migration yet (supabase/migrations/*_roles_and_developers.sql) has no roles to give:
+// no such table (PGRST205, 42P01), or no such link from profiles (PGRST200)
+const NO_ROLES_CODES = ['PGRST200', 'PGRST205', '42P01'];
+/** Whether an error only says the database has no roles yet */
+export const noRolesYet = (error) => NO_ROLES_CODES.includes(error?.code);
+let rolesMissing = false; // known once, so later queries don't ask again
+
+/**
+ * Runs a profile query with the profiles' roles, or, on a database without them yet, without (so the site works
+ * before and after the roles migration: no one is a developer or an admin until then)
+ * @param {function} query - gets the columns to add (`, user_roles…`, or '') and returns the supabase-js query
+ * @return {Promise<{data, error, count}>} - its answer
+ */
+export const withRoles = async (query) => {
+  if (!rolesMissing) {
+    const answer = await query(`, ${ROLE_COLUMNS}`);
+    if (!noRolesYet(answer.error)) return answer;
+    rolesMissing = true;
+  }
+  return query('');
+};
 
 // Word lists from the first GameHub rewrite. Keep them in step with private.random_username()
 // in supabase/migrations/*_accounts.sql, which names new players the same way.

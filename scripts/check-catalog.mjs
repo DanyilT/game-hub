@@ -30,7 +30,7 @@ export const isEmbedOrigin = (origin) => EMBED_ORIGINS.some((allowed) => {
 // Known keys, so leftovers and typos (`imagePath`) don't slip through
 const ENTRY_KEYS = ['id', 'kind', 'title', 'description', 'developer', 'released', 'style', 'genre', 'tags', 'features',
   'difficulty', 'controls', 'iconUrl', 'thumb', 'sourceCode', 'website', 'dimensions', 'platforms'];
-const GAME_DEVELOPER_KEYS = ['name', 'url'];
+const GAME_DEVELOPER_KEYS = ['name', 'url', 'username'];
 const PLATFORM_KEYS = ['type', 'url', 'embed', 'storeId', 'appLink', 'icon'];
 const DIMENSION_KEYS = ['sizes', 'center'];
 const SIZE_KEYS = ['w', 'h'];
@@ -198,9 +198,15 @@ export function validateCatalog(catalog) {
     if (!isObject(game.developer)) problem('`developer` must be an object with a `name`, like { "name": "Dany" }');
     else {
       const at = (message) => problem(`developer: ${message}`);
-      for (const key of unknownKeys(game.developer, GAME_DEVELOPER_KEYS)) at(`unknown key \`${key}\` (it has a \`name\` and a \`url\`)`);
+      for (const key of unknownKeys(game.developer, GAME_DEVELOPER_KEYS)) {
+        at(`unknown key \`${key}\` (it has a \`name\`, a \`url\` and a \`username\`)`);
+      }
       if (!isText(game.developer.name)) at('`name` is required');
       if (game.developer.url !== undefined && !isHttpsUrl(game.developer.url)) at('`url` must be an https URL');
+      // Their GameHub account (the games table's developer_id), which the game page links to
+      if (game.developer.username !== undefined && !/^[a-z0-9_]{3,20}$/.test(game.developer.username)) {
+        at('`username` must be a GameHub username (3–20 lowercase letters, numbers and _)');
+      }
     }
     if (game.style !== undefined && !isText(game.style)) problem('`style` must be text');
     if (game.controls !== undefined) checkControls(game.controls, (message) => problem(`controls: ${message}`));

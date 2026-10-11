@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useParams, useSearchParams } from 'react-router';
 import {
-  PiBookmarkSimple, PiDotsThreeVertical, PiFlag, PiGameController, PiHeart, PiProhibit, PiStar, PiUserCheck,
+  PiBookmarkSimple, PiCode, PiDotsThreeVertical, PiFlag, PiGameController, PiHeart, PiProhibit, PiStar, PiUserCheck,
   PiUserCircle, PiUserMinus, PiUserPlus, PiUsers,
 } from 'react-icons/pi';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLibrary } from '../../contexts/LibraryContext';
 import { gamesById } from '../../data/games';
 import { supabase } from '../../lib/supabase';
-import { PROFILE_COLUMNS, USERNAME_PATTERN } from '../../lib/account';
+import { PROFILE_COLUMNS, USERNAME_PATTERN, withRoles } from '../../lib/account';
 import { AUDIENCES, fetchMyPrivacy, fetchPlayed, playTime, timeAgo, usePlayingNow } from '../../lib/activity';
 import { blockPlayer, fetchIsBlocked, unblockPlayer } from '../../lib/blocks';
 import { askToConfirm } from '../../lib/confirm';
@@ -17,7 +17,11 @@ import {
   acceptFriendRequest, describeFriendError, fetchFriends, fetchFriendState, fetchMyRequests, removeFriend,
   sendFriendRequest,
 } from '../../lib/friends';
+import {
+  describeRoleError, developerInfo, gamesBy, isAdmin, isDeveloper, linkSite, setDeveloper,
+} from '../../lib/roles';
 import { showToast } from '../../lib/toast';
+import { useLoad } from '../../lib/useLoad';
 import ReportPlayer from '../../components/account/ReportPlayer/ReportPlayer';
 import Avatar from '../../components/common/Avatar/Avatar';
 import Badge from '../../components/common/Badge/Badge';
@@ -29,30 +33,6 @@ import Status from '../../components/common/Status/Status';
 import Tabs from '../../components/common/Tabs/Tabs';
 import RatingSlider from '../../components/layout/game/RatingSlider/RatingSlider';
 import styles from './Account.module.scss';
-
-/**
- * Runs something that loads, keeping { loaded, data, error } for it. `reload` runs it again.
- * @param {function|null} load - returns a Promise of the data (null: nothing to load)
- * @param {Array} deps - when to load again
- */
-const useLoad = (load, deps) => {
-  const [state, setState] = useState({ key: null, data: null, error: null });
-  const [attempt, setAttempt] = useState(0);
-  const key = `${deps.join(':')}:${attempt}`;
-  useEffect(() => {
-    if (!load) return undefined;
-    let active = true;
-    load().then(
-      (data) => active && setState({ key, data, error: null }),
-      (error) => active && setState({ key, data: null, error }),
-    );
-    return () => {
-      active = false;
-    };
-  }, [key]); // not on `load`, a new function each render: the key says when to load again
-  const loaded = state.key !== null && state.key.startsWith(`${deps.join(':')}:`);
-  return { loaded, data: loaded ? state.data : null, error: loaded ? state.error : null, reload: () => setAttempt((n) => n + 1) };
-};
 
 /** The games in a list of ids (newest first), as tiles linking to each game's page, each with an optional line under its title */
 const GameTiles = ({ entries, empty }) => {
@@ -197,20 +177,50 @@ const FriendButton = ({ player, friendship, blocked, onBlock, onUnblock, onChang
 
 /**
  * The ⋯ on another player's profile: block them (while you aren't friends: friends block them from the Friends button,
- * and Blocked's unblocks them), and report them to the developer. Signed out, each opens the sign-in window.
+ * and Blocked's unblocks them), and report them to GameHub's admins. Signed out, each opens the sign-in window. An admin
+ * also makes them a developer, or not.
  * @param {object} player - their profile
  * @param {boolean} canBlock - not blocked, and not friends
  * @param {function} onBlock - asks, then blocks them
+ * @param {function} onRolesChange - after an admin changed their roles (their profile loads again)
  */
-const PlayerActions = ({ player, canBlock, onBlock }) => {
-  const { user, openSignIn } = useAuth();
+const PlayerActions = ({ player, canBlock, onBlock, onRolesChange }) => {
+  const { user, profile: me, openSignIn } = useAuth();
   const [reporting, setReporting] = useState(false);
   const name = player.display_name ?? player.username;
   const signedIn = Boolean(user);
+  const developer = isDeveloper(player);
+
+  const toggleDeveloper = async () => {
+    const yes = await askToConfirm(developer ? {
+      title: `Take away ${name}'s developer role?`,
+      message: `Their profile stops showing their bio, links and games, and they're no longer listed with the developers. Their bio and links are kept, in case they're a developer again. Games that name ${name} still link to their profile.`,
+      confirmLabel: 'Take it away',
+      danger: true,
+    } : {
+      title: `Make ${name} a developer?`,
+      message: `Their profile gets a bio, links and the games they made (once a game names their account in the games table), and they're listed with the developers. They can take the role back only through an admin.`,
+      confirmLabel: 'Make developer',
+    });
+    if (!yes) return;
+    try {
+      await setDeveloper(player.id, !developer);
+      showToast(developer ? `${name} isn't a developer any more.` : `${name} is a developer now.`);
+      onRolesChange();
+    } catch (error) {
+      showToast(describeRoleError(error), { tone: 'error' });
+    }
+  };
 
   const items = [
     ...(canBlock ? [{ label: 'Block', icon: <PiProhibit aria-hidden="true" />, onSelect: signedIn ? onBlock : openSignIn, danger: true }] : []),
     { label: 'Report…', icon: <PiFlag aria-hidden="true" />, onSelect: signedIn ? () => setReporting(true) : openSignIn, danger: true },
+    ...(isAdmin(me) ? [{
+      label: developer ? 'Take away developer role' : 'Make developer',
+      icon: <PiCode aria-hidden="true" />,
+      onSelect: toggleDeveloper,
+      danger: developer,
+    }] : []),
   ];
 
   return (
@@ -222,7 +232,7 @@ const PlayerActions = ({ player, canBlock, onBlock }) => {
           onClose={() => setReporting(false)}
           onDone={() => {
             setReporting(false);
-            showToast(`Thanks. Your report on ${name} went to the developer.`);
+            showToast(`Thanks. Your report on ${name} went to GameHub's admins.`);
           }}
         />
       )}
@@ -543,6 +553,42 @@ const ProfileTabs = ({ player, isMe, blocked }) => {
   );
 };
 
+/** A developer's bio, links and games, between their name and the tabs */
+const DeveloperCard = ({ player, isMe }) => {
+  const info = developerInfo(player);
+  if (!info) return null;
+  const name = player.display_name ?? player.username;
+  const made = gamesBy(player.username);
+  return (
+    <section className={`${styles.card} ${styles.developerCard}`} aria-labelledby="developer-title">
+      <h2 id="developer-title" className={styles.cardTitle}>Developer</h2>
+      {info.bio && <p className={styles.bio}>{info.bio}</p>}
+      {isMe && !info.bio && info.links.length === 0 && (
+        <Message>Your bio and links go here: add them in <Link to="/settings#developer">Settings</Link>.</Message>
+      )}
+      {info.links.length > 0 && (
+        <ul className={styles.developerLinks} aria-label="Links">
+          {info.links.map((url) => {
+            const { label, Icon } = linkSite(url);
+            return (
+              <li key={url}>
+                <Button href={url} variant="outline" shape="rounded" font="secondary" size="sm" icon={Icon} rel="me noopener noreferrer">
+                  {label}
+                </Button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <h3 className={styles.subTitle}>Games</h3>
+      <GameTiles
+        entries={made.map((game) => ({ gameId: game.id, meta: game.released ? `Released ${game.released.slice(0, 4)}` : null }))}
+        empty={isMe ? 'Your games show here once they’re linked to your account.' : `No games by ${name} on GameHub yet.`}
+      />
+    </section>
+  );
+};
+
 /** "Playing Snake", under a player's name while they play (when they let the viewer see it) */
 const PlayingNowLine = ({ playerId }) => {
   const playing = usePlayingNow([playerId]).get(playerId);
@@ -554,7 +600,7 @@ const PlayingNowLine = ({ playerId }) => {
 };
 
 /** A profile once it's loaded: the header, and the tabs under it */
-const ProfileBody = ({ player, isMe }) => {
+const ProfileBody = ({ player, isMe, onRolesChange }) => {
   const { user } = useAuth();
   const { refreshRequests } = useLibrary();
   const me = user?.id ?? null;
@@ -606,6 +652,12 @@ const ProfileBody = ({ player, isMe }) => {
         <div className={styles.profileNames}>
           <PageTitle>{name}</PageTitle>
           <p className={styles.handle}>@{player.username}</p>
+          {(isDeveloper(player) || (isMe && isAdmin(player))) && (
+            <p className={styles.roles}>
+              {isDeveloper(player) && <Badge variant="soft" tone="accent" size="md" icon={PiCode}>Developer</Badge>}
+              {isMe && isAdmin(player) && <Badge variant="outline" tone="primary" size="md">Admin</Badge>}
+            </p>
+          )}
           <Message>Joined {monthYear(player.created_at)}</Message>
           <PlayingNowLine key={seen} playerId={player.id} />
         </div>
@@ -620,10 +672,17 @@ const ProfileBody = ({ player, isMe }) => {
               onUnblock={unblockThem}
               onChange={() => setSeen((n) => n + 1)}
             />
-            <PlayerActions player={player} canBlock={!blocked && friendship.data !== 'friends'} onBlock={blockThem} />
+            <PlayerActions
+              player={player}
+              canBlock={!blocked && friendship.data !== 'friends'}
+              onBlock={blockThem}
+              onRolesChange={onRolesChange}
+            />
           </div>
         )}
       </section>
+
+      <DeveloperCard player={player} isMe={isMe} />
 
       <ProfileTabs key={seen} player={player} isMe={isMe} blocked={blocked} />
     </>
@@ -645,7 +704,7 @@ const Profile = () => {
   useEffect(() => {
     if (!isAvailable || !valid || isOwn) return undefined;
     let active = true;
-    supabase.from('profiles').select(PROFILE_COLUMNS).eq('username', lookup).maybeSingle()
+    withRoles((roles) => supabase.from('profiles').select(`${PROFILE_COLUMNS}${roles}`).eq('username', lookup).maybeSingle())
       .then(({ data, error }) => {
         if (active) setResult({ lookup, data, error });
       });
@@ -688,7 +747,7 @@ const Profile = () => {
   const player = isMe ? me : result.data;
 
   // Keyed by player, so moving to another profile starts afresh
-  return page(<ProfileBody key={player.id} player={player} isMe={isMe} />);
+  return page(<ProfileBody key={player.id} player={player} isMe={isMe} onRolesChange={() => setAttempt((n) => n + 1)} />);
 };
 
 export default Profile;

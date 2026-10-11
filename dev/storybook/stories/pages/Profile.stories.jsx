@@ -5,6 +5,8 @@ import { AppRoutes } from '../../../../src/App';
  * Favorites, and on your own the private ones (a lock on the icon): Bookmarks, Ratings, and your friend requests
  * inside Friends. Someone else's has, at the top right, the friend button (Add friend, or a menu once there's something
  * between you: Friends, Request sent, Friend request, Blocked) and the ⋯ menu (block while you aren't friends, report).
+ * A developer's (Dany, Nora) has a Developer badge and card: their bio, links and the games they made. An admin (Dany)
+ * also has Make developer, or Take away developer role, in the ⋯.
  * The made-up players are in dev/storybook/mocks/data.js.
  */
 export default {
@@ -31,8 +33,29 @@ export const PrivateTabTip = {
   },
 };
 
-/** A friend, playing Tetris right now */
+/** A friend, playing Tetris right now. She's a developer too: one link, and no games here yet. */
 export const AFriend = { parameters: { route: '/u/cosmic_narwhal42' } };
+
+/** Dany's profile as a visitor sees it: the Developer card with the bio, links and games */
+export const ADeveloper = { parameters: { route: '/u/dany' }, globals: { account: 'guest' } };
+
+/** An admin's ⋯ on a player who isn't a developer: Make developer */
+export const AdminMenu = {
+  parameters: { route: '/u/turbo_taco19' },
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(await canvas.findByRole('button', { name: 'More for Taco Tim' }));
+    await canvas.findByRole('menuitem', { name: 'Make developer' });
+  },
+};
+
+/** Make developer asks first */
+export const MakeDeveloper = {
+  parameters: { route: '/u/turbo_taco19' },
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(await canvas.findByRole('button', { name: 'More for Taco Tim' }));
+    await userEvent.click(await canvas.findByRole('menuitem', { name: 'Make developer' }));
+  },
+};
 
 /** A friend's Friends menu: remove them, or block them */
 export const FriendMenu = {

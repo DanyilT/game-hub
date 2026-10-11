@@ -30,7 +30,8 @@
       "description": "Flap through the gaps between the pipes, as far as you can: the classic one-button game, in the original's style.",
       "developer": {
         "name": "Dany",
-        "url": "https://github.com/DanyilT"
+        "url": "https://github.com/DanyilT",
+        "username": "dany"
       },
       "released": "2026-10-11",
       "style": "The original's look, drawn in code: the little yellow bird, the green pipes, a city skyline with bushes, the striped ground and the blocky score, in crisp pixel art.",
@@ -104,7 +105,7 @@
           }
         ]
       },
-      "iconUrl": "https://flappy-bird.dt-games.pages.dev/img/icon.svg",
+      "iconUrl": "https://flappy-bird.dt-games.pages.dev/img/icon-no-bg.svg",
       "thumb": "https://flappy-bird.dt-games.pages.dev/img/desktop-screenshot.png",
       "dimensions": {
         "sizes": [
@@ -140,7 +141,8 @@
       "description": "Noughts and crosses against a minimax bot, drawn in pencil on notebook paper. Three levels; on Hard, a draw is the best you can do.",
       "developer": {
         "name": "Dany",
-        "url": "https://github.com/DanyilT"
+        "url": "https://github.com/DanyilT",
+        "username": "dany"
       },
       "released": "2026-10-11",
       "style": "Pencil on notebook paper: a ruled sheet with its margin line, and the grid, each X and O and the line through three in a row drawn by hand as you watch.",
@@ -234,7 +236,7 @@
           }
         ]
       },
-      "iconUrl": "https://tic-tac-toe.dt-games.pages.dev/img/icon.svg",
+      "iconUrl": "https://tic-tac-toe.dt-games.pages.dev/img/icon-no-bg.svg",
       "thumb": "https://tic-tac-toe.dt-games.pages.dev/img/desktop-screenshot.png",
       "dimensions": {
         "sizes": [
@@ -270,7 +272,8 @@
       "description": "Classic Snake game where you control a snake to eat food and grow longer. Avoid hitting the walls or yourself!",
       "developer": {
         "name": "Dany",
-        "url": "https://github.com/DanyilT"
+        "url": "https://github.com/DanyilT",
+        "username": "dany"
       },
       "released": "2025-04-24",
       "style": "Minimalistic design with a clean interface. Simple contrast colored b&w and sharp edged graphics. Old fashion retro style.",
@@ -390,7 +393,8 @@
       "description": "The classic block-stacking puzzle game. Rotate and move falling blocks to create complete lines.",
       "developer": {
         "name": "Dany",
-        "url": "https://github.com/DanyilT"
+        "url": "https://github.com/DanyilT",
+        "username": "dany"
       },
       "released": "2025-04-25",
       "style": "Vibrant retro-inspired design with animated, colorful borders that cycle through classic Tetris piece colors. Modern UI elements with a nostalgic feel.",
@@ -524,7 +528,8 @@
       "description": "Test your logic and luck in this classic minesweeper game. Clear the board without hitting any mines.",
       "developer": {
         "name": "Dany",
-        "url": "https://github.com/DanyilT"
+        "url": "https://github.com/DanyilT",
+        "username": "dany"
       },
       "released": "2025-05-01",
       "style": "Authentic Windows 95/98 aesthetic with the classic teal background and gray UI elements featuring 3D beveled effects. Includes the iconic blue title bar, digital-style counter displays, and traditional cell styling with classic number colors - a perfect recreation of the nostalgic Windows experience. Windows 9x style.",
@@ -685,7 +690,8 @@
       "description": "Challenge your mind with this classic Japanese number puzzle game. Fill the grid following Sudoku rules.",
       "developer": {
         "name": "Dany",
-        "url": "https://github.com/DanyilT"
+        "url": "https://github.com/DanyilT",
+        "username": "dany"
       },
       "released": "2025-05-05",
       "style": "Modern Neomorphic design featuring soft shadows and subtle gradients on a light background. Uses purple accent colors, elegant rounded corners, and sophisticated shadow effects to create a clean, tactile interface. Includes visual feedback for valid/invalid entries and smooth transitions for a premium puzzle experience. Neomorphic/Neumorphism style.",
@@ -851,7 +857,8 @@
       "description": "A free augmented-reality throwing game for Android. Place a bin in your room, flick the ball in and beat your best score.",
       "developer": {
         "name": "Dany",
-        "url": "https://github.com/DanyilT"
+        "url": "https://github.com/DanyilT",
+        "username": "dany"
       },
       "released": "2023-04-23",
       "genre": [
@@ -912,7 +919,8 @@
       "description": "A wall of classic Flash games, played in your browser with Ruffle. No plugins, no downloads.",
       "developer": {
         "name": "Dany",
-        "url": "https://github.com/DanyilT"
+        "url": "https://github.com/DanyilT",
+        "username": "dany"
       },
       "released": "2026-09-23",
       "genre": [

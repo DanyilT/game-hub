@@ -30,6 +30,26 @@ export const SaveDisplayName = {
   },
 };
 
+/** Developers (Dany) have Settings → Developer: a link that isn't an https address is pointed out before saving */
+export const DeveloperBadLink = {
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(await canvas.findByRole('button', { name: 'Add a link' }));
+    await userEvent.type(canvas.getByRole('textbox', { name: 'Link 4' }), 'github.com/dany');
+    await userEvent.click(canvas.getByRole('button', { name: 'Save' }));
+    await canvas.findByText(/Use a whole https address/);
+  },
+};
+
+/** Saving the bio and links: they're on the profile at once */
+export const DeveloperSave = {
+  play: async ({ canvas, userEvent }) => {
+    const bio = await canvas.findByLabelText('Bio');
+    await userEvent.type(bio, ' New games soon!');
+    await userEvent.click(canvas.getByRole('button', { name: 'Save' }));
+    await canvas.findByText(/It’s on your profile/);
+  },
+};
+
 /** Delete my play history: it asks first */
 export const DeletePlayHistory = {
   play: async ({ canvas, userEvent }) => {

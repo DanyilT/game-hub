@@ -1,8 +1,11 @@
 import { AppRoutes } from '../../../../src/App';
 
-/** Everyone with an account: /players, with a search and two orders */
+/**
+ * Users: everyone with an account (/players), or only the developers (/developers): the switch beside the title. Each
+ * has a search and two orders; developers among the players have a "dev" badge.
+ */
 export default {
-  title: 'Pages/Players',
+  title: 'Pages/Users',
   component: AppRoutes,
   render: () => <AppRoutes />,
   parameters: { route: '/players' },
@@ -25,6 +28,17 @@ export const Search = {
 export const NoMatch = {
   play: async ({ canvas, userEvent }) => {
     await userEvent.type(await canvas.findByRole('searchbox', { name: /Search players/ }), 'zzz');
+  },
+};
+
+/** The developers: how many games each has made here (or since when they're a developer) */
+export const Developers = { parameters: { route: '/developers' } };
+
+/** The switch, from the players to the developers */
+export const SwitchToDevelopers = {
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(await canvas.findByRole('radio', { name: 'Developers' }));
+    await canvas.findByText('2 developers');
   },
 };
 

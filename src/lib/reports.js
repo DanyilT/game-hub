@@ -1,7 +1,7 @@
 import { supabase } from './supabase';
 
-// Reporting a player to the developer (supabase/migrations/*_blocks_and_reports.sql), from the ⋯ on their profile.
-// Reports can't be read back: the developer reads them in Supabase's table editor, and for cheating, looks at the
+// Reporting a player to GameHub's admins (supabase/migrations/*_blocks_and_reports.sql), from the ⋯ on their profile.
+// Reports can't be read back by players: admins read them on /admin (lib/roles.js), and for cheating, look at the
 // player's checked games. At most one report a day about the same player, and 10 a day in all.
 
 export const REPORT_MAX = 2000; // characters, like the table's check

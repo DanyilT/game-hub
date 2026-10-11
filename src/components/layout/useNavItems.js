@@ -1,10 +1,11 @@
 import {
-  CiCircleInfo, CiCircleList, CiLogin, CiLogout, CiPizza, CiSaveDown2, CiSettings, CiUser,
+  CiCircleInfo, CiCircleList, CiLogin, CiLogout, CiPizza, CiSaveDown2, CiSettings, CiUser, CiViewBoard,
 } from 'react-icons/ci';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLibrary } from '../../contexts/LibraryContext';
 import { askToConfirm } from '../../lib/confirm';
 import { canInstall, install } from '../../lib/install';
+import { isAdmin } from '../../lib/roles';
 import { useInstall } from '../install/InstallApp';
 
 /**
@@ -14,6 +15,7 @@ import { useInstall } from '../install/InstallApp';
  * - `badge`: a count to show on it (friend requests waiting on Profile)
  * - `danger`: signing out
  * - `short`: a shorter label, for the floating button's small circles
+ * - `also`: other pages it's lit up on (Users: /developers too)
  * @param {function} [beforeAction] - runs before an action item's own onClick (e.g. closing a menu)
  * @return {{ main: object[], user: object[], footer: object[] }} - the groups, in order
  */
@@ -29,7 +31,7 @@ const useNavItems = (beforeAction = () => {}) => {
 
   const main = [
     { key: 'games', path: '/', label: 'Games', icon: CiPizza },
-    { key: 'players', path: '/players', label: 'Players', icon: CiCircleList, soon: !isAvailable },
+    { key: 'users', path: '/players', also: ['/developers'], label: 'Users', icon: CiCircleList, soon: !isAvailable },
   ];
 
   const userItems = [
@@ -39,6 +41,8 @@ const useNavItems = (beforeAction = () => {}) => {
     }] : []),
     // Also signed out: preferences like the navigation style are there
     { key: 'settings', path: '/settings', label: 'Settings', icon: CiSettings },
+    // Reports and developers, for admins only
+    ...(isAdmin(profile) ? [{ key: 'admin', path: '/admin', label: 'Admin', icon: CiViewBoard }] : []),
   ];
 
   const footer = [

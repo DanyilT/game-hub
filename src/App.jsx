@@ -8,6 +8,7 @@ import Privacy from './pages/Legal/Privacy';
 import ErrorPage from './pages/ErrorPage/ErrorPage';
 import AuthCallback from './pages/Account/AuthCallback';
 import Me from './pages/Account/Me';
+import Admin from './pages/Account/Admin';
 import Players from './pages/Account/Players';
 import Profile from './pages/Account/Profile';
 import Settings from './pages/Account/Settings';
@@ -35,12 +36,14 @@ export const AppRoutes = () => (
       <Route index element={<Games />} />
       <Route path="g/:gameId" element={<GamePage />} />
       <Route path="players" element={<Players />} />
+      <Route path="developers" element={<Players kind="developers" />} />
       <Route path="u/:username" element={<Profile />} />
       {/* Your own profile, without knowing your username. No player can be called "me":
           usernames have at least 3 characters. */}
       <Route path="me" element={<Me />} />
       <Route path="u/me" element={<Me />} />
       <Route path="settings" element={<Settings />} />
+      <Route path="admin" element={<Admin />} />
       <Route path="auth/callback" element={<AuthCallback />} />
       <Route path="about" element={<About />} />
       <Route path="terms" element={<Terms />} />

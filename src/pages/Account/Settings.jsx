@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
-import { CiImageOn, CiTrash } from 'react-icons/ci';
+import { CiCirclePlus, CiImageOn, CiTrash } from 'react-icons/ci';
 import { FaDiscord } from 'react-icons/fa6';
 import { FcGoogle } from 'react-icons/fc';
 import { useAuth } from '../../contexts/AuthContext';
@@ -16,10 +16,13 @@ import { fetchMyBlocks, unblockPlayer } from '../../lib/blocks';
 import { askToConfirm } from '../../lib/confirm';
 import { fullDate } from '../../lib/dates';
 import { setPreference, usePreferences } from '../../lib/preferences';
+import {
+  DEVELOPER_BIO_MAX, DEVELOPER_LINKS_MAX, describeRoleError, developerInfo, linkSite, saveDeveloperProfile,
+} from '../../lib/roles';
 import UsernameField, { useUsernameCheck } from '../../components/account/UsernameField/UsernameField';
 import Avatar from '../../components/common/Avatar/Avatar';
 import Button from '../../components/common/Button/Button';
-import { RadioGroup, Switch, TextField } from '../../components/common/Field/Field';
+import { RadioGroup, Switch, TextArea, TextField } from '../../components/common/Field/Field';
 import InfoTip from '../../components/common/InfoTip/InfoTip';
 import Message from '../../components/common/Message/Message';
 import PageTitle from '../../components/common/PageTitle/PageTitle';
@@ -40,10 +43,11 @@ const SOURCE_ICONS = { Google: FcGoogle, Discord: FaDiscord };
 
 /**
  * Runs a save, keeping track of its state for the message under the form.
+ * @param {function} [describe] - a sentence for an error
  * @return {[object, function]} - [{ busy, ok, error, what }, run(fn, okMessage, what)]; `what`
  *   tells apart saves that share one message (the picture and the display name)
  */
-const useSave = () => {
+const useSave = (describe = describeProfileError) => {
   const [state, setState] = useState({ busy: false, ok: null, error: null, what: null });
   const run = async (fn, okMessage, what = null) => {
     setState({ busy: true, ok: null, error: null, what });
@@ -52,7 +56,7 @@ const useSave = () => {
       setState({ busy: false, ok: okMessage, error: null, what });
       return true;
     } catch (err) {
-      setState({ busy: false, ok: null, error: describeProfileError(err), what });
+      setState({ busy: false, ok: null, error: describe(err), what });
       return false;
     }
   };
@@ -191,6 +195,116 @@ const UsernameSection = ({ profile }) => {
             </Button>
           </div>
         )}
+        <SaveStatus state={save} />
+      </form>
+    </section>
+  );
+};
+
+// A developer's link as typed: an https address with a dot in its site's name (the database checks it again)
+const isLink = (text) => /^https:\/\/[^\s/?#]+\.[^\s/?#]+\S*$/.test(text) && text.length <= 200;
+
+/** Developers: the bio and links on their profile (anyone can see them) */
+const DeveloperSection = ({ profile }) => {
+  const { reloadProfile } = useAuth();
+  const info = developerInfo(profile);
+  // Drafts are null until edited, so the fields show what's saved otherwise
+  const [bioDraft, setBioDraft] = useState(null);
+  const [linksDraft, setLinksDraft] = useState(null);
+  const [badLink, setBadLink] = useState(null); // the field to fix before saving
+  const [save, runSave] = useSave(describeRoleError);
+
+  const bio = bioDraft ?? info.bio;
+  const links = linksDraft ?? (info.links.length > 0 ? info.links : ['']); // always a field to type in
+  const kept = links.map((link) => link.trim()).filter(Boolean);
+  const dirty = bio.trim() !== info.bio || JSON.stringify(kept) !== JSON.stringify(info.links);
+
+  const changeLinks = (next) => {
+    setLinksDraft(next.length > 0 ? next : ['']);
+    setBadLink(null);
+  };
+
+  const submit = async (e) => {
+    e.preventDefault();
+    const bad = links.findIndex((link) => link.trim() && !isLink(link.trim()));
+    if (bad >= 0) {
+      setBadLink(bad);
+      document.getElementById(`settings-developer-link-${bad}`)?.focus();
+      return;
+    }
+    const saved = await runSave(async () => {
+      await saveDeveloperProfile({ bio: bio.trim(), links: kept });
+      await reloadProfile();
+    }, 'Saved. It’s on your profile.');
+    if (saved) {
+      setBioDraft(null);
+      setLinksDraft(null);
+    }
+  };
+
+  return (
+    <section id="developer" className={styles.card} aria-labelledby="settings-developer">
+      <h2 id="settings-developer" className={styles.cardTitle}>Developer</h2>
+      <Message>
+        Your profile shows these to everyone, with the games you made on GameHub.
+      </Message>
+      {/* noValidate: a link that isn't an https address gets the message below, not the browser's own */}
+      <form className={styles.form} onSubmit={submit} noValidate>
+        <TextArea
+          id="settings-developer-bio"
+          label="Bio"
+          value={bio}
+          onChange={(e) => setBioDraft(e.target.value)}
+          maxLength={DEVELOPER_BIO_MAX}
+          rows={4}
+          placeholder="Who you are, and what you make"
+          hint={`${bio.trim().length} / ${DEVELOPER_BIO_MAX}`}
+        />
+        <fieldset className={styles.linkFields}>
+          <legend className={styles.fieldsetTitle}>Links</legend>
+          {links.map((link, i) => {
+            const { Icon } = linkSite(link.trim());
+            return (
+              <TextField
+                // eslint-disable-next-line react/no-array-index-key -- the fields are the list's places, not its items
+                key={i}
+                id={`settings-developer-link-${i}`}
+                label={`Link ${i + 1}`}
+                hideLabel
+                type="url"
+                inputMode="url"
+                size="md"
+                prefix={<Icon />}
+                value={link}
+                onChange={(e) => changeLinks(links.map((other, j) => (j === i ? e.target.value : other)))}
+                placeholder="https://github.com/you"
+                autoComplete="url"
+                spellCheck={false}
+                error={badLink === i ? 'Use a whole https address, like https://github.com/you' : undefined}
+                after={(links.length > 1 || link) && (
+                  <Button
+                    variant="outline"
+                    size="md"
+                    icon={CiTrash}
+                    label={`Remove link ${i + 1}`}
+                    onClick={() => changeLinks(links.filter((_, j) => j !== i))}
+                  />
+                )}
+              />
+            );
+          })}
+          {links.length < DEVELOPER_LINKS_MAX && (
+            <div className={styles.actions}>
+              <Button variant="dashed" size="sm" shape="rounded" font="secondary" icon={CiCirclePlus} onClick={() => changeLinks([...links, ''])}>
+                Add a link
+              </Button>
+            </div>
+          )}
+          <Message>GitHub, itch.io, YouTube, a site of your own… Up to {DEVELOPER_LINKS_MAX}.</Message>
+        </fieldset>
+        <div className={styles.actions}>
+          <Button type="submit" disabled={!dirty || save.busy}>{save.busy ? 'Saving…' : 'Save'}</Button>
+        </div>
         <SaveStatus state={save} />
       </form>
     </section>
@@ -584,6 +698,7 @@ const Settings = () => {
     <>
       <ProfileSection profile={profile} user={user} />
       <UsernameSection profile={profile} />
+      {developerInfo(profile) && <DeveloperSection profile={profile} />}
       <PrivacySection />
       <PreferencesSection />
       <AccountSection user={user} onSignOutProblem={setSignOutProblem} />

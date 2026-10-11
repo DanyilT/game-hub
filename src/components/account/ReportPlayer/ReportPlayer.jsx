@@ -13,7 +13,7 @@ const GAME_CHOICES = games.filter(getEmbedUrl).sort((a, b) => a.title.localeComp
 
 /**
  * "Report player", from the ⋯ on their profile: why (cheating, or something else), the game, and what happened. It
- * goes to the developer only.
+ * goes to GameHub's admins only.
  * @param {object} player - their profile
  * @param {function} onDone - sent
  * @param {function} onClose
@@ -70,7 +70,7 @@ const ReportPlayer = ({ player, onDone, onClose }) => {
         )}
 
         <Message>
-          Only the developer reads reports, and {name} isn&rsquo;t told who sent one. Each one is looked into (see
+          Only GameHub&rsquo;s admins read reports, and {name} isn&rsquo;t told who sent one. Each one is looked into (see
           the <Link to="/terms" onClick={onClose}>Terms</Link> on fair play).
         </Message>
         {state.error && <Message tone="error">{state.error}</Message>}

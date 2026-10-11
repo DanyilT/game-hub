@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { NavLink } from 'react-router';
+import { NavLink, useLocation } from 'react-router';
 import { CiCircleChevLeft, CiCircleChevRight, CiCircleRemove } from 'react-icons/ci';
 import { useAuth } from '../../../contexts/AuthContext';
 import Avatar from '../../common/Avatar/Avatar';
@@ -20,6 +20,7 @@ import styles from './Sidebar.module.scss';
  */
 const Sidebar = ({ isExpanded = false, onToggleExpanded = () => {}, isOpen = false, onClose = () => {} }) => {
   const { user, profile } = useAuth();
+  const { pathname } = useLocation();
   // Actions (sign in, install) close the phone drawer first
   const nav = useNavItems(onClose);
   const closeButtonRef = useRef(null);
@@ -34,7 +35,7 @@ const Sidebar = ({ isExpanded = false, onToggleExpanded = () => {}, isOpen = fal
    * @param {object} item - from useNavItems
    * @return {JSX.Element} - the list item
    */
-  const renderNavItem = ({ key, path, label, icon: Icon, soon, onClick, badge, danger }) => {
+  const renderNavItem = ({ key, path, also, label, icon: Icon, soon, onClick, badge, danger }) => {
     const content = (
       <>
         <span className={styles.iconWrap}>
@@ -71,7 +72,7 @@ const Sidebar = ({ isExpanded = false, onToggleExpanded = () => {}, isOpen = fal
             to={path}
             end // lit up only on that page itself: not on a game's page for Games
             title={label}
-            className={({ isActive }) => `${styles.navLink} ${isActive ? styles.active : ''}`}
+            className={({ isActive }) => `${styles.navLink} ${isActive || also?.includes(pathname) ? styles.active : ''}`}
           >
             {content}
           </NavLink>
