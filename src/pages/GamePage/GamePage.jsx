@@ -171,9 +171,14 @@ const pauseGame = (frame) => {
 
 // The frame's "Loading…" cover lifts when the game says it's playable (gamehub:playable). A game that doesn't say so
 // (its hello has no `playable`) is uncovered at the frame's load; one that hasn't said hello by HELLO_WAIT after the
-// load never will (no gamehub.js); and none stays covered longer than COVER_MAX after the load.
+// load never will (no gamehub.js); and none stays covered longer than COVER_MAX after the load. Offline the game has
+// no bridge (GameHub's script isn't in its downloaded copy), so nothing says hello: the cover waits for the game itself
+// to say it's playable, since a frame also "loads" the browser's own no-internet page. A game still covered SLOW_FRAME
+// after its frame started (it never loaded: a network that's down without saying so, a copy that's gone) gets a note
+// on the cover, with Reload and Show it anyway, in place of the spinner.
 const HELLO_WAIT = 1500; // ms
 const COVER_MAX = 6000; // ms
+const SLOW_FRAME = 8000; // ms
 
 /**
  * The game's size for a frame `width` pixels wide, from its `dimensions.sizes` (narrowest first): the widest
@@ -382,7 +387,9 @@ const GamePageContent = ({ gameId }) => {
   const [loadedFrame, setLoadedFrame] = useState(null);
   const [playableFrame, setPlayableFrame] = useState(null);
   const [uncoveredFrame, setUncoveredFrame] = useState(null);
+  const [slowFrame, setSlowFrame] = useState(null);
   const frameCovered = Boolean(frameId) && playableFrame !== frameId && uncoveredFrame !== frameId;
+  const frameSlow = frameCovered && slowFrame === frameId;
   useEffect(() => {
     if (!frameId || loadedFrame !== frameId) return undefined;
     const uncover = () => setUncoveredFrame(frameId);
@@ -390,9 +397,19 @@ const GamePageContent = ({ gameId }) => {
       uncover(); // it doesn't say when it's playable: loaded will do
       return undefined;
     }
+    if (!online && !bridge.connected) return undefined; // offline: only the game itself says it's playable
     const timer = setTimeout(uncover, bridge.connected ? COVER_MAX : HELLO_WAIT);
     return () => clearTimeout(timer);
-  }, [frameId, loadedFrame, bridge.connected, bridge.playable]);
+  }, [frameId, loadedFrame, bridge.connected, bridge.playable, online]);
+  useEffect(() => {
+    if (!frameId) return undefined;
+    const timer = setTimeout(() => setSlowFrame(frameId), SLOW_FRAME);
+    return () => clearTimeout(timer);
+  }, [frameId]);
+  const reloadFrame = () => {
+    pauseGame(iframeRef.current); // it saves before the frame starts again
+    bridge.reloadGame();
+  };
 
   // The player's runs of the game, to watch again: the ones kept in this browser (src/lib/runs.js), and
   // a signed-in player's kept on GameHub's server, from any browser; and their records: their best
@@ -889,8 +906,23 @@ const GamePageContent = ({ gameId }) => {
               {/* Over the frame until the game is on screen and ready (it says so: gamehub:playable) */}
               {frameId && !blockedOffline && (
                 <div className={`${styles.frameCover} ${frameCovered ? '' : styles.uncovered}`} aria-hidden={!frameCovered}>
-                  {game.iconUrl && <img src={game.iconUrl} alt="" className={styles.coverIcon} />}
-                  <Status kind="loading">Loading {game.title}…</Status>
+                  {game.iconUrl && <img src={game.iconUrl} alt="" className={`${styles.coverIcon} ${frameSlow ? styles.still : ''}`} />}
+                  {frameSlow ? (
+                    <div className={styles.coverSlow} role="status">
+                      <p>{online ? `${game.title} is taking a while to load.` : `${game.title} isn’t loading offline.`}</p>
+                      <Message>
+                        {online
+                          ? 'The connection may be slow, or the game’s site down.'
+                          : 'Its downloaded copy may be gone (a browser can clear it to free space), or it’s waiting for a network that’s down. Download it again next time you’re online.'}
+                      </Message>
+                      <div className={styles.coverActions}>
+                        <Button variant="outline" font="secondary" shape="rounded" size="sm" onClick={reloadFrame}>Reload</Button>
+                        <Button variant="ghost" font="secondary" shape="rounded" size="sm" onClick={() => setUncoveredFrame(frameId)}>
+                          Show it anyway
+                        </Button>
+                      </div>
+                    </div>
+                  ) : <Status kind="loading">Loading {game.title}…</Status>}
                 </div>
               )}
 
@@ -1008,18 +1040,17 @@ const GamePageContent = ({ gameId }) => {
                 title={game.title}
               />
             )}
+            {/* The game's worker downloaded a new version while the older one plays here */}
+            {bridge.offline.update === 'updated' && !offerReload && (
+              <Message>
+                A new version of {game.title} is downloaded.{' '}
+                <Button variant="text" onClick={reloadFrame}>Reload the game</Button> to play it.
+              </Message>
+            )}
             {offerReload && (
               <Message>
                 You&rsquo;re back online. Reload the game to send the progress you made offline to your account.{' '}
-                <Button
-                  variant="text"
-                  onClick={() => {
-                    pauseGame(iframeRef.current); // it saves before the frame starts again
-                    bridge.reloadGame();
-                  }}
-                >
-                  Reload the game
-                </Button>
+                <Button variant="text" onClick={reloadFrame}>Reload the game</Button>
               </Message>
             )}
             {showControlsExpanded && controls}

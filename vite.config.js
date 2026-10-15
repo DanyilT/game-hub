@@ -259,6 +259,11 @@ function securityHeaders() {
         '/assets/*',
         '  Cache-Control: public, max-age=31536000, immutable',
         '',
+        // A downloaded game's worker keeps this script with the game (public/hub-bridge.js), fetching it with CORS
+        // (an opaque copy would count as megabytes against the game's storage)
+        '/hub-bridge.js',
+        '  Access-Control-Allow-Origin: *',
+        '',
         // "! " drops the pages' policy for this file, so only its own applies
         '/sw.js',
         '  ! Content-Security-Policy',

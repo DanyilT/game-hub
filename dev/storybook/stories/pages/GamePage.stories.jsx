@@ -39,7 +39,7 @@ export default {
     numbers: { description: 'It sends its numbers for the panel (GameHub.status)' },
     ongoing: { description: 'A game is under way (watching a replay asks first)' },
     save: { control: 'inline-radio', options: ['saved', 'saving', 'failed', 'none'], description: "Signed in: the account's save" },
-    download: { control: 'select', options: ['unknown', 'unsupported', 'available', 'downloaded'], description: 'What the game says about downloading it' },
+    download: { control: 'select', options: ['unknown', 'unsupported', 'available', 'downloaded', 'updated'], description: 'What the game says about downloading it' },
     downloaded: { description: 'The hub remembers it as downloaded (offline, it plays)' },
     runs: { description: 'The player has replays of it' },
     replay: { control: 'inline-radio', options: ['playing', 'paused', 'ended', 'error'], description: "A replay's state, once one is watched" },
@@ -83,8 +83,28 @@ export const Offline = { globals: { network: 'offline' }, args: { downloaded: tr
 /** Offline, out of tickets: the games played now stay on the device */
 export const OfflineOutOfTickets = { globals: { network: 'offline' }, args: { downloaded: true, download: 'downloaded', ticketsLeft: 0 } };
 
+/** Downloaded, and the game's worker has just got a new version: a reload plays it */
+export const NewVersionDownloaded = {
+  args: { downloaded: true, download: 'updated' },
+  play: async ({ canvas }) => {
+    await canvas.findByText(/A new version of Snake Game is downloaded/);
+  },
+};
+
 /** Offline, and the game isn't downloaded: it can't play */
 export const OfflineNotDownloaded = { globals: { network: 'offline' } };
+
+/**
+ * Downloaded, but it doesn't load offline (its copy is gone, or the network is down without saying so): after 8 s the
+ * cover says so, with Reload and Show it anyway, in place of the spinner
+ */
+export const OfflineNotLoading = {
+  globals: { network: 'offline' },
+  args: { downloaded: true, download: 'downloaded', connected: false },
+  play: async ({ canvas }) => {
+    await canvas.findByText(/isn’t loading offline/, {}, { timeout: 10000 });
+  },
+};
 
 /** Watching a replay: the bar with pause, speeds and progress (opened with the newest run's play button) */
 export const WatchingAReplay = {

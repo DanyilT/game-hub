@@ -13,9 +13,10 @@ import styles from './DownloadGame.module.scss';
  * downloaded shows that straight away (offline, the game can't reach the hub to say so).
  * Downloaded, it's also how to remove the download: pointing at it (or tabbing to it) turns
  * "Downloaded" into "Remove", and that asks first. Not while the pointer is still on it from
- * downloading, though. On phones and tablets it's only the icon.
+ * downloading, though. On phones and tablets it's only the icon. While the game's worker gets a new version of a
+ * downloaded game (games with offline.json: hub-bridge.js), it says Updating…, and can't be removed meanwhile.
  * @param {object} game - the catalogue entry
- * @param {object} offline - { supported, downloaded, busy, error } from useGameBridge
+ * @param {object} offline - { supported, downloaded, busy, error, version, update } from useGameBridge
  * @param {boolean} recorded - whether the hub remembers it as downloaded (src/lib/offline.js), shown
  *   until the game's page answers, or when it can't (offline, it can't reach the hub)
  * @param {function} onSetDownload - downloads (true) or removes the download (false)
@@ -43,7 +44,9 @@ const DownloadGame = ({ game, offline, recorded, onSetDownload }) => {
   const { busy } = offline;
   const ready = offline.supported === true;
   const downloaded = ready ? offline.downloaded : recorded;
-  const removable = ready && downloaded && !busy;
+  const updating = ready && downloaded && offline.update === 'updating';
+  const removable = ready && downloaded && !busy && !updating;
+  const version = offline.version ? ` (version ${offline.version.slice(0, 8)})` : '';
 
   let Icon = PiDownloadSimple;
   let label = 'Download';
@@ -52,14 +55,21 @@ const DownloadGame = ({ game, offline, recorded, onSetDownload }) => {
     Icon = PiCloudArrowDown;
     label = actionRef.current === 'remove' ? 'Removing…' : 'Downloading…';
     title = null;
+  } else if (updating) {
+    Icon = PiCloudArrowDown;
+    label = 'Updating…';
+    title = `Getting the new version of ${game.title}: the one downloaded plays offline meanwhile`;
   } else if (downloaded) {
     Icon = PiCloudCheck;
     label = 'Downloaded';
-    title = ready ? 'Downloaded: it plays offline in GameHub. Click to remove the download.' : 'Downloaded: it plays offline in GameHub';
+    const current = offline.update === 'current' ? ' and up to date' : '';
+    title = ready
+      ? `Downloaded${current}${version}: it plays offline in GameHub. Click to remove the download.`
+      : 'Downloaded: it plays offline in GameHub';
   }
 
   const toggle = async () => {
-    if (busy) return;
+    if (busy || updating) return;
     if (downloaded) {
       const yes = await askToConfirm({
         title: 'Remove download?',
@@ -76,7 +86,7 @@ const DownloadGame = ({ game, offline, recorded, onSetDownload }) => {
   const classes = [
     styles.download,
     removable && !justDownloaded && styles.removable,
-    busy && styles.busy,
+    (busy || updating) && styles.busy,
   ].filter(Boolean).join(' ');
 
   return (

@@ -16,6 +16,8 @@ const OFFLINE = {
   unsupported: { supported: false, downloaded: false, busy: false, error: null },
   available: { supported: true, downloaded: false, busy: false, error: null },
   downloaded: { supported: true, downloaded: true, busy: false, error: null },
+  // A game with offline.json whose worker got a new version while the older one plays in the frame
+  updated: { supported: true, downloaded: true, busy: false, error: null, version: '3f9a1c27e8b04d55', update: 'updated' },
 };
 
 /** What useGameBridge returns, from the scenario (the arguments it needs are the game's id and the replay) */

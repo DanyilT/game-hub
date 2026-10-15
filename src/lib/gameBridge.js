@@ -177,7 +177,9 @@ class SaveQueue {
 }
 
 // What the game's page says about downloading it: supported is null until it has answered
-const OFFLINE_UNKNOWN = { supported: null, downloaded: false, busy: false, error: null };
+const OFFLINE_UNKNOWN = { supported: null, downloaded: false, busy: false, error: null, version: null, update: null };
+// How the game's worker's check of its copy is going (hub-bridge.js): 'updated' is a newer copy than the page in the frame
+const UPDATE_STATES = ['checking', 'current', 'updating', 'updated', 'failed', 'offline'];
 
 const REPLAY_STATES = ['playing', 'paused', 'ended', 'error'];
 const isTime = (value) => Number.isFinite(value) && value >= 0;
@@ -197,7 +199,7 @@ const isTime = (value) => Number.isFinite(value) && value >= 0;
  *   replayState: object|null, controlReplay: function }} - frameKey changes when
  *   the game has to start again (a key for its <iframe>); gameVersion is its gamehub.js version (1 to
  *   3, once connected); playable, whether it says when it's on screen and ready (gamehub:playable, read by
- *   GamePage.jsx); offline is { supported, downloaded, busy, error } (see OFFLINE_UNKNOWN);
+ *   GamePage.jsx); offline is { supported, downloaded, busy, error, version, update } (see OFFLINE_UNKNOWN);
  *   activity.current is when the player last pressed a key or tapped in the game (Date.now(), 0
  *   before they have); gameStatus is what the game says its panel shows (src/lib/gameStatus.js);
  *   replayState is { state, position, length } of a replay under way
@@ -328,10 +330,19 @@ export const useGameBridge = ({ frameRef, gameId, origin, session, replay = null
           setReplayState({ state: message.state, position: Math.min(message.position, message.length), length: message.length });
           return;
         case 'gamehub:offline-state': {
-          clearTimeout(downloadTimerRef.current);
           const supported = message.supported === true;
           const downloaded = supported && message.downloaded === true;
-          setOffline({ supported, downloaded, busy: false, error: typeof message.error === 'string' ? message.error : null });
+          const copy = {
+            version: downloaded && typeof message.version === 'string' ? message.version : null,
+            update: downloaded && UPDATE_STATES.includes(message.update) ? message.update : null,
+          };
+          if (message.worker === true) {
+            // The game's worker checking its copy, as it goes: not the answer to anything asked
+            setOffline((previous) => ({ ...previous, supported, downloaded, ...copy }));
+          } else {
+            clearTimeout(downloadTimerRef.current);
+            setOffline({ supported, downloaded, busy: false, error: typeof message.error === 'string' ? message.error : null, ...copy });
+          }
           setDownloaded(gameId, downloaded); // for the games list
           return;
         }

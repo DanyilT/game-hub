@@ -20,8 +20,11 @@
  *   game → hub: { type: 'gamehub:reset-done', ok }
  * - hub → game: { type: 'gamehub:offline', action: 'status' | 'download' | 'remove' } (Download on the
  *   game's page in GameHub)
- *   game → hub: { type: 'gamehub:offline-state', supported, downloaded, error } (error: 'unavailable'
- *   when the game can't be downloaded yet, 'failed' when it didn't work)
+ *   game → hub: { type: 'gamehub:offline-state', supported, downloaded, version, update, error } (error: 'unavailable'
+ *   when the game can't be downloaded yet, 'failed' when it didn't work; for a game with offline.json, version is its
+ *   copy's and update how the worker's check of it is going: 'checking', 'current', 'updating', 'updated' (a newer copy
+ *   is ready: the page in the frame is the one before), 'failed' or 'offline'. It's also sent as the worker's check
+ *   goes, unasked, with worker: true)
  * - game → hub: { type: 'gamehub:active' } when the player presses a key or taps in the game (at most
  *   every 10 seconds): GameHub counts play time only while they do (src/lib/playTime.js). Not in a
  *   replay: watching isn't playing.
@@ -64,8 +67,21 @@
  * the save alone, as before.
  *
  * Downloading: the game's own service worker (sw.js, next to its index.html: the same file in every
- * game) answers with the copy this script keeps in the game's storage when there's no network. Only
- * games with gamehub.js version 2 have it.
+ * game) keeps a copy of the game in the game's storage. Only games with gamehub.js version 2 have it.
+ * - A game whose deploy writes offline.json (every file it needs, each with its SHA-256, and a version) has a worker
+ *   that keeps the copy itself. This script registers it and asks it to download the game ({ type:
+ *   'gamehub-offline:download', bridge, extras }: this script's address and the fonts the page has loaded, answered on
+ *   a MessageChannel with { ok, version, error }). From then on the worker answers the game from its copy at once (no
+ *   waiting on a slow network), and each time the game opens it checks the copy against offline.json in the
+ *   background: a new version, or a file that's changed or broken, is downloaded again (each file's hash checked),
+ *   and the copy switches only once it's whole. It keeps this script too (the network's when it answers within a couple
+ *   of seconds, else its copy), so offline the game still connects to GameHub: tickets, runs and saves work. It says
+ *   how its checks go ({ type: 'gamehub-offline:state', state, version, downloaded }, to the game's pages), and answers
+ *   { type: 'gamehub-offline:status' } with { downloaded, version, state }. Its copy is there when its record is: the
+ *   entry meta (beside sw.js) in the cache gamehub-offline-meta. The cache alone, empty, isn't a copy.
+ * - Older games: this script copies what the page has loaded into the cache gamehub-offline, and their worker answers
+ *   from it when there's no network.
+ * Removing the download deletes every copy (gamehub-offline*) and the worker.
  *
  * Whose copy: gamehub.js keeps one save in this browser (<id>GameData, and <id>GameSync), whoever is
  * playing. So that one player's progress never shows for another, nor goes up to their account, this
@@ -208,24 +224,89 @@
     }
   }
 
-  // Downloading the game: its files go into OFFLINE_CACHE, and its sw.js answers from there offline
+  // Downloading the game (see "Downloading" at the top of this file)
   const offlineSupported = gameVersion >= 2 && 'serviceWorker' in navigator && 'caches' in window;
+  const OFFLINE_META = `${OFFLINE_CACHE}-meta`; // the worker's record of its copy (games with offline.json)
+  const META_ENTRY = new URL('meta', location.href).href; // the record itself: the worker's put('meta'), from sw.js beside the page
+  const WORKER_WAIT = 60000; // ms: the game's worker has this long to download the game
+  const STATUS_WAIT = 2000; // ms: and this long to say how its copy is
+  const UPDATE_STATES = ['checking', 'current', 'updating', 'updated', 'failed', 'offline'];
+  const isOfflineCache = (name) => name === OFFLINE_CACHE || name.startsWith(`${OFFLINE_CACHE}-`);
 
+  // The game's worker, once it's running (a new one installing or waiting goes first)
+  function activeWorker(registration) {
+    const worker = registration.installing ?? registration.waiting ?? registration.active;
+    if (!worker) return Promise.reject(new Error('The game has no worker'));
+    if (worker.state === 'activated') return Promise.resolve(worker);
+    return new Promise((resolve, reject) => {
+      worker.addEventListener('statechange', () => {
+        if (worker.state === 'activated') resolve(worker);
+        else if (worker.state === 'redundant') reject(new Error("The game's worker didn't start"));
+      });
+    });
+  }
+
+  // A question for the game's worker: its answer, or null when it doesn't answer in time
+  function askWorker(worker, message, wait) {
+    return new Promise((resolve) => {
+      const channel = new MessageChannel();
+      const timer = setTimeout(() => resolve(null), wait);
+      channel.port1.onmessage = (event) => {
+        clearTimeout(timer);
+        resolve(event.data);
+      };
+      worker.postMessage(message, [channel.port2]);
+    });
+  }
+
+  // Whether the game's deploy writes offline.json: then its worker keeps the copy
+  async function hasManifest() {
+    try {
+      const response = await fetch(new URL('offline.json', location.href), { cache: 'no-store' });
+      const manifest = response.ok ? await response.json() : null;
+      return typeof manifest?.version === 'string' && typeof manifest.files === 'object' && manifest.files !== null;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  // Whether the worker keeps a copy: its record, read without caches.open() (which would make an empty OFFLINE_META)
+  const hasRecord = async () => Boolean(await caches.match(META_ENTRY, { cacheName: OFFLINE_META }));
+
+  // { supported, downloaded, version, update }: for a copy the worker keeps, its version and how the worker's last check
+  // of it went (UPDATE_STATES)
   async function offlineState() {
     if (!offlineSupported) return { supported: false, downloaded: false };
-    const [registration, saved] = await Promise.all([navigator.serviceWorker.getRegistration(), caches.has(OFFLINE_CACHE)]);
-    return { supported: true, downloaded: Boolean(registration) && saved };
+    const [registration, names, managed] = await Promise.all([navigator.serviceWorker.getRegistration(), caches.keys(), hasRecord()]);
+    const downloaded = Boolean(registration) && (managed || names.includes(OFFLINE_CACHE));
+    if (!downloaded || !managed || !registration.active) return { supported: true, downloaded, version: null, update: null };
+    const answer = await askWorker(registration.active, { type: 'gamehub-offline:status' }, STATUS_WAIT);
+    const update = UPDATE_STATES.includes(answer?.state) ? answer.state : null;
+    return { supported: true, downloaded, version: typeof answer?.version === 'string' ? answer.version : null, update };
   }
 
   async function download() {
     const worker = new URL('sw.js', location.href);
     const check = await fetch(worker, { method: 'HEAD', cache: 'no-store' });
     if (!check.ok) throw Object.assign(new Error('This game has no sw.js'), { code: 'unavailable' });
+    const loaded = performance.getEntriesByType('resource').map(({ name }) => new URL(name));
 
-    // Everything the page has loaded: it's all loaded by now, since the player is playing
+    // offline.json: the worker downloads the files it lists (checking each one's hash), this script, and the fonts the
+    // page has loaded (offline.json lists only the game's own files)
+    if (await hasManifest()) {
+      const registration = await navigator.serviceWorker.register(worker);
+      const active = await activeWorker(registration);
+      const extras = [...new Set(loaded.filter((url) => FONT_HOSTS.includes(url.hostname)).map((url) => url.href))];
+      const answer = await askWorker(active, { type: 'gamehub-offline:download', bridge: script.src, extras }, WORKER_WAIT);
+      if (!answer?.ok) {
+        throw Object.assign(new Error("The game's worker couldn't download it"), { code: answer?.error === 'unavailable' ? 'unavailable' : 'failed' });
+      }
+      return;
+    }
+
+    // Older games: everything the page has loaded (it's all loaded by now, since the player is playing)
     const files = new Set([location.href.split('#')[0]]);
-    for (const { name } of performance.getEntriesByType('resource')) {
-      const url = new URL(name);
+    for (const url of loaded) {
       if (url.origin === location.origin || FONT_HOSTS.includes(url.hostname)) files.add(url.href.split('#')[0]);
     }
     const cache = await caches.open(OFFLINE_CACHE);
@@ -237,9 +318,15 @@
     await navigator.serviceWorker.register(worker);
   }
 
+  // A download that didn't finish leaves nothing behind: no half copy, no empty record, and no worker without a copy (a
+  // copy the worker kept from before stays)
+  async function forgetHalfDownload() {
+    if (!(await hasRecord())) await removeDownload();
+  }
+
   async function removeDownload() {
-    const registration = await navigator.serviceWorker.getRegistration();
-    await Promise.all([registration?.unregister(), caches.delete(OFFLINE_CACHE)]);
+    const [registration, names] = await Promise.all([navigator.serviceWorker.getRegistration(), caches.keys()]);
+    await Promise.all([registration?.unregister(), ...names.filter(isOfflineCache).map((name) => caches.delete(name))]);
   }
 
   async function offline(action) {
@@ -249,9 +336,27 @@
       if (action === 'remove') await removeDownload();
       return { ...(await offlineState()), error: null };
     } catch (error) {
-      if (action === 'download') await caches.delete(OFFLINE_CACHE).catch(() => {}); // no half copies
+      if (action === 'download') await forgetHalfDownload().catch(() => {});
       return { ...(await offlineState().catch(() => ({ supported: true, downloaded: false }))), error: error.code ?? 'failed' };
     }
+  }
+
+  // How the worker's checks of its copy go, as they go: GameHub's Download button shows it
+  if (offlineSupported) {
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      const data = event.data;
+      if (data?.type !== 'gamehub-offline:state' || !UPDATE_STATES.includes(data.state)) return;
+      send({
+        type: 'gamehub:offline-state',
+        worker: true, // unasked: GameHub merges it in
+        supported: true,
+        downloaded: data.downloaded !== false,
+        version: typeof data.version === 'string' ? data.version : null,
+        update: data.state,
+        error: null,
+      });
+    });
+    navigator.serviceWorker.startMessages();
   }
 
   window.addEventListener('message', (event) => {

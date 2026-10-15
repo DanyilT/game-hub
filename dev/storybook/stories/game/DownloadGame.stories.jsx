@@ -8,6 +8,9 @@ const STATES = {
   available: { supported: true, downloaded: false, busy: false, error: null },
   busy: { supported: true, downloaded: false, busy: true, error: null },
   downloaded: { supported: true, downloaded: true, busy: false, error: null },
+  // A game with offline.json: its worker checks the copy each time it opens
+  upToDate: { supported: true, downloaded: true, busy: false, error: null, version: '3f9a1c27e8b04d55', update: 'current' },
+  updating: { supported: true, downloaded: true, busy: false, error: null, version: '3f9a1c27e8b04d55', update: 'updating' },
   failed: { supported: true, downloaded: false, busy: false, error: 'failed' },
 };
 
@@ -35,6 +38,10 @@ export default {
 export const Available = {};
 export const Downloading = { args: { state: 'busy' } };
 export const Downloaded = { args: { state: 'downloaded', recorded: true } };
+/** A game with offline.json, checked against it when it opened: the tooltip says it's up to date, with its version */
+export const UpToDate = { args: { state: 'upToDate', recorded: true } };
+/** The game's worker is getting a new version: the one downloaded still plays meanwhile, and it can't be removed */
+export const Updating = { args: { state: 'updating', recorded: true } };
 /** Before the game has answered, the hub's memory of it shows */
 export const RememberedAsDownloaded = { args: { state: 'unknown', recorded: true } };
 /** The game can't be downloaded: no button */
