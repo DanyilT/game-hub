@@ -19,6 +19,10 @@ const games = {
   ticTacToeWon: 'tic-tac-toe',
   ticTacToeLost: 'tic-tac-toe',
   ticTacToeDrawn: 'tic-tac-toe',
+  solitaireWon: 'solitaire',
+  solitaireLost: 'solitaire',
+  solitaireNoScoring: 'solitaire',
+  solitaireUntimed: 'solitaire',
 };
 // A copy of a run with some inputs changed: [index, wait, code] for each
 const edited = (run, changes) => {
@@ -125,6 +129,32 @@ test('Tic-Tac-Toe: the bot\'s answers come from the seed, and the moves must fit
   assert.ok(!harder.ok || harder.outcome !== 'won');
 });
 
+test('Solitaire: runs it could never have made are refused', () => {
+  const won = fixtures.solitaireWon; // Draw Three, Standard
+  const lost = fixtures.solitaireLost; // Draw Three, Vegas: given up ('X') at -$32
+  assert.equal(replayRun('solitaire', edited(won, [[0, 3, 'W0']])).reason, 'input'); // the waste is empty before a deal
+  assert.equal(replayRun('solitaire', edited(won, [[0, 3, 'U']])).reason, 'input'); // nothing to undo yet
+  assert.equal(replayRun('solitaire', edited(won, [[1, 0, 'Q']])).reason, 'input');
+  assert.equal(replayRun('solitaire', { ...won, inputs: won.inputs.slice(0, -2) }).reason, 'not-over'); // not won yet
+  assert.equal(replayRun('solitaire', { ...lost, inputs: lost.inputs.slice(0, -2) }).reason, 'not-over'); // nor given up
+  assert.equal(replayRun('solitaire', { ...lost, inputs: [...lost.inputs, 0, 'D'] }).reason, 'after-end');
+  assert.equal(replayRun('solitaire', { ...won, inputs: [...won.inputs, 0, 'D'] }).reason, 'after-end');
+  assert.equal(replayRun('solitaire', { ...won, mode: 'vegas-2' }).reason, 'mode');
+  assert.equal(replayRun('solitaire', { ...won, mode: null }).reason, 'mode');
+  assert.equal(replayRun('solitaire', { ...won, tick: 16 }).reason, 'tick');
+  assert.equal(replayRun('solitaire', { ...won, seed: won.seed + 1 }).reason, 'input'); // another deal
+  assert.equal(replayRun('solitaire', { ...won, mode: 'vegas-3' }).reason, 'input'); // Vegas allows 3 passes, not more
+});
+
+test('Solitaire: what each scoring gives records', () => {
+  const lost = replayRun('solitaire', fixtures.solitaireLost);
+  assert.equal(lost.score, -32); // Vegas: the dollars, won or not
+  assert.equal(lost.timeMs, null);
+  const none = replayRun('solitaire', fixtures.solitaireNoScoring);
+  assert.equal(none.score, null); // no scoring: the fastest win is the record
+  assert.equal(none.timeMs, fixtures.solitaireNoScoring.length - fixtures.solitaireNoScoring.inputs[0]);
+});
+
 test('a run that breaks the rules\' code is refused, not thrown', () => {
   assert.equal(replayRun('tetris', { ...fixtures.tetris, inputs: null }).reason, 'replay');
 });
@@ -138,4 +168,17 @@ test('times come from the run: Minesweeper from the first open, Sudoku from the 
   assert.equal(found.timeMs, (won.inputs.length / 2 - 3) * 1000);
   const sudoku = { ...fixtures.sudoku, inputs: fixtures.sudoku.inputs.map((value, i) => (i % 2 === 0 ? 1500 : value)) };
   assert.equal(replayRun('sudoku', sudoku).timeMs, 1500 * (fixtures.sudoku.inputs.length / 2));
+});
+
+test('Solitaire: the time counts in a timed Standard win, from the first input', () => {
+  const timed = (run, ms) => ({ ...run, inputs: run.inputs.map((value, i) => (i % 2 === 0 && i > 0 ? ms : value)) });
+  const won = fixtures.solitaireWon; // 605 points, 103 inputs
+  // 204 s: 605 points, less 2 for each of 20 whole 10 s, plus 700,000 ÷ 204 for a win over 30 s
+  const slow = replayRun('solitaire', timed(won, 2000));
+  assert.equal(slow.timeMs, 204_000);
+  assert.equal(slow.score, 605 - 2 * 20 + Math.floor(700_000 / 204));
+  assert.equal(claimMatches([{ label: 'Score', value: slow.score }, { label: 'Time', value: 204, format: 'time' }],
+    slow.result.slice(1)), true);
+  assert.equal(replayRun('solitaire', timed(won, 200)).score, 605 - 2 * 2); // 20.4 s: no bonus
+  assert.equal(replayRun('solitaire', timed(fixtures.solitaireUntimed, 2000)).score, 515); // untimed: the points alone
 });

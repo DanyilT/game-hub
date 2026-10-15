@@ -24,6 +24,177 @@
   },
   "games": [
     {
+      "id": "solitaire",
+      "kind": "game",
+      "title": "Solitaire",
+      "description": "Klondike as Windows 7 played it: Draw one or Draw three, Standard or Vegas scoring, hints and statistics, and the cards bouncing off the foundations when you win.",
+      "developer": {
+        "name": "Dany",
+        "url": "https://github.com/DanyilT",
+        "username": "dany"
+      },
+      "released": "2026-10-15",
+      "style": "Windows 7's Solitaire: its window with the glass-like frame, red Close button and menus, the Options and Change Appearance dialogs, a felt table, and Windows 7's own cards (classic, cartoon or nature court cards, three backs), with big-symbol faces on small screens and the bouncing cards when you win.",
+      "genre": [
+        "card",
+        "casual"
+      ],
+      "tags": [
+        "classic",
+        "retro",
+        "old windows",
+        "levels",
+        "timed",
+        "high score"
+      ],
+      "features": [
+        "Windows 7's look and cards",
+        "Draw one or three",
+        "Standard and Vegas scoring",
+        "Hints and statistics",
+        "Bouncing cards",
+        "Saved game in progress",
+        "Easter Egg"
+      ],
+      "difficulty": "medium",
+      "controls": {
+        "keys": [
+          {
+            "keys": [
+              "click"
+            ],
+            "action": "Drag a card where it goes, or click it and then where it goes (double-click: to its foundation)"
+          },
+          {
+            "keys": [
+              "right-click"
+            ],
+            "action": "Every card that can go onto the foundations"
+          },
+          {
+            "keys": [
+              "up",
+              "down",
+              "left",
+              "right"
+            ],
+            "action": "Move between the piles"
+          },
+          {
+            "keys": [
+              "space",
+              "enter"
+            ],
+            "action": "Pick up, put down, or deal from the stock"
+          },
+          {
+            "keys": [
+              "d"
+            ],
+            "action": "Deal from the stock"
+          },
+          {
+            "keys": [
+              "a"
+            ],
+            "action": "Every card that can go onto the foundations"
+          },
+          {
+            "keys": [
+              "h"
+            ],
+            "action": "Hint"
+          },
+          {
+            "keys": [
+              "u",
+              "ctrl+z"
+            ],
+            "action": "Undo"
+          },
+          {
+            "keys": [
+              "n"
+            ],
+            "action": "New game (or F2)"
+          },
+          {
+            "keys": [
+              "s"
+            ],
+            "action": "Statistics (or F4)"
+          },
+          {
+            "keys": [
+              "o"
+            ],
+            "action": "Options"
+          },
+          {
+            "keys": [
+              "c"
+            ],
+            "action": "Change Appearance"
+          },
+          {
+            "keys": [
+              "i"
+            ],
+            "action": "Help"
+          },
+          {
+            "keys": [
+              "esc"
+            ],
+            "action": "Put picked-up cards back, or close a dialog"
+          }
+        ],
+        "mobile": true,
+        "touch": [
+          {
+            "gesture": "drag",
+            "action": "Move a card where it goes"
+          },
+          {
+            "gesture": "tap",
+            "action": "Pick up a card, then tap where it goes; tap the stock to deal"
+          },
+          {
+            "gesture": "double-tap",
+            "action": "A card: to its foundation. An empty spot: every card that can go"
+          }
+        ]
+      },
+      "iconUrl": "https://solitaire.dt-games.pages.dev/img/icon-no-bg.svg",
+      "thumb": "https://solitaire.dt-games.pages.dev/img/desktop-screenshot.png",
+      "dimensions": {
+        "sizes": [
+          {
+            "w": 360,
+            "h": 440
+          },
+          {
+            "w": 480,
+            "h": 480
+          },
+          {
+            "w": 652,
+            "h": 600
+          }
+        ]
+      },
+      "platforms": [
+        {
+          "type": "web",
+          "url": "https://solitaire.dt-games.pages.dev/",
+          "embed": true
+        }
+      ],
+      "sourceCode": {
+        "url": "https://github.com/DanyilT/dt-games/tree/solitaire"
+      }
+    },
+    {
       "id": "flappy-bird",
       "kind": "game",
       "title": "Flappy Bird",
@@ -524,7 +695,7 @@
     {
       "id": "minesweeper",
       "kind": "game",
-      "title": "Minesweeper Game",
+      "title": "Minesweeper",
       "description": "Test your logic and luck in this classic minesweeper game. Clear the board without hitting any mines.",
       "developer": {
         "name": "Dany",
@@ -642,7 +813,7 @@
         "touch": [
           {
             "gesture": "tap",
-            "action": "Reveal a cell (or flag it in flag mode, switched with the 🔍/🚩 button)"
+            "action": "Reveal a cell (or flag it in flag mode, switched with the flag button next to Help)"
           },
           {
             "gesture": "long-press",
@@ -650,7 +821,7 @@
           }
         ]
       },
-      "iconUrl": "https://minesweeper.dt-games.pages.dev/img/mine.png",
+      "iconUrl": "https://minesweeper.dt-games.pages.dev/img/icons/mine.svg",
       "thumb": "https://minesweeper.dt-games.pages.dev/img/desktop-screenshot.png",
       "dimensions": {
         "sizes": [
