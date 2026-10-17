@@ -1,5 +1,6 @@
 import { FaDiscord, FaGithub, FaGitlab, FaGooglePlay, FaInstagram, FaItchIo, FaLinkedin, FaPatreon, FaReddit, FaSteam, FaTiktok, FaTwitch, FaYoutube } from 'react-icons/fa';
 import { FaBluesky, FaMastodon, FaXTwitter } from 'react-icons/fa6';
+import { SiBuymeacoffee } from 'react-icons/si';
 import { CiGlobe } from 'react-icons/ci';
 import { games } from '../data/games';
 import { supabase } from './supabase';
@@ -41,6 +42,7 @@ const SITES = [
   [['reddit.com'], 'Reddit', FaReddit],
   [['linkedin.com'], 'LinkedIn', FaLinkedin],
   [['patreon.com'], 'Patreon', FaPatreon],
+  [['buymeacoffee.com', 'coff.ee'], 'Buy Me a Coffee', SiBuymeacoffee],
   [['store.steampowered.com', 'steamcommunity.com'], 'Steam', FaSteam],
   [['play.google.com'], 'Google Play', FaGooglePlay],
 ];

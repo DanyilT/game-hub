@@ -24,6 +24,142 @@
   },
   "games": [
     {
+      "id": "bounce",
+      "kind": "game",
+      "title": "Bounce",
+      "description": "Nokia's Bounce: roll and jump the red rubber ball through 11 levels of hoops, spikes and water, on a phone's screen with its keypad under it.",
+      "developer": {
+        "name": "Dany",
+        "url": "https://github.com/DanyilT",
+        "username": "dany"
+      },
+      "released": "2026-10-17",
+      "style": "Nokia's Bounce 1.24 on a phone's 128 × 128 screen, pixel for pixel: its own sprites, levels and status bar, the phone's menus in a small pixel font, and a Nokia keypad under it whose keys light up as they're held.",
+      "genre": [
+        "arcade",
+        "action"
+      ],
+      "tags": [
+        "classic",
+        "retro",
+        "levels",
+        "physics",
+        "high score",
+        "old phones"
+      ],
+      "features": [
+        "Nokia's own levels and sprites",
+        "The original's physics, step for step",
+        "All 11 levels",
+        "A Nokia keypad, with several fingers at once",
+        "The phone's tunes",
+        "Saved game in progress",
+        "Mobile-friendly",
+        "Easter Egg"
+      ],
+      "difficulty": "hard",
+      "controls": {
+        "keys": [
+          {
+            "keys": [
+              "left",
+              "a",
+              "4"
+            ],
+            "action": "Roll left"
+          },
+          {
+            "keys": [
+              "right",
+              "d",
+              "6"
+            ],
+            "action": "Roll right"
+          },
+          {
+            "keys": [
+              "up",
+              "w",
+              "space",
+              "2"
+            ],
+            "action": "Jump (hold it to keep bouncing)"
+          },
+          {
+            "keys": [
+              "esc"
+            ],
+            "action": "The menu (the game waits); on a menu, choose"
+          },
+          {
+            "keys": [
+              "up",
+              "down",
+              "enter"
+            ],
+            "action": "Move on a menu, and choose"
+          },
+          {
+            "keys": [
+              "backspace"
+            ],
+            "action": "Back, on a menu"
+          },
+          {
+            "keys": [
+              "m"
+            ],
+            "action": "Sound on or off"
+          },
+          {
+            "keys": [
+              "i"
+            ],
+            "action": "Show or hide the instructions"
+          }
+        ],
+        "mobile": true,
+        "touch": [
+          {
+            "gesture": "tap",
+            "action": "Hold the keypad's keys, several at once (6 and 2 together jump to the right)"
+          },
+          {
+            "gesture": "tap",
+            "action": "Pick a menu item on the screen"
+          }
+        ]
+      },
+      "iconUrl": "https://bounce.dt-games.pages.dev/img/icon-no-bg.svg",
+      "thumb": "https://bounce.dt-games.pages.dev/img/desktop-screenshot.png",
+      "dimensions": {
+        "sizes": [
+          {
+            "w": 280,
+            "h": 480
+          },
+          {
+            "w": 350,
+            "h": 600
+          },
+          {
+            "w": 420,
+            "h": 720
+          }
+        ]
+      },
+      "platforms": [
+        {
+          "type": "web",
+          "url": "https://bounce.dt-games.pages.dev/",
+          "embed": true
+        }
+      ],
+      "sourceCode": {
+        "url": "https://github.com/DanyilT/dt-games/tree/bounce"
+      }
+    },
+    {
       "id": "solitaire",
       "kind": "game",
       "title": "Solitaire",
@@ -436,288 +572,170 @@
       }
     },
     {
-      "id": "snake",
+      "id": "sudoku",
       "kind": "game",
-      "title": "Snake",
-      "description": "Classic Snake game where you control a snake to eat food and grow longer. Avoid hitting the walls or yourself!",
+      "title": "Sudoku",
+      "description": "Challenge your mind with this classic Japanese number puzzle game. Fill the grid following Sudoku rules.",
       "developer": {
         "name": "Dany",
         "url": "https://github.com/DanyilT",
         "username": "dany"
       },
-      "released": "2025-04-24",
-      "style": "Minimalistic design with a clean interface. Simple contrast colored b&w and sharp edged graphics. Old fashion retro style.",
-      "genre": [
-        "arcade",
-        "action"
-      ],
-      "tags": [
-        "classic",
-        "retro",
-        "endless",
-        "high score",
-        "grid"
-      ],
-      "features": [
-        "Responsive controls",
-        "Score tracking",
-        "High score system",
-        "Sounds",
-        "Mobile-friendly",
-        "Easter Egg"
-      ],
-      "difficulty": "easy",
-      "controls": {
-        "keys": [
-          {
-            "keys": [
-              "w",
-              "up"
-            ],
-            "action": "Go up (an arrow starts a game, and resumes a paused one)"
-          },
-          {
-            "keys": [
-              "a",
-              "left"
-            ],
-            "action": "Go left"
-          },
-          {
-            "keys": [
-              "s",
-              "down"
-            ],
-            "action": "Go down"
-          },
-          {
-            "keys": [
-              "d",
-              "right"
-            ],
-            "action": "Go right"
-          },
-          {
-            "keys": [
-              "space",
-              "esc"
-            ],
-            "action": "Pause or resume"
-          },
-          {
-            "keys": [
-              "n"
-            ],
-            "action": "New game: back to the start screen"
-          },
-          {
-            "keys": [
-              "m"
-            ],
-            "action": "Sound on or off"
-          },
-          {
-            "keys": [
-              "i"
-            ],
-            "action": "Show or hide the instructions"
-          }
-        ],
-        "mobile": true,
-        "touch": [
-          {
-            "gesture": "swipe",
-            "action": "Turn the snake (or start a game)"
-          },
-          {
-            "gesture": "tap",
-            "action": "On the board: pause or resume. On the pad under it: turn, or pause (its middle button)"
-          }
-        ]
-      },
-      "iconUrl": "https://snake.dt-games.pages.dev/img/icon-no-bg.svg",
-      "thumb": "https://snake.dt-games.pages.dev/img/desktop-screenshot.png",
-      "dimensions": {
-        "sizes": [
-          {
-            "w": 320,
-            "h": 320
-          },
-          {
-            "w": 360,
-            "h": 360
-          },
-          {
-            "w": 404,
-            "h": 404
-          }
-        ],
-        "touchSizes": [
-          {
-            "w": 320,
-            "h": 508
-          },
-          {
-            "w": 360,
-            "h": 548
-          },
-          {
-            "w": 404,
-            "h": 592
-          }
-        ]
-      },
-      "platforms": [
-        {
-          "type": "web",
-          "url": "https://snake.dt-games.pages.dev/",
-          "embed": true
-        }
-      ],
-      "sourceCode": {
-        "url": "https://github.com/DanyilT/dt-games/tree/snake"
-      }
-    },
-    {
-      "id": "tetris",
-      "kind": "game",
-      "title": "Tetris",
-      "description": "The classic block-stacking puzzle game. Rotate and move falling blocks to create complete lines.",
-      "developer": {
-        "name": "Dany",
-        "url": "https://github.com/DanyilT",
-        "username": "dany"
-      },
-      "released": "2025-04-25",
-      "style": "Vibrant retro-inspired design with animated, colorful borders that cycle through classic Tetris piece colors. Modern UI elements with a nostalgic feel.",
+      "released": "2025-05-05",
+      "style": "Modern Neomorphic design featuring soft shadows and subtle gradients on a light background. Uses purple accent colors, elegant rounded corners, and sophisticated shadow effects to create a clean, tactile interface. Includes visual feedback for valid/invalid entries and smooth transitions for a premium puzzle experience. Neomorphic/Neumorphism style.",
       "genre": [
         "puzzle",
-        "arcade"
+        "logic"
       ],
       "tags": [
         "classic",
-        "retro",
-        "endless",
-        "high score",
         "levels",
-        "blocks"
+        "timed",
+        "grid",
+        "numbers"
       ],
       "features": [
-        "Classic Tetris gameplay",
-        "Next piece preview",
-        "Score system",
-        "Best score",
-        "Level progression",
-        "Sounds",
+        "Multiple difficulty levels",
+        "Auto-save progress",
+        "Validation",
+        "Number highlighting",
+        "Achievement tracking",
         "Mobile-friendly",
         "Easter Egg"
       ],
-      "difficulty": "medium",
+      "difficulty": "hard",
       "controls": {
         "keys": [
           {
             "keys": [
+              "click"
+            ],
+            "action": "Select a cell"
+          },
+          {
+            "keys": [
+              "up",
+              "down",
+              "left",
+              "right",
               "w",
-              "up"
-            ],
-            "action": "Rotate (an arrow or Space starts a game, and resumes a paused one)"
-          },
-          {
-            "keys": [
               "a",
-              "left"
-            ],
-            "action": "Move left"
-          },
-          {
-            "keys": [
               "s",
-              "down"
+              "d"
             ],
-            "action": "Move down"
+            "action": "Move around the grid"
           },
           {
             "keys": [
-              "d",
-              "right"
+              "1",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6",
+              "7",
+              "8",
+              "9"
             ],
-            "action": "Move right"
+            "action": "Fill in the number"
           },
           {
             "keys": [
-              "space"
+              "delete",
+              "backspace"
             ],
-            "action": "Drop"
+            "action": "Clear the cell"
           },
           {
             "keys": [
-              "esc"
+              "enter"
             ],
-            "action": "Pause or resume"
+            "action": "Check the solution (when no cell is selected)"
+          },
+          {
+            "keys": [
+              "shift+enter"
+            ],
+            "action": "Check the solution"
+          },
+          {
+            "keys": [
+              "shift+1"
+            ],
+            "action": "Difficulty: For a Bread"
+          },
+          {
+            "keys": [
+              "shift+2"
+            ],
+            "action": "Difficulty: easy"
+          },
+          {
+            "keys": [
+              "shift+3"
+            ],
+            "action": "Difficulty: medium"
+          },
+          {
+            "keys": [
+              "shift+4"
+            ],
+            "action": "Difficulty: hard"
+          },
+          {
+            "keys": [
+              "shift+5"
+            ],
+            "action": "Difficulty: expert"
           },
           {
             "keys": [
               "n"
             ],
-            "action": "New game: back to the start screen"
-          },
-          {
-            "keys": [
-              "m"
-            ],
-            "action": "Sound on or off"
+            "action": "New game"
           },
           {
             "keys": [
               "i"
             ],
-            "action": "Show or hide the instructions"
+            "action": "Show or hide the info"
           }
         ],
         "mobile": true,
         "touch": [
           {
-            "gesture": "swipe",
-            "action": "Left or right to move, up to rotate, down to move down"
-          },
-          {
             "gesture": "tap",
-            "action": "Rotate, start or resume (a tap on the board); the buttons move, rotate and drop the piece, pause, and start a new game"
-          },
-          {
-            "gesture": "long-press",
-            "action": "Drop (half a second on the board)"
+            "action": "Tap a cell, then a number on the pad"
           }
         ]
       },
-      "iconUrl": "https://tetris.dt-games.pages.dev/img/icon-no-bg.svg",
-      "thumb": "https://tetris.dt-games.pages.dev/img/desktop-screenshot.png",
+      "iconUrl": "https://sudoku.dt-games.pages.dev/img/icon.svg",
+      "thumb": "https://sudoku.dt-games.pages.dev/img/desktop-screenshot.png",
       "dimensions": {
         "sizes": [
           {
             "w": 320,
-            "h": 640
+            "h": 539
           },
           {
-            "w": 400,
-            "h": 560
+            "w": 401,
+            "h": 665
           },
           {
-            "w": 480,
-            "h": 622
+            "w": 601,
+            "h": 728
           }
-        ],
-        "center": true
+        ]
       },
       "platforms": [
         {
           "type": "web",
-          "url": "https://tetris.dt-games.pages.dev/",
+          "url": "https://sudoku.dt-games.pages.dev/",
           "embed": true
         }
       ],
       "sourceCode": {
-        "url": "https://github.com/DanyilT/dt-games/tree/tetris"
+        "url": "https://github.com/DanyilT/dt-games/tree/sudoku"
       }
     },
     {
@@ -884,170 +902,288 @@
       }
     },
     {
-      "id": "sudoku",
+      "id": "tetris",
       "kind": "game",
-      "title": "Sudoku",
-      "description": "Challenge your mind with this classic Japanese number puzzle game. Fill the grid following Sudoku rules.",
+      "title": "Tetris",
+      "description": "The classic block-stacking puzzle game. Rotate and move falling blocks to create complete lines.",
       "developer": {
         "name": "Dany",
         "url": "https://github.com/DanyilT",
         "username": "dany"
       },
-      "released": "2025-05-05",
-      "style": "Modern Neomorphic design featuring soft shadows and subtle gradients on a light background. Uses purple accent colors, elegant rounded corners, and sophisticated shadow effects to create a clean, tactile interface. Includes visual feedback for valid/invalid entries and smooth transitions for a premium puzzle experience. Neomorphic/Neumorphism style.",
+      "released": "2025-04-25",
+      "style": "Vibrant retro-inspired design with animated, colorful borders that cycle through classic Tetris piece colors. Modern UI elements with a nostalgic feel.",
       "genre": [
         "puzzle",
-        "logic"
+        "arcade"
       ],
       "tags": [
         "classic",
+        "retro",
+        "endless",
+        "high score",
         "levels",
-        "timed",
-        "grid",
-        "numbers"
+        "blocks"
       ],
       "features": [
-        "Multiple difficulty levels",
-        "Auto-save progress",
-        "Validation",
-        "Number highlighting",
-        "Achievement tracking",
+        "Classic Tetris gameplay",
+        "Next piece preview",
+        "Score system",
+        "Best score",
+        "Level progression",
+        "Sounds",
         "Mobile-friendly",
         "Easter Egg"
       ],
-      "difficulty": "hard",
+      "difficulty": "medium",
       "controls": {
         "keys": [
           {
             "keys": [
-              "click"
-            ],
-            "action": "Select a cell"
-          },
-          {
-            "keys": [
-              "up",
-              "down",
-              "left",
-              "right",
               "w",
+              "up"
+            ],
+            "action": "Rotate (an arrow or Space starts a game, and resumes a paused one)"
+          },
+          {
+            "keys": [
               "a",
+              "left"
+            ],
+            "action": "Move left"
+          },
+          {
+            "keys": [
               "s",
-              "d"
+              "down"
             ],
-            "action": "Move around the grid"
+            "action": "Move down"
           },
           {
             "keys": [
-              "1",
-              "2",
-              "3",
-              "4",
-              "5",
-              "6",
-              "7",
-              "8",
-              "9"
+              "d",
+              "right"
             ],
-            "action": "Fill in the number"
+            "action": "Move right"
           },
           {
             "keys": [
-              "delete",
-              "backspace"
+              "space"
             ],
-            "action": "Clear the cell"
+            "action": "Drop"
           },
           {
             "keys": [
-              "enter"
+              "esc"
             ],
-            "action": "Check the solution (when no cell is selected)"
-          },
-          {
-            "keys": [
-              "shift+enter"
-            ],
-            "action": "Check the solution"
-          },
-          {
-            "keys": [
-              "shift+1"
-            ],
-            "action": "Difficulty: For a Bread"
-          },
-          {
-            "keys": [
-              "shift+2"
-            ],
-            "action": "Difficulty: easy"
-          },
-          {
-            "keys": [
-              "shift+3"
-            ],
-            "action": "Difficulty: medium"
-          },
-          {
-            "keys": [
-              "shift+4"
-            ],
-            "action": "Difficulty: hard"
-          },
-          {
-            "keys": [
-              "shift+5"
-            ],
-            "action": "Difficulty: expert"
+            "action": "Pause or resume"
           },
           {
             "keys": [
               "n"
             ],
-            "action": "New game"
+            "action": "New game: back to the start screen"
+          },
+          {
+            "keys": [
+              "m"
+            ],
+            "action": "Sound on or off"
           },
           {
             "keys": [
               "i"
             ],
-            "action": "Show or hide the info"
+            "action": "Show or hide the instructions"
           }
         ],
         "mobile": true,
         "touch": [
           {
+            "gesture": "swipe",
+            "action": "Left or right to move, up to rotate, down to move down"
+          },
+          {
             "gesture": "tap",
-            "action": "Tap a cell, then a number on the pad"
+            "action": "Rotate, start or resume (a tap on the board); the buttons move, rotate and drop the piece, pause, and start a new game"
+          },
+          {
+            "gesture": "long-press",
+            "action": "Drop (half a second on the board)"
           }
         ]
       },
-      "iconUrl": "https://sudoku.dt-games.pages.dev/img/icon.svg",
-      "thumb": "https://sudoku.dt-games.pages.dev/img/desktop-screenshot.png",
+      "iconUrl": "https://tetris.dt-games.pages.dev/img/icon-no-bg.svg",
+      "thumb": "https://tetris.dt-games.pages.dev/img/desktop-screenshot.png",
       "dimensions": {
         "sizes": [
           {
             "w": 320,
-            "h": 539
+            "h": 640
           },
           {
-            "w": 401,
-            "h": 665
+            "w": 400,
+            "h": 560
           },
           {
-            "w": 601,
-            "h": 728
+            "w": 480,
+            "h": 622
+          }
+        ],
+        "center": true
+      },
+      "platforms": [
+        {
+          "type": "web",
+          "url": "https://tetris.dt-games.pages.dev/",
+          "embed": true
+        }
+      ],
+      "sourceCode": {
+        "url": "https://github.com/DanyilT/dt-games/tree/tetris"
+      }
+    },
+    {
+      "id": "snake",
+      "kind": "game",
+      "title": "Snake",
+      "description": "Classic Snake game where you control a snake to eat food and grow longer. Avoid hitting the walls or yourself!",
+      "developer": {
+        "name": "Dany",
+        "url": "https://github.com/DanyilT",
+        "username": "dany"
+      },
+      "released": "2025-04-24",
+      "style": "Minimalistic design with a clean interface. Simple contrast colored b&w and sharp edged graphics. Old fashion retro style.",
+      "genre": [
+        "arcade",
+        "action"
+      ],
+      "tags": [
+        "classic",
+        "retro",
+        "endless",
+        "high score",
+        "grid"
+      ],
+      "features": [
+        "Responsive controls",
+        "Score tracking",
+        "High score system",
+        "Sounds",
+        "Mobile-friendly",
+        "Easter Egg"
+      ],
+      "difficulty": "easy",
+      "controls": {
+        "keys": [
+          {
+            "keys": [
+              "w",
+              "up"
+            ],
+            "action": "Go up (an arrow starts a game, and resumes a paused one)"
+          },
+          {
+            "keys": [
+              "a",
+              "left"
+            ],
+            "action": "Go left"
+          },
+          {
+            "keys": [
+              "s",
+              "down"
+            ],
+            "action": "Go down"
+          },
+          {
+            "keys": [
+              "d",
+              "right"
+            ],
+            "action": "Go right"
+          },
+          {
+            "keys": [
+              "space",
+              "esc"
+            ],
+            "action": "Pause or resume"
+          },
+          {
+            "keys": [
+              "n"
+            ],
+            "action": "New game: back to the start screen"
+          },
+          {
+            "keys": [
+              "m"
+            ],
+            "action": "Sound on or off"
+          },
+          {
+            "keys": [
+              "i"
+            ],
+            "action": "Show or hide the instructions"
+          }
+        ],
+        "mobile": true,
+        "touch": [
+          {
+            "gesture": "swipe",
+            "action": "Turn the snake (or start a game)"
+          },
+          {
+            "gesture": "tap",
+            "action": "On the board: pause or resume. On the pad under it: turn, or pause (its middle button)"
+          }
+        ]
+      },
+      "iconUrl": "https://snake.dt-games.pages.dev/img/icon-no-bg.svg",
+      "thumb": "https://snake.dt-games.pages.dev/img/desktop-screenshot.png",
+      "dimensions": {
+        "sizes": [
+          {
+            "w": 320,
+            "h": 320
+          },
+          {
+            "w": 360,
+            "h": 360
+          },
+          {
+            "w": 404,
+            "h": 404
+          }
+        ],
+        "touchSizes": [
+          {
+            "w": 320,
+            "h": 508
+          },
+          {
+            "w": 360,
+            "h": 548
+          },
+          {
+            "w": 404,
+            "h": 592
           }
         ]
       },
       "platforms": [
         {
           "type": "web",
-          "url": "https://sudoku.dt-games.pages.dev/",
+          "url": "https://snake.dt-games.pages.dev/",
           "embed": true
         }
       ],
       "sourceCode": {
-        "url": "https://github.com/DanyilT/dt-games/tree/sudoku"
+        "url": "https://github.com/DanyilT/dt-games/tree/snake"
       }
     },
     {

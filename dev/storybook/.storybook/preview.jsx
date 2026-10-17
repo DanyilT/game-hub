@@ -1,7 +1,15 @@
+import { configure } from 'storybook/test';
 import { themes } from 'storybook/theming';
 import '../../../src/styles/main.scss';
 import { GLOBAL_DEFAULTS } from '../mocks/scenario';
+import { fireFocusEventsWithoutWindowFocus } from './focusEvents';
 import { withApp } from './withApp';
+
+// The play functions type into fields even when Storybook's window isn't the active one (focusEvents.js)
+fireFocusEventsWithoutWindowFocus();
+// ...and wait up to 5 s for what they look for (findBy…), not 1 s: a browser slows the timers of a page it isn't
+// showing, and the pretend server (mocks/supabase.js) answers on timers too
+configure({ asyncUtilTimeout: 5000 });
 
 /** @type { import('@storybook/react-vite').Preview } */
 const preview = {

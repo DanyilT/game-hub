@@ -126,20 +126,23 @@ export const verifyRun = async (request, env) => {
       return json({ status: 'refused', reason: 'ticket' }, 409);
     }
 
-    // Played again, from the ticket's seed (not the run's say-so)
-    step = 'replay';
-    const found = replayRun(run.game, { seed: Number(ticket.seed), mode: run.mode, tick: run.tick, length: run.length, inputs: run.inputs });
+    // Longer than the time since its ticket started: refused before it's played again, so a run can't make the Worker
+    // replay more than real time allows (a Bounce run could say 1,000,000 steps: about a second of CPU)
     const playedMs = run.tick ? run.length * run.tick : run.length;
     const since = Date.parse(ticket.started_at ?? ticket.issued_at);
+    const tooLong = playedMs > Date.now() - since + LEEWAY_MS;
+
+    // Played again, from the ticket's seed (not the run's say-so)
+    step = 'replay';
+    const found = tooLong
+      ? { ok: false, reason: 'too-long' }
+      : replayRun(run.game, { seed: Number(ticket.seed), mode: run.mode, tick: run.tick, length: run.length, inputs: run.inputs });
     let status = 'checked';
     let reason = null;
     const flags = [];
     if (!found.ok) {
       status = 'refused';
       reason = found.reason;
-    } else if (playedMs > Date.now() - since + LEEWAY_MS) {
-      status = 'refused';
-      reason = 'too-long';
     } else {
       if (run.seed !== Number(ticket.seed)) flags.push('seed');
       if (found.outcome !== run.outcome || !claimMatches(run.result, found.result)) flags.push('claim');

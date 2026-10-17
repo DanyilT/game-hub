@@ -34,7 +34,8 @@ export const SaveDisplayName = {
 export const DeveloperBadLink = {
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(await canvas.findByRole('button', { name: 'Add a link' }));
-    await userEvent.type(canvas.getByRole('textbox', { name: 'Link 4' }), 'github.com/dany');
+    // The one just added: the last
+    await userEvent.type(canvas.getAllByRole('textbox', { name: /^Link \d+$/ }).at(-1), 'github.com/dany');
     await userEvent.click(canvas.getByRole('button', { name: 'Save' }));
     await canvas.findByText(/Use a whole https address/);
   },

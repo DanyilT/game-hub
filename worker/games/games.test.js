@@ -23,6 +23,10 @@ const games = {
   solitaireLost: 'solitaire',
   solitaireNoScoring: 'solitaire',
   solitaireUntimed: 'solitaire',
+  bounceWon: 'bounce',
+  bounceLost: 'bounce',
+  bounceCarriedWon: 'bounce',
+  bounceCarriedLost: 'bounce',
 };
 // A copy of a run with some inputs changed: [index, wait, code] for each
 const edited = (run, changes) => {
@@ -153,6 +157,38 @@ test('Solitaire: what each scoring gives records', () => {
   const none = replayRun('solitaire', fixtures.solitaireNoScoring);
   assert.equal(none.score, null); // no scoring: the fastest win is the record
   assert.equal(none.timeMs, fixtures.solitaireNoScoring.length - fixtures.solitaireNoScoring.inputs[0]);
+});
+
+test('Bounce: runs it could never have made are refused', () => {
+  const won = fixtures.bounceWon; // level 1, from a new game: 389 steps
+  const carried = fixtures.bounceCarriedLost; // level 8, starting with 5 spare balls ('b5'): 6 balls lost
+  assert.equal(replayRun('bounce', { ...won, length: won.length + 1 }).reason, 'ended-early'); // it's over at the exit
+  assert.equal(replayRun('bounce', { ...won, length: won.length - 1 }).reason, 'not-over');
+  // Right first: the next input then holds the same keys, which isn't a change
+  assert.equal(replayRun('bounce', edited(won, [[0, 0, 2]])).reason, 'input');
+  assert.equal(replayRun('bounce', edited(won, [[1, 7, 8]])).reason, 'input'); // keys are 0 to 7
+  assert.equal(replayRun('bounce', edited(won, [[1, 0, 2]])).reason, 'input'); // two inputs in one step
+  // The spare balls: first, and 0 to 5
+  assert.equal(replayRun('bounce', { ...won, inputs: [...won.inputs.slice(0, 2), 0, 'b4', ...won.inputs.slice(2)] }).reason, 'input');
+  assert.equal(replayRun('bounce', { ...fixtures.bounceCarriedWon, inputs: [0, 'b6', ...fixtures.bounceCarriedWon.inputs.slice(2)] }).reason, 'input');
+  // Without its 'b5' the level starts with 3 spare balls, and the last one pops sooner
+  assert.equal(replayRun('bounce', { ...carried, inputs: carried.inputs.slice(2) }).reason, 'ended-early');
+  assert.equal(replayRun('bounce', { ...won, mode: '12' }).reason, 'mode');
+  assert.equal(replayRun('bounce', { ...won, mode: '2' }).reason, 'not-over'); // level 1's keys on level 2
+  assert.equal(replayRun('bounce', { ...won, tick: 50 }).reason, 'tick');
+  assert.equal(replayRun('bounce', { ...won, length: 1_000_001 }).reason, 'length');
+  // A claim of more points than the run won is caught
+  assert.equal(claimMatches([{ label: 'Score', value: 9500 }, { label: 'Time', value: 15, format: 'time' },
+    { label: 'Balls lost', value: 0 }], replayRun('bounce', won).result), false);
+});
+
+test('Bounce: a win\'s time is its steps, a loss has none', () => {
+  const won = replayRun('bounce', fixtures.bounceWon);
+  assert.equal(won.timeMs, fixtures.bounceWon.length * 40);
+  assert.equal(won.score, 9400);
+  const lost = replayRun('bounce', fixtures.bounceLost);
+  assert.equal(lost.timeMs, null);
+  assert.equal(lost.score, 3200); // the level's points, won or lost
 });
 
 test('a run that breaks the rules\' code is refused, not thrown', () => {

@@ -116,3 +116,17 @@ test('a ticket used meanwhile (the same run sent twice at once): refused, 409', 
   assert.equal(response.status, 409);
   assert.deepEqual(await response.json(), { status: 'refused', reason: 'ticket' });
 });
+
+test('a run longer than the time since its ticket started: refused as too long, without playing it again', async () => {
+  const calls = fakeSupabase({ ...signedIn, '/rest/v1/rpc/record_run': [200, [{ run_id: 'r2', best: false }]] });
+  // The ticket came an hour ago; 100,000 steps of 100 ms is nearly three hours (and doesn't play out either)
+  const response = await verifyRun(new Request('http://hub/api/verify-run', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer a-token', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ game: 'snake', run: { ...run, length: 100_000 } }),
+  }), ENV);
+  assert.deepEqual(await response.json(), { status: 'refused', reason: 'too-long' });
+  const recorded = calls.find((call) => call.path === '/rest/v1/rpc/record_run');
+  assert.equal(recorded.body.p_reason, 'too-long');
+  assert.equal(recorded.body.p_score, null);
+});

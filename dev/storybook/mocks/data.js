@@ -179,7 +179,7 @@ export const DEVELOPER_PROFILES = [
   {
     user_id: ME.id,
     bio: 'I make small retro games for the browser: Snake, Tetris, Minesweeper and Sudoku, and GameHub to play them in.',
-    links: ['https://github.com/DanyilT', 'https://danyilt.itch.io', 'https://danyt.dev'],
+    links: ['https://github.com/DanyilT', 'https://danyilt.itch.io', 'https://buymeacoffee.com/danyilt', 'https://danyt.dev'],
   },
   { user_id: player('cosmic_narwhal42').id, bio: '', links: ['https://www.youtube.com/@nora'] },
 ];

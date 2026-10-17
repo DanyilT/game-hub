@@ -11,16 +11,30 @@ $box-width-picked: 26rem; // closed, with tags picked: room for the count and Cl
   padding: $spacing-xl $spacing-xl $spacing-lg*2;
 }
 
-// Filters: a small box until opened, then the whole row. Width and height both animate.
+// The filter box and the player's lists beside it (GameList.jsx's useListsPlace says where they go). It reads the lists'
+// sizes from here too: their buttons (smaller in the bar, so on a phone both fit at its right), the gap between them,
+// and their room from an edge.
+.toolbar {
+  --list-size: 2.5rem;
+  --list-size-bar: 2rem;
+  --lists-gap: #{$spacing-xs};
+  --lists-edge: #{$spacing-sm};
+  display: grid;
+}
+
+// Filters: a small box until opened, then the whole row. Width and height both animate. --closed-width is its width
+// closed, which useListsPlace reads.
 .filters {
   @include surfaces.panel;
+  --closed-width: #{$box-width-closed};
+  grid-area: 1 / 1;
   width: 100%;
-  max-width: $box-width-closed;
+  max-width: var(--closed-width);
   margin: 0 auto;
   transition: max-width $panel-speed ease;
 
   &.picked {
-    max-width: $box-width-picked;
+    --closed-width: #{$box-width-picked};
   }
 
   &.open {
@@ -28,21 +42,52 @@ $box-width-picked: 26rem; // closed, with tags picked: room for the count and Cl
   }
 }
 
+// Beside the closed box, when there's room: level with the bar, at the games grid's right edge (--grid-inset)
+.outside {
+  grid-area: 1 / 1;
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  margin-right: var(--grid-inset, 0px);
+  animation: global(fade-in) $transition-base ease;
+}
+
+.lists {
+  display: flex;
+  gap: var(--lists-gap);
+}
+
+.listButton {
+  --box: var(--list-size);
+  flex-shrink: 0;
+  animation: global(fade-in) $transition-base ease;
+
+  .filtersBar & {
+    --box: var(--list-size-bar);
+  }
+}
+
 .filtersBar {
   container-type: inline-size; // the Clear button drops its word when the bar is narrow (see below)
+  position: relative;
   display: flex;
   align-items: center;
 }
 
-// The bar's toggle (a ghost Button): it fills the bar, its label in the middle (at the left while open). No box behind
+// The bar's toggle (a ghost Button): it fills the bar, its label in the middle (at the left while open), kept clear of
+// what's over its sides (--start-room, --end-room) and, when that fits, still in the middle of the bar. No box behind
 // it, hovered or open: the panel is the box.
 .filtersToggle {
   flex: 1;
   min-width: 0;
-  padding: $spacing-sm $spacing-md;
+  padding: $spacing-sm max(#{$spacing-md}, var(--end-room, 0px)) $spacing-sm max(#{$spacing-md}, var(--start-room, 0px));
   border-radius: $radius-lg;
   background: none;
   font-weight: $font-weight-bold;
+
+  .centered & {
+    padding-inline: max(#{$spacing-md}, var(--start-room, 0px), var(--end-room, 0px));
+  }
 
   .open & {
     justify-content: flex-start;
@@ -51,6 +96,24 @@ $box-width-picked: 26rem; // closed, with tags picked: room for the count and Cl
   svg {
     flex-shrink: 0;
   }
+}
+
+// What sits over the bar's sides: the lists on narrow screens, and Clear
+.barStart,
+.barEnd {
+  position: absolute;
+  inset-block: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--lists-gap);
+}
+
+.barStart {
+  left: var(--lists-edge);
+}
+
+.barEnd {
+  right: var(--lists-edge);
 }
 
 .toggleLabel {
@@ -69,7 +132,6 @@ $box-width-picked: 26rem; // closed, with tags picked: room for the count and Cl
 // Clear (an outlined Button), at the right of the bar
 .clearButton {
   flex-shrink: 0;
-  margin-right: $spacing-sm;
   animation: global(fade-in) $transition-base ease;
 }
 
@@ -108,11 +170,22 @@ $box-width-picked: 26rem; // closed, with tags picked: room for the count and Cl
   }
 }
 
+// The group buttons, and the lists at the right while the box is open
+.panelTop {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-sm;
+  margin: $spacing-xs 0 $spacing-md;
+
+  .lists {
+    margin-left: auto;
+  }
+}
+
 .groupButtons {
   display: flex;
   flex-wrap: wrap;
   gap: $spacing-sm;
-  margin: $spacing-xs 0 $spacing-md;
 }
 
 // Up to three rows of chips; GameList widens the rows when there are more, and this scrolls sideways
@@ -170,6 +243,11 @@ $box-width-picked: 26rem; // closed, with tags picked: room for the count and Cl
   p {
     color: $color-text-secondary;
     font-size: 1.2rem;
+  }
+
+  .emptyList {
+    margin-top: $spacing-sm;
+    font-size: 1rem;
   }
 }
 

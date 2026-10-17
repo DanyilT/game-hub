@@ -1,3 +1,4 @@
+import * as bounce from './bounce.js';
 import * as flappyBird from './flappy-bird.js';
 import { CHECKED_GAMES } from './list.js';
 import * as minesweeper from './minesweeper.js';
@@ -12,8 +13,10 @@ import * as ticTacToe from './tic-tac-toe.js';
 // games:pull`), and gives the result it gets. The game's own claim is never taken: it's only compared,
 // to flag a run whose claim doesn't match for a look (a changed result, or a game that changed
 // without its rules here being pulled again).
+// bounce.js holds Nokia's levels, masks and numbers (Bounce 1.24): its header says so, and they're not
+// under GameHub's MIT license (README → License).
 
-const GAMES = { 'flappy-bird': flappyBird, minesweeper, snake, solitaire, sudoku, tetris, 'tic-tac-toe': ticTacToe }; // the same as CHECKED_GAMES
+const GAMES = { bounce, 'flappy-bird': flappyBird, minesweeper, snake, solitaire, sudoku, tetris, 'tic-tac-toe': ticTacToe }; // the same as CHECKED_GAMES
 
 /** Whether GameHub can check runs of this game */
 export const canCheck = (gameId) => CHECKED_GAMES.includes(gameId) && Object.hasOwn(GAMES, gameId);

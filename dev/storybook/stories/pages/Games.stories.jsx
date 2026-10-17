@@ -48,6 +48,40 @@ export const Filtered = {
 /** Filters from the address (/?tag=easy&tag=arcade): a reload keeps them, and the link can be shared */
 export const FilteredByLink = { parameters: { route: '/?tag=easy&tag=arcade' } };
 
+/** Your favorites only: the heart beside the filter box (Snake and Sudoku). The address keeps it: /?only=favorites */
+export const Favorites = {
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(await canvas.findByRole('button', { name: 'Your favorites only' }));
+    await canvas.findByText(/^2 of \d+ shown$/);
+  },
+};
+
+/** Your favorites and your bookmarks: only games that are both (none here) */
+export const FavoritesAndBookmarks = { parameters: { route: '/?only=favorites&only=bookmarks' } };
+
+/** The lists in the open box: beside its group buttons, under Clear */
+export const ListsWithFiltersOpen = {
+  parameters: { route: '/?only=bookmarks' },
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(await canvas.findByRole('button', { name: /Filter games/ }));
+  },
+};
+
+/** A phone: the lists in the bar, both at its right when "Filter games" can stay in the middle */
+export const ListsOnAPhone = { globals: { viewport: { value: 'mobile2', isRotated: false } } };
+
+/** A small phone: one at each side of the bar */
+export const ListsOnASmallPhone = { globals: { viewport: { value: 'mobile1', isRotated: false } } };
+
+/** Signed out: the lists' buttons open the sign-in window */
+export const ListsSignedOut = {
+  globals: { account: 'guest' },
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(await canvas.findByRole('button', { name: 'Your bookmarks only' }));
+    await within(document.body).findByRole('dialog');
+  },
+};
+
 /** A game card's info, opened */
 export const GameInfo = {
   // As a keyboard player opens it: a card shows its buttons while one of them has the focus (they take no clicks
