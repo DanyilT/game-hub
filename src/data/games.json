@@ -146,7 +146,7 @@
             "keys": [
               "esc"
             ],
-            "action": "Put picked-up cards back, or close a dialog"
+            "action": "Put picked-up cards back; with none, open the Game menu (or close a dialog or a menu)"
           }
         ],
         "mobile": true,
@@ -244,16 +244,15 @@
           },
           {
             "keys": [
-              "p",
               "esc"
             ],
             "action": "Pause or resume"
           },
           {
             "keys": [
-              "r"
+              "n"
             ],
-            "action": "Back to Get Ready"
+            "action": "New game: back to Get Ready"
           },
           {
             "keys": [
@@ -439,7 +438,7 @@
     {
       "id": "snake",
       "kind": "game",
-      "title": "Snake Game",
+      "title": "Snake",
       "description": "Classic Snake game where you control a snake to eat food and grow longer. Avoid hitting the walls or yourself!",
       "developer": {
         "name": "Dany",
@@ -463,6 +462,7 @@
         "Responsive controls",
         "Score tracking",
         "High score system",
+        "Sounds",
         "Mobile-friendly",
         "Easter Egg"
       ],
@@ -474,7 +474,7 @@
               "w",
               "up"
             ],
-            "action": "Go up"
+            "action": "Go up (an arrow starts a game, and resumes a paused one)"
           },
           {
             "keys": [
@@ -499,15 +499,22 @@
           },
           {
             "keys": [
-              "space"
+              "space",
+              "esc"
             ],
             "action": "Pause or resume"
           },
           {
             "keys": [
-              "r"
+              "n"
             ],
-            "action": "Restart"
+            "action": "New game: back to the start screen"
+          },
+          {
+            "keys": [
+              "m"
+            ],
+            "action": "Sound on or off"
           },
           {
             "keys": [
@@ -524,7 +531,7 @@
           },
           {
             "gesture": "tap",
-            "action": "Pause or resume"
+            "action": "On the board: pause or resume. On the pad under it: turn, or pause (its middle button)"
           }
         ]
       },
@@ -544,6 +551,20 @@
             "w": 404,
             "h": 404
           }
+        ],
+        "touchSizes": [
+          {
+            "w": 320,
+            "h": 508
+          },
+          {
+            "w": 360,
+            "h": 548
+          },
+          {
+            "w": 404,
+            "h": 592
+          }
         ]
       },
       "platforms": [
@@ -560,7 +581,7 @@
     {
       "id": "tetris",
       "kind": "game",
-      "title": "TETRIS Game",
+      "title": "Tetris",
       "description": "The classic block-stacking puzzle game. Rotate and move falling blocks to create complete lines.",
       "developer": {
         "name": "Dany",
@@ -587,6 +608,7 @@
         "Score system",
         "Best score",
         "Level progression",
+        "Sounds",
         "Mobile-friendly",
         "Easter Egg"
       ],
@@ -598,7 +620,7 @@
               "w",
               "up"
             ],
-            "action": "Rotate"
+            "action": "Rotate (an arrow or Space starts a game, and resumes a paused one)"
           },
           {
             "keys": [
@@ -629,15 +651,21 @@
           },
           {
             "keys": [
-              "p"
+              "esc"
             ],
-            "action": "Pause"
+            "action": "Pause or resume"
           },
           {
             "keys": [
-              "r"
+              "n"
             ],
-            "action": "Reset the game"
+            "action": "New game: back to the start screen"
+          },
+          {
+            "keys": [
+              "m"
+            ],
+            "action": "Sound on or off"
           },
           {
             "keys": [
@@ -654,7 +682,7 @@
           },
           {
             "gesture": "tap",
-            "action": "Rotate (a tap on the board); the buttons move, rotate and drop the piece, and pause or reset the game"
+            "action": "Rotate, start or resume (a tap on the board); the buttons move, rotate and drop the piece, pause, and start a new game"
           },
           {
             "gesture": "long-press",
@@ -722,6 +750,7 @@
         "First-click safety",
         "Flag system",
         "Classic Windows 9x style",
+        "Sounds",
         "Mobile-friendly",
         "Easter Egg"
       ],
@@ -792,9 +821,9 @@
           },
           {
             "keys": [
-              "r"
+              "n"
             ],
-            "action": "Restart"
+            "action": "New game"
           },
           {
             "keys": [
@@ -806,7 +835,7 @@
             "keys": [
               "esc"
             ],
-            "action": "Close dialogs"
+            "action": "Open the Game menu (or close a dialog or a menu)"
           }
         ],
         "mobile": true,
@@ -857,7 +886,7 @@
     {
       "id": "sudoku",
       "kind": "game",
-      "title": "Sudoku Game",
+      "title": "Sudoku",
       "description": "Challenge your mind with this classic Japanese number puzzle game. Fill the grid following Sudoku rules.",
       "developer": {
         "name": "Dany",
@@ -973,7 +1002,7 @@
           },
           {
             "keys": [
-              "r"
+              "n"
             ],
             "action": "New game"
           },

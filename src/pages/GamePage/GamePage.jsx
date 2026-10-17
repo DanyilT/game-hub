@@ -46,16 +46,23 @@ const RESIZE_EDGES = ['bottom', 'right', 'corner'];
 // its column (px); otherwise it would change nothing you'd see (on phones, or a wide game)
 const MIN_WIDTH_CHANGE = 16;
 
+// A media query for useSyncExternalStore: [subscribe, whether it matches]
+const mediaQuery = (query) => [
+  (onChange) => {
+    const list = window.matchMedia(query);
+    list.addEventListener('change', onChange);
+    return () => list.removeEventListener('change', onChange);
+  },
+  () => window.matchMedia(query).matches,
+];
+
 // Wide screens have the info beside the game; narrower ones have it below, where the game already
 // has the whole row, so there's nothing to maximize or resize. Must match the 1024px breakpoint in
 // GamePage.module.scss.
-const WIDE_QUERY = '(width > 1024px)';
-const subscribeToWideScreen = (onChange) => {
-  const query = window.matchMedia(WIDE_QUERY);
-  query.addEventListener('change', onChange);
-  return () => query.removeEventListener('change', onChange);
-};
-const isWideScreen = () => window.matchMedia(WIDE_QUERY).matches;
+const [subscribeToWideScreen, isWideScreen] = mediaQuery('(width > 1024px)');
+// Touch screens: a game may show more there (Snake's direction pad), so its frame takes `dimensions.touchSizes`
+// when it has them. The same query the games use.
+const [subscribeToTouchScreen, isTouchScreen] = mediaQuery('(hover: none) and (pointer: coarse)');
 
 // The info cards under the game (narrower screens, maximized) are at least this wide (px), in as
 // many columns as fit
@@ -181,8 +188,8 @@ const COVER_MAX = 6000; // ms
 const SLOW_FRAME = 8000; // ms
 
 /**
- * The game's size for a frame `width` pixels wide, from its `dimensions.sizes` (narrowest first): the widest
- * that fits, or the narrowest when none does. A part of a pixel doesn't count.
+ * The game's size for a frame `width` pixels wide, from its `dimensions.sizes` or `touchSizes` (narrowest
+ * first): the widest that fits, or the narrowest when none does. A part of a pixel doesn't count.
  * @return {{w: number, h: number}}
  */
 const sizeFor = (sizes, width) => sizes.findLast((size) => size.w <= Math.floor(width)) ?? sizes[0];
@@ -326,7 +333,8 @@ const GamePageContent = ({ gameId }) => {
   const [columnWidth, setColumnWidth] = useState(null); // the game's column, for Expand / Collapse Width
   const dragRef = useRef(null); // the drag in progress: which edge, where it started
   const dimensions = game?.dimensions; // the game frame's sizes and centring (the catalogue), if it has them
-  const sizes = dimensions?.sizes ?? null;
+  const touchScreen = useSyncExternalStore(subscribeToTouchScreen, isTouchScreen);
+  const sizes = (touchScreen && dimensions?.touchSizes) || dimensions?.sizes || null;
   // The game's size for its column (none until the column is measured, and none for games without sizes)
   const frameSize = sizes && columnWidth !== null ? sizeFor(sizes, columnWidth) : null;
 
@@ -509,8 +517,8 @@ const GamePageContent = ({ gameId }) => {
   // Size the game frame, before it's painted (maximized is a class on the page, see render).
   // - Its width: the column's (the whole row's when maximized), by default. With Collapse Width, the
   //   game's own (its size's, never wider than the column), in the middle. Or a dragged width.
-  // - Its height: the game's at that width (dimensions.sizes: the game lays out differently at
-  //   different widths), or a dragged height, or 16:9 for games without sizes.
+  // - Its height: the game's at that width (dimensions.sizes, or touchSizes on a touch screen: the
+  //   game lays out differently at different widths), or a dragged height, or 16:9 for games without sizes.
   useLayoutEffect(() => {
     const container = frameContainerRef.current;
     if (!container) return;

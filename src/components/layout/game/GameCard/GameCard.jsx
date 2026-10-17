@@ -19,8 +19,8 @@ const ACTION_TONES = { info: 'neutral', play: 'success', direct: 'info', code: '
 
 /**
  * A round icon action on the card (a glass Button over the picture): a button (`onClick`), a link inside the hub (`to`)
- * or a link out (`href`, new tab). The tooltip is short; the accessible name adds the game, e.g. "Snake Game: Play in
- * Hub" rather than six identical "View Code"s.
+ * or a link out (`href`, new tab). The tooltip is short; the accessible name adds the game, e.g. "Snake: Play in Hub"
+ * rather than six identical "View Code"s.
  */
 const ActionButton = ({ icon, label, gameTitle, variant, href, ...rest }) => (
   <Button

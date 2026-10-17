@@ -32,7 +32,7 @@ const ENTRY_KEYS = ['id', 'kind', 'title', 'description', 'developer', 'released
   'difficulty', 'controls', 'iconUrl', 'thumb', 'sourceCode', 'website', 'dimensions', 'platforms'];
 const GAME_DEVELOPER_KEYS = ['name', 'url', 'username'];
 const PLATFORM_KEYS = ['type', 'url', 'embed', 'storeId', 'appLink', 'icon'];
-const DIMENSION_KEYS = ['sizes', 'center'];
+const DIMENSION_KEYS = ['sizes', 'touchSizes', 'center'];
 const SIZE_KEYS = ['w', 'h'];
 const CONTROLS_KEYS = ['keys', 'mobile', 'touch'];
 const KEY_NAMES = new Set([...KEYBOARD_KEYS, ...MOUSE_BUTTONS].map((key) => key.name));
@@ -230,8 +230,8 @@ export function validateCatalog(catalog) {
       });
     }
 
-    // The game frame: how tall the game is at a few frame widths, narrowest first, and whether to centre the game
-    // in it (embedded games only)
+    // The game frame: how tall the game is at a few frame widths, narrowest first (and on touch screens, when it
+    // shows more there), and whether to centre the game in it (embedded games only)
     if (game.dimensions !== undefined) {
       const { dimensions } = game;
       const at = (message) => problem(`dimensions: ${message}`);
@@ -240,11 +240,15 @@ export function validateCatalog(catalog) {
         for (const key of unknownKeys(dimensions, DIMENSION_KEYS)) {
           at(SIZE_KEYS.includes(key) ? `\`${key}\` moved into \`sizes\`: { "sizes": [{ "w": 460, "h": 740 }] }` : unknownKey(key));
         }
-        const { sizes } = dimensions;
-        if (!Array.isArray(sizes) || sizes.length === 0) at('`sizes` must list one or more sizes, like [{ "w": 460, "h": 740 }]');
-        else {
+        for (const name of ['sizes', 'touchSizes']) {
+          const sizes = dimensions[name];
+          if (name === 'touchSizes' && sizes === undefined) continue; // optional
+          if (!Array.isArray(sizes) || sizes.length === 0) {
+            at(`\`${name}\` must list one or more sizes, like [{ "w": 460, "h": 740 }]`);
+            continue;
+          }
           sizes.forEach((size, i) => {
-            const where = (message) => at(`sizes[${i}]: ${message}`);
+            const where = (message) => at(`${name}[${i}]: ${message}`);
             if (!isObject(size)) {
               where('must be an object with `w` and `h`');
               return;

@@ -87,7 +87,7 @@ export const OfflineOutOfTickets = { globals: { network: 'offline' }, args: { do
 export const NewVersionDownloaded = {
   args: { downloaded: true, download: 'updated' },
   play: async ({ canvas }) => {
-    await canvas.findByText(/A new version of Snake Game is downloaded/);
+    await canvas.findByText(/A new version of Snake is downloaded/);
   },
 };
 
@@ -172,7 +172,7 @@ export const LastTicketMessage = {
     downloaded: true,
     download: 'downloaded',
     ticketsLeft: 0,
-    toast: 'That was your last offline ticket for Snake Game: your next games won’t be saved to your account. Connect to the internet to get more.',
+    toast: 'That was your last offline ticket for Snake: your next games won’t be saved to your account. Connect to the internet to get more.',
   },
 };
 

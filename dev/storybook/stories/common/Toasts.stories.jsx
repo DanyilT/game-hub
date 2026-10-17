@@ -35,7 +35,7 @@ export const ThreeAtOnce = {
     messages: [
       { text: "You're back online. Getting your game tickets…", tone: 'info' },
       { text: 'Tickets ready: your games are saved to your account again. 2 games you played offline were checked and saved to your account.', tone: 'info' },
-      { text: 'Snake Game can’t be downloaded yet.', tone: 'error' },
+      { text: 'Snake can’t be downloaded yet.', tone: 'error' },
     ],
   },
 };
