@@ -58,6 +58,11 @@ html.game-focused {
   }
 }
 
+// The game filling the window, where there's no full screen (iPhones: GamePage.jsx): the page under it stays still
+html.game-window-full body {
+  overflow: hidden;
+}
+
 // Hidden on screen, still read by screen readers (e.g. "opens in a new tab")
 .visually-hidden {
   @include mixins.visually-hidden;

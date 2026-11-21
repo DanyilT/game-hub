@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import {
-  CiCircleQuestion, CiFilter, CiGlobe, CiMaximize1, CiMaximize2, CiMinimize1, CiSquareChevLeft,
+  CiCircleQuestion, CiFilter, CiGlobe, CiMaximize1, CiMaximize2, CiMinimize1, CiMinimize2, CiSquareChevLeft,
 } from 'react-icons/ci';
 import { LuChevronsLeftRight, LuChevronsRightLeft } from 'react-icons/lu';
 import { PiPlayFill, PiResizeDuotone, PiStarFill } from 'react-icons/pi';
@@ -154,15 +154,21 @@ const readControlsExpanded = () => {
  */
 const askToCenter = (frame) => frame?.contentWindow?.postMessage({ type: 'gamehub:center' }, new URL(frame.src).origin);
 
+// The element in full screen, if any (older Safari only has the prefixed name)
+const fullscreenElement = () => document.fullscreenElement ?? document.webkitFullscreenElement;
+// Whether the browser lets a page put a part of itself in full screen. An iPhone doesn't (only videos): there the
+// game's frame fills the window instead (windowFull), which in the installed app is the whole screen.
+const canFullscreen = () => Boolean(document.fullscreenEnabled || document.webkitFullscreenEnabled);
+
 /**
  * Tells an embedded game how it's shown, after each load and whenever its frame goes in or out of full
- * screen: 'full' while the frame fills the screen (the game shows its whole page), 'frame' otherwise (it
- * shows only what's needed to play, as it chooses). The game's own gamehub.js answers it, setting
- * data-gamehub-view on its page; games without it ignore the message.
+ * screen: 'full' while the frame fills the screen (or the window: `windowFull`), when the game shows its whole page;
+ * 'frame' otherwise (it shows only what's needed to play, as it chooses). The game's own gamehub.js answers it,
+ * setting data-gamehub-view on its page; games without it ignore the message.
  */
-const tellView = (frame) => {
+const tellView = (frame, windowFull = false) => {
   if (!frame?.contentWindow) return;
-  const full = (document.fullscreenElement ?? document.webkitFullscreenElement) === frame;
+  const full = windowFull || fullscreenElement() === frame;
   frame.contentWindow.postMessage({ type: 'gamehub:view', view: full ? 'full' : 'frame' }, new URL(frame.src).origin);
 };
 
@@ -722,22 +728,49 @@ const GamePageContent = ({ gameId }) => {
     return take;
   }, []);
 
+  // The game's frame filling the window, over the page: full screen where the browser has none (iPhones)
+  const [windowFull, setWindowFull] = useState(false);
+
   const enterFullscreen = () => {
     const frame = iframeRef.current;
+    if (!frame) return;
+    if (!canFullscreen()) {
+      setWindowFull(true);
+      return;
+    }
     // Older Safari only has the prefixed version; a refusal (Safari, without the player's own click) changes nothing
-    const request = frame?.requestFullscreen ?? frame?.webkitRequestFullscreen;
+    const request = frame.requestFullscreen ?? frame.webkitRequestFullscreen;
     Promise.resolve(request?.call(frame)).catch(() => {});
   };
-  // Out of the full screen, when it's the game's frame that fills it
+  // Out of the full screen (or the window), when it's the game's frame that fills it
   const leaveFullscreen = () => {
-    if ((document.fullscreenElement ?? document.webkitFullscreenElement) !== iframeRef.current) return;
+    setWindowFull(false);
+    if (fullscreenElement() !== iframeRef.current) return;
     Promise.resolve((document.exitFullscreen ?? document.webkitExitFullscreen)?.call(document)).catch(() => {});
   };
-  // F: the game full screen, or back
+  // F: the game full screen, or back. (Read from the state as it is now: the listeners below keep the first render's.)
   const toggleFullscreen = () => {
-    if ((document.fullscreenElement ?? document.webkitFullscreenElement) === iframeRef.current) leaveFullscreen();
-    else enterFullscreen();
+    if (fullscreenElement() === iframeRef.current) leaveFullscreen();
+    else if (canFullscreen()) enterFullscreen();
+    else if (iframeRef.current) setWindowFull((full) => !full);
   };
+
+  // Filling the window, the game hears it's full screen, the page under it stays still, and Esc leaves (as it does a
+  // full screen)
+  useEffect(() => {
+    tellView(iframeRef.current, windowFull);
+    if (!windowFull) return undefined;
+    const root = document.documentElement;
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') setWindowFull(false);
+    };
+    root.classList.add('game-window-full');
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      root.classList.remove('game-window-full');
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [windowFull]);
 
   // F on this page (while the game doesn't have the keyboard; in the game, hub-bridge.js passes it up). Not while
   // typing, nor in a window open over the page.
@@ -875,7 +908,7 @@ const GamePageContent = ({ gameId }) => {
           <section ref={frameSectionRef} className={styles.gameFrameSection}>
             <div
               ref={frameContainerRef}
-              className={`${styles.gameFrameContainer} ${resizeEnabled ? styles.resizable : ''}`}
+              className={`${styles.gameFrameContainer} ${resizeEnabled ? styles.resizable : ''} ${windowFull ? styles.windowFull : ''}`}
             >
               {blockedOffline && (
                 <div className={styles.offlineNotice} role="status">
@@ -901,7 +934,7 @@ const GamePageContent = ({ gameId }) => {
                   onLoad={(e) => {
                     const frame = e.currentTarget;
                     setLoadedFrame(frameId);
-                    tellView(frame);
+                    tellView(frame, windowFull);
                     if (dimensions?.center) askToCenter(frame);
                     // Keys work at once: the game gets the keyboard, unless something else took it meanwhile, and not
                     // on touch screens (where it would bring up nothing useful)
@@ -935,21 +968,22 @@ const GamePageContent = ({ gameId }) => {
               )}
 
               {/* Narrower screens (nothing to resize): Fullscreen sits on the frame instead of under
-                  it, out of the way while the game has the focus */}
-              {!wideScreen && frameId && !blockedOffline && (
+                  it, out of the way while the game has the focus. With the frame filling the window, it's
+                  the way back, always there. */}
+              {(windowFull || !wideScreen) && frameId && !blockedOffline && (
                 <Button
                   font="secondary"
                   shape="rounded"
-                  icon={CiMaximize2}
-                  label="Fullscreen"
-                  title="Fullscreen (F)"
+                  icon={windowFull ? CiMinimize2 : CiMaximize2}
+                  label={windowFull ? 'Exit fullscreen' : 'Fullscreen'}
+                  title={windowFull ? 'Exit fullscreen (F)' : 'Fullscreen (F)'}
                   aria-keyshortcuts="F"
-                  className={`${styles.frameFullscreen} ${gameFocused ? styles.hidden : ''}`}
-                  onClick={enterFullscreen}
+                  className={`${styles.frameFullscreen} ${gameFocused && !windowFull ? styles.hidden : ''}`}
+                  onClick={windowFull ? leaveFullscreen : enterFullscreen}
                 />
               )}
 
-              {resizeEnabled && RESIZE_EDGES.map((edge) => (
+              {resizeEnabled && !windowFull && RESIZE_EDGES.map((edge) => (
                 <div
                   key={edge}
                   className={`${styles.resizeHandle} ${styles[edge]}`}

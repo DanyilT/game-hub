@@ -4,12 +4,12 @@
  * Not imported by the app: vite.config.js (gamehub-service-worker) builds it into /sw.js, filling in
  * the app's files (APP_FILES), the other sites its pictures and fonts come from (OTHER_SITES), and a
  * version that changes with every build. src/lib/offline.js registers it, in production builds only.
- * - Pages: from the network when there is one, else the saved app (the site's root, index.html: the app shows any
- *   page). It's saved as the root because Cloudflare redirects /index.html there, and a page can't be answered with
- *   a redirect.
+ * - Pages: from the network when it answers within 3 s, else the saved app (the site's root, index.html: the app shows
+ *   any page). It's saved as the root because Cloudflare redirects /index.html there, and a page can't be answered
+ *   with a redirect.
  * - The app's built files (/assets/…): saved when the worker installs; they never change (their
  *   names have a hash)
- * - The site's other files (icons, the manifest, catalog.json…): from the network, else the saved copy
+ * - The site's other files (icons, the manifest, catalog.json…): from the network (within 3 s), else the saved copy
  * - Pictures and fonts from OTHER_SITES: the saved copy straight away, refreshed in the background
  * The games aren't here. Each game's own worker keeps its files (sw.js in DanyilT/dt-games): a page's
  * worker can't answer for a frame from another site. Supabase is never cached.
@@ -60,15 +60,34 @@ self.addEventListener('fetch', (event) => {
   }
 });
 
-// A page: the network's answer (a real 404 included), or the saved app when there's no network
-async function page(request) {
+// How long the network has to answer before a saved copy is used instead. A bad connection (one that answers slowly, or
+// never, without saying it's down) would otherwise keep the page blank until the browser gives up on it.
+const NETWORK_WAIT = 3000; // ms
+
+// The network's answer, or saved() when the network fails or takes longer than NETWORK_WAIT. With nothing saved, the
+// network's answer however long it takes (or its error).
+async function networkOrSaved(request, saved) {
+  const network = fetch(request);
+  network.catch(() => {}); // an answer that comes too late, or fails, once the saved copy is used
+  let timer;
+  const late = new Promise((resolve) => { timer = setTimeout(resolve, NETWORK_WAIT); });
   try {
-    return await fetch(request);
-  } catch (error) {
-    const app = await caches.match(BASE);
-    if (app) return app.redirected ? unredirected(app) : app;
-    throw error;
+    const response = await Promise.race([network, late]);
+    if (response) return response;
+  } catch {
+    // no network
+  } finally {
+    clearTimeout(timer);
   }
+  return (await saved()) ?? network;
+}
+
+// A page: the network's answer (a real 404 included), or the saved app when there's no network or it's too slow
+async function page(request) {
+  return networkOrSaved(request, async () => {
+    const app = await caches.match(BASE);
+    return app?.redirected ? unredirected(app) : app;
+  });
 }
 
 // The same answer, without the "redirected" mark that keeps a page from using it
@@ -88,15 +107,9 @@ async function builtFile(request) {
   return response;
 }
 
-// The site's other files: the network, or the saved copy when there's no network
+// The site's other files: the network, or the saved copy when there's no network or it's too slow
 async function siteFile(request) {
-  try {
-    return await fetch(request);
-  } catch (error) {
-    const saved = await caches.match(request);
-    if (saved) return saved;
-    throw error;
-  }
+  return networkOrSaved(request, () => caches.match(request));
 }
 
 // Pictures and fonts from other sites: the saved copy at once (refreshed in the background), or the

@@ -9,7 +9,6 @@ dist/
 .env
 .env.*
 !.env.example
-service-account-key.json
 
 # logs
 *.log

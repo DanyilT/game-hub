@@ -191,6 +191,29 @@ $shadow: 0 4px 20px rgba($color-black, 0.2);
       pointer-events: none;
     }
   }
+
+  // Full screen where the browser has none (iPhones: GamePage.jsx): the frame fills the window, over the whole page.
+  // Its size on the page is set on the element itself, hence the !importants. Black around a notch or home bar.
+  &.windowFull {
+    position: fixed;
+    inset: 0;
+    z-index: $z-fixed + 1;
+    width: auto !important;
+    height: auto !important;
+    max-width: none;
+    margin: 0;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    aspect-ratio: auto !important;
+    border-radius: 0;
+    background: $color-black;
+    box-shadow: none;
+    overscroll-behavior: contain;
+
+    .frameFullscreen {
+      top: calc(env(safe-area-inset-top) + $spacing-sm);
+      right: calc(env(safe-area-inset-right) + $spacing-sm);
+    }
+  }
 }
 
 .gameFrame {
